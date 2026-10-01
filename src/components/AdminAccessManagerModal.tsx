@@ -41,7 +41,9 @@ import {
   activateAllAccessCodes,
   deactivateAllAccessCodes,
   deleteAccessCode,
+  deleteAccessCodeAsync,
   createNewAccessRecord,
+  createNewAccessRecordAsync,
   updateAccessRecord,
   updateAccessRecordAsync,
   MASTER_ACCESS_CODE,
@@ -332,38 +334,41 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     }
   };
 
-  const handleToggleStatus = (code: string) => {
+  const handleToggleStatus = async (code: string) => {
     if (isMasterAccessCode(code)) {
       setNotification({ type: 'error', text: 'Kode Master Admin & Pengembang selalu aktif dan tidak dapat dinonaktifkan.' });
       return;
     }
     const updated = toggleAccessCodeStatus(code);
-    refreshList();
+    if (updated) {
+      await updateAccessRecordStatusInFirestore(updated.id, updated.isActive, updated.kodeAkses);
+    }
+    await refreshList();
     if (onDataChanged) onDataChanged();
 
     if (updated?.isActive) {
       setNotification({
         type: 'success',
-        text: `Kode akses ${code} (${updated.namaGuru}) BERHASIL DIAKTIFKAN! Anda dapat langsung mengirim kode ke WA Guru atau WA Admin (${ADMIN_WA_DISPLAY}).`,
+        text: `Kode akses ${code} (${updated.namaGuru}) BERHASIL DIAKTIFKAN di Cloud Firestore! Anda dapat langsung mengirim kode ke WA Guru atau WA Admin (${ADMIN_WA_DISPLAY}).`,
       });
     } else {
       setNotification({
         type: 'success',
-        text: `Kode akses ${code} berhasil DINONAKTIFKAN.`,
+        text: `Kode akses ${code} berhasil DINONAKTIFKAN di Cloud Firestore.`,
       });
     }
   };
 
-  const handleActivateAll = () => {
+  const handleActivateAll = async () => {
     activateAllAccessCodes();
-    refreshList();
+    await refreshList();
     if (onDataChanged) onDataChanged();
-    setNotification({ type: 'success', text: 'Seluruh kode akses berhasil DIAKTIFKAN.' });
+    setNotification({ type: 'success', text: 'Seluruh kode akses berhasil DIAKTIFKAN di Cloud Firestore.' });
   };
 
-  const handleDeactivateAll = () => {
+  const handleDeactivateAll = async () => {
     deactivateAllAccessCodes(false); // keep master code safe
-    refreshList();
+    await refreshList();
     if (onDataChanged) onDataChanged();
     setNotification({ type: 'success', text: 'Seluruh kode akses guru berhasil DINONAKTIFKAN (Kode Master Administrator tetap aktif).' });
   };
@@ -409,17 +414,17 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     }
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (!deleteConfirmTarget) return;
     const code = deleteConfirmTarget.kodeAkses;
     const teacherName = deleteConfirmTarget.namaGuru;
-    const success = deleteAccessCode(code);
+    const success = await deleteAccessCodeAsync(code);
     if (success) {
-      refreshList();
+      await refreshList();
       if (onDataChanged) onDataChanged();
       setNotification({
         type: 'success',
-        text: `Kode akses ${code} (${teacherName}) berhasil dihapus permanen.`,
+        text: `Kode akses ${code} (${teacherName}) berhasil dihapus permanen dari Cloud Firestore dan perangkat.`,
       });
     } else {
       setNotification({
@@ -430,39 +435,46 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     setDeleteConfirmTarget(null);
   };
 
-  const handleCreateManualCode = (e: React.FormEvent) => {
+  const handleCreateManualCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newNamaGuru.trim() || !newNamaSekolah.trim()) {
       setNotification({ type: 'error', text: 'Nama Guru dan Nama Sekolah wajib diisi.' });
       return;
     }
 
-    const created = createNewAccessRecord({
-      namaGuru: newNamaGuru.trim(),
-      nipGuru: newNipGuru.trim() || '-',
-      jabatan: newJabatan,
-      namaSekolah: newNamaSekolah.trim(),
-      fase: newFase,
-      kelas: newKelas,
-      namaKepalaSekolah: newNamaKS.trim() || '-',
-      nipKepalaSekolah: newNipKS.trim() || '-',
-      nomorHpPendaftar: newNomorWA.trim(),
-      sumberPendaftaran: 'Input Langsung',
-      autoActivate: true,
-    });
+    try {
+      const created = await createNewAccessRecordAsync({
+        namaGuru: newNamaGuru.trim(),
+        nipGuru: newNipGuru.trim() || '-',
+        jabatan: newJabatan,
+        namaSekolah: newNamaSekolah.trim(),
+        fase: newFase,
+        kelas: newKelas,
+        namaKepalaSekolah: newNamaKS.trim() || '-',
+        nipKepalaSekolah: newNipKS.trim() || '-',
+        nomorHpPendaftar: newNomorWA.trim(),
+        sumberPendaftaran: 'Input Langsung',
+        autoActivate: true,
+      });
 
-    refreshList();
-    setShowAddModal(false);
-    setNewNamaGuru('');
-    setNewNipGuru('');
-    setNewNamaSekolah('');
-    setNewNomorWA('');
-    setNewNamaKS('');
-    setNewNipKS('');
-    setNotification({
-      type: 'success',
-      text: `Kode akses baru ${created.kodeAkses} berhasil diterbitkan dan diaktifkan untuk ${created.namaGuru}!`,
-    });
+      await refreshList();
+      setShowAddModal(false);
+      setNewNamaGuru('');
+      setNewNipGuru('');
+      setNewNamaSekolah('');
+      setNewNomorWA('');
+      setNewNamaKS('');
+      setNewNipKS('');
+      setNotification({
+        type: 'success',
+        text: `Kode akses baru ${created.kodeAkses} berhasil diterbitkan, diaktifkan, dan tersimpan di Cloud Firestore untuk ${created.namaGuru}!`,
+      });
+    } catch (err: any) {
+      setNotification({
+        type: 'error',
+        text: `Gagal menerbitkan kode ke Cloud Firestore: ${err.message}`,
+      });
+    }
   };
 
   const handleOpenEdit = (r: AccessRecord) => {

@@ -114,42 +114,15 @@ if (typeof window !== 'undefined' && window.localStorage) {
   } catch {}
 }
 
-// Inisialisasi Firestore dengan databaseId spesifik atau default
-const rawDbId = (activeConfig as any).firestoreDatabaseId || (firebaseConfig as any).firestoreDatabaseId;
-const firestoreDbId = (rawDbId && rawDbId !== '(default)' && !rawDbId.startsWith('ai-studio-remix')) ? rawDbId : undefined;
-
+// Inisialisasi Cloud Firestore standar & andal untuk multi-tab, multi-device, dan multi-user
 let firestoreInstance;
 try {
-  firestoreInstance = firestoreDbId
-    ? initializeFirestore(app, {
-        localCache: persistentLocalCache({
-          tabManager: persistentSingleTabManager({}),
-        }),
-        experimentalAutoDetectLongPolling: true,
-      }, firestoreDbId)
-    : initializeFirestore(app, {
-        localCache: persistentLocalCache({
-          tabManager: persistentSingleTabManager({}),
-        }),
-        experimentalAutoDetectLongPolling: true,
-      });
+  firestoreInstance = getFirestore(app);
 } catch {
   try {
-    firestoreInstance = firestoreDbId
-      ? initializeFirestore(app, {
-          localCache: memoryLocalCache(),
-          experimentalAutoDetectLongPolling: true,
-        }, firestoreDbId)
-      : initializeFirestore(app, {
-          localCache: memoryLocalCache(),
-          experimentalAutoDetectLongPolling: true,
-        });
+    firestoreInstance = initializeFirestore(app, {});
   } catch {
-    try {
-      firestoreInstance = firestoreDbId ? getFirestore(app, firestoreDbId) : getFirestore(app);
-    } catch {
-      firestoreInstance = getFirestore(app);
-    }
+    firestoreInstance = getFirestore(app);
   }
 }
 export const db = firestoreInstance;

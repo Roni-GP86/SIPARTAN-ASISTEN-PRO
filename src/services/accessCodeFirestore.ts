@@ -302,12 +302,11 @@ export async function batchUpdateAllAccessCodesInFirestore(isActive: boolean): P
 function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] {
   const mapByCode = new Map<string, AccessRecord>();
 
-  // 1. Masukkan akun Master (GP-1386), Demo bawaan (GP-RHB1), dan Guru Resmi (GP-FE86) terlebih dahulu
+  // 1. Masukkan akun Master (GP-1386) dan Demo bawaan (GP-RHB1) selalu ada
   mapByCode.set(MASTER_ACCESS_CODE, DEFAULT_PREMIUM_RECORD);
   mapByCode.set(DEMO_ACCESS_CODE, DEFAULT_SIMULASI_RECORD);
-  mapByCode.set('GP-FE86', DEFAULT_FERIANUS_RECORD);
 
-  // 2. Masukkan data dari cloud (abaikan dan bersihkan GP-86OK jika masih tersimpan di cloud lama)
+  // 2. Masukkan data dari cloud Firestore
   cloudRecords.forEach((r) => {
     if (!r.kodeAkses) return;
     const cleanCode = r.kodeAkses.toUpperCase().trim();
@@ -338,23 +337,10 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
     } else {
       mapByCode.set(cleanCode, {
         ...r,
+        id: r.id || `acc-${cleanCode.replace(/\s+/g, '')}`,
         status: r.isActive ? 'active' : 'inactive',
         namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah,
       });
-    }
-  });
-
-  // 3. Masukkan data lokal lama jika belum ada di cloud (agar data lama lokal tidak hilang)
-  const localList = getAllAccessRecords();
-  localList.forEach((localRec) => {
-    if (!localRec.kodeAkses) return;
-    const clean = localRec.kodeAkses.toUpperCase().trim();
-    if (!mapByCode.has(clean)) {
-      mapByCode.set(clean, localRec);
-      // Kirim ke cloud di background jika cloud sedang aktif
-      if (canAttemptCloud()) {
-        saveAccessRecordToFirestore(localRec).catch(() => {});
-      }
     }
   });
 

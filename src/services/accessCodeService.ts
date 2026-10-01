@@ -341,16 +341,6 @@ export function getAllAccessRecords(): AccessRecord[] {
       cleaned.push(DEFAULT_DEMO_RECORD);
     }
 
-    // Pastikan akun resmi Bapak Ferianus Ellu, S.Pd. SD selalu ada di daftar pendaftar
-    const hasFerianus = cleaned.some(
-      (r) =>
-        (r.namaGuru && r.namaGuru.toLowerCase().includes('ferianus')) ||
-        r.kodeAkses.toUpperCase().trim() === 'GP-FE86'
-    );
-    if (!hasFerianus) {
-      cleaned.push(DEFAULT_FERIANUS_RECORD);
-    }
-
     const normalized: AccessRecord[] = cleaned.map((r) => {
       const isMaster = isMasterAccessCode(r.kodeAkses);
       const isDemo = isSimulationAccessCode(r.kodeAkses);
@@ -547,6 +537,31 @@ export function deleteAccessCode(code: string): boolean {
   deleteAccessRecordFromFirestore(targetRecord?.id || '', cleanCode).catch(() => {});
 
   // Jika kode yang dihapus adalah sesi aktif saat ini di browser, bersihkan
+  const currentSession = getActiveSessionCode();
+  if (currentSession && currentSession.toUpperCase().trim() === cleanCode) {
+    clearActiveSessionCode();
+  }
+
+  return true;
+}
+
+/**
+ * Menghapus 1 kode akses secara asinkron dengan jaminan penghapusan permanen dari Cloud Firestore
+ */
+export async function deleteAccessCodeAsync(code: string): Promise<boolean> {
+  if (!code) return false;
+  const cleanCode = code.toUpperCase().trim();
+  if (isMasterAccessCode(cleanCode)) return false;
+
+  const records = getAllAccessRecords();
+  const targetRecord = records.find((r) => r.kodeAkses.toUpperCase().trim() === cleanCode);
+  const filtered = records.filter((r) => r.kodeAkses.toUpperCase().trim() !== cleanCode);
+
+  saveAllAccessRecords(filtered);
+
+  // Hapus dari Cloud Firestore secara tuntas
+  await deleteAccessRecordFromFirestore(targetRecord?.id || '', cleanCode);
+
   const currentSession = getActiveSessionCode();
   if (currentSession && currentSession.toUpperCase().trim() === cleanCode) {
     clearActiveSessionCode();
