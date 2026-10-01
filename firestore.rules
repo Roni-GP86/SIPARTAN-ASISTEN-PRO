@@ -1,68 +1,45 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions for validating incoming documents
-    function hasRequiredFields(fields) {
-      return request.resource.data.keys().hasAll(fields);
+    // 1. Koleksi Kode Akses & Pendaftaran Guru SIPARTAN
+    match /sipartan_access_codes/{document=**} {
+      allow read, write: if true;
     }
 
-    // 1. User Workspaces (Perangkat Ajar Guru: TP, ATP, Modul, KKTP, Prota, Promes, Kisi-Kisi)
-    // Melindungi keutuhan dokumen kerja guru dari payload rusak dan mencegah drop sembarangan
-    match /sipartan_user_workspaces/{workspaceId} {
-      allow read: if true;
-      allow create, update: if hasRequiredFields(['kodeAkses', 'identitas']) 
-                           && request.resource.data.kodeAkses is string
-                           && request.resource.data.kodeAkses.size() > 0;
-      // Cegah penghapusan dokumen ruang kerja langsung di cloud untuk menjamin keutuhan data
-      allow delete: if false;
+    // 2. Koleksi Pengaturan Sistem, Kebijakan Unduhan, & Ruang Murid
+    match /sipartan_settings/{document=**} {
+      allow read, write: if true;
     }
 
-    // 2. Kode Akses Guru & Permohonan Lisensi
-    match /sipartan_access_codes/{codeId} {
-      allow read: if true;
-      allow create, update: if hasRequiredFields(['kodeAkses', 'namaGuru', 'namaSekolah'])
-                           && request.resource.data.kodeAkses is string;
-      allow delete: if true;
+    // 3. Koleksi Workspace Kerja & Perangkat Ajar Guru (Sinkronisasi Antar-Perangkat)
+    match /sipartan_user_workspaces/{document=**} {
+      allow read, write: if true;
     }
 
-    // 3. Data Murid Sekolah & Kelas
-    match /sipartan_students/{studentDocId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if true;
+    // 4. Koleksi Ujian & Lembar Evaluasi Siswa
+    match /sipartan_exams/{document=**} {
+      allow read, write: if true;
     }
 
-    // 4. Pengaturan Sistem SIPARTAN
-    match /sipartan_settings/{settingId} {
-      allow read: if true;
-      allow create, update: if true;
-      allow delete: if false;
+    // 5. Koleksi Hasil Kiriman Ujian Siswa (Exam Submissions)
+    match /sipartan_exam_submissions/{document=**} {
+      allow read, write: if true;
     }
 
-    // 5. Paket Soal Ujian (Exam Packages)
-    match /sipartan_exam_packages/{packageId} {
-      allow read: if true;
-      allow create, update: if hasRequiredFields(['id', 'judul', 'mataPelajaran', 'soalDocument']);
-      allow delete: if true;
+    // 6. Koleksi Kamar Bahan Ajar & Materi Pembelajaran
+    match /sipartan_learning_materials/{document=**} {
+      allow read, write: if true;
     }
 
-    // 6. Lembar Jawaban & Nilai Siswa (Exam Submissions)
-    // Keutuhan nilai siswa dijaga ketat: data submission tidak boleh dihapus bebas oleh siswa
-    match /sipartan_exam_submissions/{submissionId} {
-      allow read: if true;
-      allow create: if hasRequiredFields(['id', 'paketId', 'namaSiswa', 'nisn', 'nilaiAkhir']);
-      allow update: if resource != null && request.resource.data.paketId == resource.data.paketId;
-      allow delete: if false;
+    // 7. Koleksi Data Siswa & Rapor
+    match /sipartan_student_records/{document=**} {
+      allow read, write: if true;
     }
 
-    // 7. Kamar Bahan Ajar & Media Belajar Digital
-    match /sipartan_learning_materials/{materialId} {
-      allow read: if true;
-      allow create, update: if hasRequiredFields(['id', 'judul', 'mataPelajaran', 'jenisMedia']);
-      allow delete: if true;
+    // Aturan Default / Fallback untuk seluruh koleksi dokumen SIPARTAN
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
-

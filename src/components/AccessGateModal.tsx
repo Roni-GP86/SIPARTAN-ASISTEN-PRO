@@ -22,6 +22,7 @@ import {
 import {
   findAccessRecord,
   findAccessRecordAsync,
+  subscribeToSingleAccessCode,
   setActiveSessionCode,
   MASTER_ACCESS_CODE,
   createNewAccessRecord,
@@ -74,8 +75,35 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
   const [regNipKS, setRegNipKS] = useState('');
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isCheckingActivation, setIsCheckingActivation] = useState(false);
   const [newlyCreatedCode, setNewlyCreatedCode] = useState<AccessRecord | null>(null);
   const [copiedCodeText, setCopiedCodeText] = useState<string | null>(null);
+
+  // Real-time listener: mendeteksi otomatis saat Admin mengaktifkan kode pendaftar
+  React.useEffect(() => {
+    if (!newlyCreatedCode?.kodeAkses) return;
+    const unsub = subscribeToSingleAccessCode(newlyCreatedCode.kodeAkses, (updated) => {
+      if (updated && (updated.isActive || updated.status === 'active')) {
+        setNewlyCreatedCode(updated);
+        setActiveSessionCode(updated.kodeAkses);
+        setSuccessInfo(`Selamat! Kode Akses "${updated.kodeAkses}" telah DISETUJUI & DIAKTIFKAN oleh Admin SIPARTAN! Membuka aplikasi...`);
+        const unlockCallback = onSuccessUnlock || onSuccess;
+        if (unlockCallback) {
+          try {
+            unlockCallback(updated);
+          } catch (err) {
+            console.error('Error applying access record callback:', err);
+          }
+        }
+        setTimeout(() => {
+          if (onClose) onClose();
+        }, 1200);
+      }
+    });
+    return () => {
+      unsub();
+    };
+  }, [newlyCreatedCode?.kodeAkses, onSuccessUnlock, onSuccess, onClose]);
 
   if (!isOpen) return null;
 
@@ -570,25 +598,34 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => {
+                      disabled={isCheckingActivation}
+                      onClick={async () => {
                         if (!newlyCreatedCode) return;
-                        const latest = findAccessRecord(newlyCreatedCode.kodeAkses);
-                        if (latest && (latest.isActive || latest.status === 'active')) {
-                          setActiveSessionCode(latest.kodeAkses);
-                          const cb = onSuccessUnlock || onSuccess;
-                          if (cb) cb(latest);
-                          setSuccessInfo(`Selamat! Kode akses ${latest.kodeAkses} telah aktif. Selamat menyusun perangkat ajar.`);
-                          setTimeout(() => {
-                            if (onClose) onClose();
-                          }, 1200);
-                        } else {
-                          alert(`Kode ${newlyCreatedCode.kodeAkses} saat ini masih MENUNGGU AKTIVASI oleh Admin SIPARTAN (Bapak Roni / WA: ${ADMIN_WA_DISPLAY}). Silakan kirim konfirmasi WhatsApp ke Admin terlebih dahulu.`);
+                        setIsCheckingActivation(true);
+                        try {
+                          const latest = await findAccessRecordAsync(newlyCreatedCode.kodeAkses);
+                          if (latest && (latest.isActive || latest.status === 'active')) {
+                            setActiveSessionCode(latest.kodeAkses);
+                            setNewlyCreatedCode(latest);
+                            const cb = onSuccessUnlock || onSuccess;
+                            if (cb) cb(latest);
+                            setSuccessInfo(`Selamat! Kode akses ${latest.kodeAkses} telah DISETUJUI & DIAKTIFKAN oleh Admin SIPARTAN.`);
+                            setTimeout(() => {
+                              if (onClose) onClose();
+                            }, 1200);
+                          } else {
+                            alert(`Status Kode Akses "${newlyCreatedCode.kodeAkses}":\nSaat ini masih dalam antrean (Menunggu Verifikasi & Aktivasi oleh Admin SIPARTAN).\n\nJika belum, pastikan Anda telah mengirimkan konfirmasi via WhatsApp ke Admin (Bapak Roni / WA: ${ADMIN_WA_DISPLAY}).`);
+                          }
+                        } catch (err: any) {
+                          alert(`Gagal memeriksa ke Cloud: ${err?.message || 'Koneksi offline'}`);
+                        } finally {
+                          setIsCheckingActivation(false);
                         }
                       }}
-                      className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer disabled:opacity-60"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Cek Status Aktivasi Sekarang</span>
+                      <RefreshCw className={`w-3.5 h-3.5 ${isCheckingActivation ? 'animate-spin' : ''}`} />
+                      <span>{isCheckingActivation ? 'Memeriksa ke Cloud Firestore...' : 'Cek Status Aktivasi Sekarang'}</span>
                     </button>
                   </div>
                 </div>

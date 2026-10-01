@@ -3,6 +3,7 @@ import {
   getAllAccessRecords,
   saveAllAccessRecords,
   generateUniqueAccessCode,
+  saveAccessRecordToFirestore,
   GOOGLE_FORM_CONFIG_STORAGE_KEY,
 } from './accessCodeService';
 
@@ -334,6 +335,8 @@ export async function syncGoogleFormResponses(
       };
       existingRecords.push(newRec);
       addedCount++;
+      // Simpan langsung ke Cloud Firestore agar dapat digunakan di seluruh gawai secara real-time
+      saveAccessRecordToFirestore(newRec).catch(() => {});
     }
   });
 

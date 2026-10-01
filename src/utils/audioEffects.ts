@@ -233,12 +233,33 @@ class SoundManager {
         gain.gain.setValueAtTime(0.18, now + idx * 0.08);
         gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.2);
 
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
         osc.start(now + idx * 0.08);
         osc.stop(now + idx * 0.08 + 0.2);
       });
+    } catch {}
+  }
+
+  // 8. Admin Notification Bell Chime
+  public playNotificationChime() {
+    const ctx = this.getContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now); // A5
+      osc.frequency.setValueAtTime(1318.51, now + 0.1); // E6
+
+      gain.gain.setValueAtTime(0.22, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 0.5);
     } catch {}
   }
 }

@@ -82,25 +82,42 @@ if (typeof window !== 'undefined' && window.localStorage) {
   } catch {}
 }
 
-// Inisialisasi Firestore dengan databaseId spesifik proyek dan cache IndexedDB (SingleTab agar kebal QuotaExceededError)
-const firestoreDbId = (activeConfig as any).firestoreDatabaseId || (firebaseConfig as any).firestoreDatabaseId;
+// Inisialisasi Firestore dengan databaseId spesifik atau default
+const rawDbId = (activeConfig as any).firestoreDatabaseId || (firebaseConfig as any).firestoreDatabaseId;
+const firestoreDbId = (rawDbId && rawDbId !== '(default)' && !rawDbId.startsWith('ai-studio-remix')) ? rawDbId : undefined;
 
 let firestoreInstance;
 try {
-  firestoreInstance = initializeFirestore(app, {
-    localCache: persistentLocalCache({
-      tabManager: persistentSingleTabManager({}),
-    }),
-    experimentalAutoDetectLongPolling: true,
-  }, firestoreDbId);
+  firestoreInstance = firestoreDbId
+    ? initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentSingleTabManager({}),
+        }),
+        experimentalAutoDetectLongPolling: true,
+      }, firestoreDbId)
+    : initializeFirestore(app, {
+        localCache: persistentLocalCache({
+          tabManager: persistentSingleTabManager({}),
+        }),
+        experimentalAutoDetectLongPolling: true,
+      });
 } catch {
   try {
-    firestoreInstance = initializeFirestore(app, {
-      localCache: memoryLocalCache(),
-      experimentalAutoDetectLongPolling: true,
-    }, firestoreDbId);
+    firestoreInstance = firestoreDbId
+      ? initializeFirestore(app, {
+          localCache: memoryLocalCache(),
+          experimentalAutoDetectLongPolling: true,
+        }, firestoreDbId)
+      : initializeFirestore(app, {
+          localCache: memoryLocalCache(),
+          experimentalAutoDetectLongPolling: true,
+        });
   } catch {
-    firestoreInstance = firestoreDbId ? getFirestore(app, firestoreDbId) : getFirestore(app);
+    try {
+      firestoreInstance = firestoreDbId ? getFirestore(app, firestoreDbId) : getFirestore(app);
+    } catch {
+      firestoreInstance = getFirestore(app);
+    }
   }
 }
 export const db = firestoreInstance;

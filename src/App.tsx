@@ -118,6 +118,7 @@ import {
   createAutoSnapshot,
 } from './utils/storageUtils';
 import { getStudentList, saveStudentList } from './services/studentService';
+import { sounds } from './utils/audioEffects';
 import {
   clientGenerateTP,
   clientGenerateATP,
@@ -355,11 +356,18 @@ export default function App() {
     window.addEventListener('sipartan_word_export_status_changed', handleStatusChanged);
     window.addEventListener('sipartan_cloud_sync_status', handleCloudStatus);
 
+    const prevPendingRef = { current: -1 };
     const updatePendingCount = (recordsList?: AccessRecord[]) => {
       const list = recordsList || getAllAccessRecords();
       const count = list.filter(
         (r) => !r.isActive && !r.isPremiumMaster && !isMasterAccessCode(r.kodeAkses)
       ).length;
+      if (prevPendingRef.current !== -1 && count > prevPendingRef.current) {
+        try {
+          sounds.playNotificationChime();
+        } catch {}
+      }
+      prevPendingRef.current = count;
       setPendingAccessCount(count);
     };
 

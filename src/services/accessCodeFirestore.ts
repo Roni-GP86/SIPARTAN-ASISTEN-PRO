@@ -70,7 +70,7 @@ function markCloudFailure(err?: any) {
   lastFailureTime = Date.now();
   const rawMsg = err?.message || String(err || '');
   const activeCfg = getActiveFirebaseConfig();
-  const activeProject = activeCfg.projectId || 'level-program-7sjh2';
+  const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
 
   if (
     rawMsg.includes('NOT_FOUND') ||
@@ -99,7 +99,7 @@ function markCloudFailure(err?: any) {
 export async function testFirestoreConnectionAsync(): Promise<{ success: boolean; message: string }> {
   resetCloudCooldown();
   const activeCfg = getActiveFirebaseConfig();
-  const activeProject = activeCfg.projectId || 'level-program-7sjh2';
+  const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
   try {
     // 1. Uji Tulis Dokumen Uji Ping Nyata
     const pingDocRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'connection_ping');
@@ -456,6 +456,85 @@ export function subscribeToAccessRecordsFromFirestore(
   } catch (error) {
     markCloudFailure(error);
     onRecordsUpdated(getAllAccessRecords());
+    return () => {};
+  }
+}
+
+/**
+ * Berlangganan (Real-time Listener) pada 1 kode akses spesifik.
+ * Digunakan pada perangkat pendaftar/guru sehingga ketika Admin menekan tombol Aktifkan di gawai Admin,
+ * gawai pendaftar akan langsung terdeteksi aktif dan membuka aplikasi secara real-time.
+ */
+export function subscribeToSingleAccessCode(
+  code: string,
+  onRecordUpdated: (record: AccessRecord | null) => void
+): () => void {
+  if (!code) {
+    onRecordUpdated(null);
+    return () => {};
+  }
+  const clean = code.toUpperCase().trim();
+  if (isMasterAccessCode(clean)) {
+    onRecordUpdated(DEFAULT_PREMIUM_RECORD);
+    return () => {};
+  }
+  if (isSimulationAccessCode(clean)) {
+    onRecordUpdated(DEFAULT_SIMULASI_RECORD);
+    return () => {};
+  }
+
+  if (!canAttemptCloud()) {
+    onRecordUpdated(findAccessRecord(clean));
+    return () => {};
+  }
+
+  try {
+    const docId = `acc-${clean.replace(/\s+/g, '')}`;
+    const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, docId);
+    let active = true;
+    let unsubInternal: (() => void) | null = null;
+
+    unsubInternal = onSnapshot(
+      docRef,
+      (docSnap) => {
+        if (!active) return;
+        isCloudAvailable = true;
+        if (docSnap.exists()) {
+          const data = docSnap.data() as AccessRecord;
+          const rec: AccessRecord = {
+            ...data,
+            id: docSnap.id,
+            status: data.isActive ? 'active' : 'inactive',
+          };
+          // Update juga di localStorage
+          const local = getAllAccessRecords();
+          const idx = local.findIndex((r) => r.kodeAkses.toUpperCase().trim() === clean);
+          if (idx >= 0) local[idx] = rec;
+          else local.unshift(rec);
+          saveAllAccessRecords(local);
+
+          onRecordUpdated(rec);
+        } else {
+          onRecordUpdated(findAccessRecord(clean));
+        }
+      },
+      (err) => {
+        markCloudFailure(err);
+        onRecordUpdated(findAccessRecord(clean));
+      }
+    );
+
+    return () => {
+      active = false;
+      if (unsubInternal) {
+        try {
+          unsubInternal();
+        } catch {}
+      }
+    };
+  } catch (err) {
+    markCloudFailure(err);
+    onRecordUpdated(findAccessRecord(clean));
     return () => {};
   }
 }
