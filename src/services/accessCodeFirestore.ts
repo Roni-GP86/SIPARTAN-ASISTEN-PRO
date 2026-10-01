@@ -10,7 +10,7 @@ import {
   where,
   limit,
 } from 'firebase/firestore';
-import { db, getActiveFirebaseConfig } from './firebaseAuth';
+import { db, getActiveFirebaseConfig, ensureFirebaseAuth } from './firebaseAuth';
 import { AccessRecord } from '../types';
 import {
   DEFAULT_PREMIUM_RECORD,
@@ -98,6 +98,7 @@ function markCloudFailure(err?: any) {
  */
 export async function testFirestoreConnectionAsync(): Promise<{ success: boolean; message: string }> {
   resetCloudCooldown();
+  await ensureFirebaseAuth().catch(() => null);
   const activeCfg = getActiveFirebaseConfig();
   const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
   try {
@@ -181,6 +182,7 @@ export async function saveAccessRecordToFirestore(
     };
   }
   try {
+    await ensureFirebaseAuth().catch(() => null);
     const clean = (record.kodeAkses || '').toUpperCase().trim();
     const docId = clean ? `acc-${clean.replace(/\s+/g, '')}` : (record.id || `acc-${Date.now()}`);
     const sanitized = cleanFirestoreData({

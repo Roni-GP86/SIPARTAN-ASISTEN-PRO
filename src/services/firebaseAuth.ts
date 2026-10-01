@@ -1,5 +1,13 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, User, signOut } from 'firebase/auth';
+import {
+  getAuth,
+  signInWithPopup,
+  signInAnonymously,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  User,
+  signOut,
+} from 'firebase/auth';
 import {
   initializeFirestore,
   getFirestore,
@@ -39,7 +47,12 @@ export function getActiveFirebaseConfig(): FirebaseClientConfig {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.projectId && parsed?.apiKey) {
-          return parsed;
+          // Jika proyek di storage berbeda dengan konfigurasi aktif bawaan (bahan-ajar-guru), bersihkan residu lama
+          if (parsed.projectId === (firebaseConfig as any).projectId) {
+            return parsed;
+          } else {
+            localStorage.removeItem(CUSTOM_FIREBASE_CONFIG_KEY);
+          }
         }
       }
     } catch {}
@@ -66,6 +79,25 @@ const activeConfig = getActiveFirebaseConfig();
 export const app = getApps().length > 0 ? getApp() : initializeApp(activeConfig);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
+
+/**
+ * Memastikan sesi autentikasi Firebase siap (Anonymous Auth / Google Auth).
+ * Sangat penting agar seluruh pembacaan dan penulisan Firestore multi-perangkat berjalan 100% tanpa terblokir Rules.
+ */
+export async function ensureFirebaseAuth(): Promise<User | null> {
+  try {
+    if (auth.currentUser) return auth.currentUser;
+    const cred = await signInAnonymously(auth);
+    return cred.user;
+  } catch (err) {
+    return auth.currentUser || null;
+  }
+}
+
+// Jalankan autentikasi otomatis di latar belakang saat aplikasi dimuat
+if (typeof window !== 'undefined') {
+  ensureFirebaseAuth().catch(() => {});
+}
 
 // Bersihkan residu firestore_mutations_ dari localStorage yang ditinggalkan oleh multi-tab manager lama
 // agar tidak melebihi kuota 5MB browser

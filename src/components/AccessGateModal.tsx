@@ -35,6 +35,7 @@ import {
   ADMIN_WA_INTL,
   createAdminWhatsAppLink,
   formatWhatsAppNumber,
+  resetCloudCooldown,
 } from '../services/accessCodeService';
 import { AccessRecord } from '../types';
 
@@ -203,6 +204,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
     }
 
     setIsSubmittingReg(true);
+    resetCloudCooldown();
     try {
       const created = await createNewAccessRecordAsync({
         namaGuru: regNamaGuru.trim(),
@@ -220,6 +222,9 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
 
       setNewlyCreatedCode(created);
       setInputCode(created.kodeAkses);
+      if (created.cloudSynced === false && created.cloudError) {
+        console.warn('Peringatan penyimpanan cloud pendaftaran:', created.cloudError);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || 'Gagal mendaftarkan data guru.');
     } finally {
