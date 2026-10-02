@@ -16,6 +16,7 @@ import {
   DEFAULT_PREMIUM_RECORD,
   DEFAULT_SIMULASI_RECORD,
   DEFAULT_FERIANUS_RECORD,
+  DEFAULT_PERMANENT_RECORDS,
   MASTER_ACCESS_CODE,
   DEMO_ACCESS_CODE,
   isMasterAccessCode,
@@ -93,10 +94,11 @@ export async function testFirestoreConnectionAsync(): Promise<{ success: boolean
       isCloudOnlineState = true;
       lastCloudErrorMessage = null;
 
-      // 3. Pastikan data Master & Demo ada di Cloud Firestore jika koleksi masih kosong
+      // 3. Pastikan seluruh akun permanen bawaan ada di Cloud Firestore
       if (snapshot.empty) {
-        await saveAccessRecordToFirestore(DEFAULT_PREMIUM_RECORD).catch(() => {});
-        await saveAccessRecordToFirestore(DEFAULT_SIMULASI_RECORD).catch(() => {});
+        for (const permRec of DEFAULT_PERMANENT_RECORDS) {
+          await saveAccessRecordToFirestore(permRec).catch(() => {});
+        }
       }
 
       return {
@@ -247,14 +249,15 @@ export async function batchUpdateAllAccessCodesInFirestore(isActive: boolean): P
 }
 
 /**
- * Normalisasi data Cloud Firestore dengan akun bawaan sistem
+ * Normalisasi data Cloud Firestore dengan seluruh akun permanen bawaan sistem
  */
 function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] {
   const mapByCode = new Map<string, AccessRecord>();
 
-  // 1. Akun Master & Demo bawaan
-  mapByCode.set(MASTER_ACCESS_CODE, DEFAULT_PREMIUM_RECORD);
-  mapByCode.set(DEMO_ACCESS_CODE, DEFAULT_SIMULASI_RECORD);
+  // 1. Inisialisasi SELURUH akun permanen bawaan sistem (Master, Demo, SD Negeri Bele, Obenaf, Gua Aplasi, GMIT 2)
+  DEFAULT_PERMANENT_RECORDS.forEach((defRec) => {
+    mapByCode.set(defRec.kodeAkses.toUpperCase().trim(), { ...defRec });
+  });
 
   // 2. Data dari Cloud Firestore
   cloudRecords.forEach((r) => {
@@ -266,28 +269,24 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
       return;
     }
 
-    if (isMasterAccessCode(cleanCode)) {
-      mapByCode.set(MASTER_ACCESS_CODE, {
-        ...DEFAULT_PREMIUM_RECORD,
+    const existing = mapByCode.get(cleanCode);
+    if (existing) {
+      mapByCode.set(cleanCode, {
+        ...existing,
         ...r,
-        kodeAkses: MASTER_ACCESS_CODE,
-        namaGuru: 'Roni Hariyanto Bhidju, S.Pd',
-        nipGuru: '198603012020121005',
-        isPremiumMaster: true,
-      });
-    } else if (isSimulationAccessCode(cleanCode)) {
-      mapByCode.set(DEMO_ACCESS_CODE, {
-        ...DEFAULT_SIMULASI_RECORD,
-        ...r,
-        namaGuru: 'Roni Hariyanto Bhidju, S.Pd',
-        nipGuru: '198603012020121005',
-        isDemo: true,
+        isPermanent: Boolean(existing.isPermanent || r.isPermanent),
+        isPremiumMaster: existing.isPremiumMaster || r.isPremiumMaster,
+        isDemo: existing.isDemo || r.isDemo,
+        status: (r.isActive ?? existing.isActive) ? ('active' as const) : ('inactive' as const),
+        namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah || existing.namaSatuanPendidikan,
+        namaGuru: (existing.isPremiumMaster || existing.isDemo) ? 'Roni Hariyanto Bhidju, S.Pd' : (r.namaGuru || existing.namaGuru),
+        nipGuru: (existing.isPremiumMaster || existing.isDemo) ? '198603012020121005' : (r.nipGuru || existing.nipGuru),
       });
     } else {
       mapByCode.set(cleanCode, {
         ...r,
         id: r.id || `acc-${cleanCode.replace(/\s+/g, '')}`,
-        status: r.isActive ? 'active' : 'inactive',
+        status: (r.isActive ?? true) ? ('active' as const) : ('inactive' as const),
         namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah,
       });
     }

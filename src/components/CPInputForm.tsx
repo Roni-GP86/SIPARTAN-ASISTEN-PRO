@@ -31,8 +31,13 @@ import {
   Building
 } from 'lucide-react';
 import { getPermen13Allocation } from '../data/permendikdasmen13Data';
-import { Permen13AllocationModal } from './Permen13AllocationModal';
-import { getAllowedFaseForRecord, isDemoAccessCode } from '../services/accessCodeService';
+import {
+  getAllowedFaseForRecord,
+  isDemoAccessCode,
+  isMasterAccessCode,
+  isSubjectTeacher,
+  isSubjectAllowedForRecord,
+} from '../services/accessCodeService';
 
 // Dedicated Subject Thematic Palette tailored for Executive Navy & Gold Theme
 const getSubjectCardStyle = (mapel: string, isSelected: boolean) => {
@@ -195,7 +200,9 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
   const isDemoMode = activeAccessRecord
     ? isDemoAccessCode(activeAccessRecord.kodeAkses) || Boolean(activeAccessRecord.isDemo)
     : false;
+  const isSubjectTeacherUser = isSubjectTeacher(activeAccessRecord) && !isDemoMode && !isMasterAccessCode(activeAccessRecord?.kodeAkses);
   const isPhaseRestricted = allowedFase !== 'ALL';
+  const isSubjectRestricted = isSubjectTeacherUser;
 
   const [activeInputMode, setActiveInputMode] = useState<'folder_bank' | 'manual' | 'upload'>('folder_bank');
   const [activeFolderId, setActiveFolderId] = useState<string>('folder-ipas-fase-b');
@@ -255,6 +262,12 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
     if (isPhaseRestricted && folder.fase !== allowedFase) {
       setPhaseLockAlert(
         `Fase ${folder.fase} terkunci! Akun Anda terdaftar khusus untuk ${allowedFase}. Silakan buka folder ${allowedFase}, ajukan kode akses baru, atau gunakan Akun Demo (GP-RHB1).`
+      );
+      return;
+    }
+    if (isSubjectRestricted && !isSubjectAllowedForRecord(folder.mataPelajaran, activeAccessRecord)) {
+      setPhaseLockAlert(
+        `Mata Pelajaran "${folder.mataPelajaran}" terkunci! Akun Anda terdaftar khusus sebagai Guru Mata Pelajaran "${activeAccessRecord?.mataPelajaran || 'Pendidikan Agama'}". Anda berhak mengakses seluruh Fase A, B, C untuk mata pelajaran ${activeAccessRecord?.mataPelajaran || ''}.`
       );
       return;
     }
@@ -612,8 +625,29 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
               </div>
             )}
 
+            {/* Guru Mata Pelajaran Status Banner */}
+            {isSubjectRestricted && (
+              <div className="p-3.5 bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50 border-2 border-indigo-300 rounded-xl flex items-start gap-2.5 text-xs text-indigo-950">
+                <Lock className="w-4 h-4 text-indigo-700 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-black text-indigo-900 flex items-center gap-1.5 flex-wrap">
+                    <span>Akun Guru Mata Pelajaran: Khusus {activeAccessRecord?.mataPelajaran || 'Pendidikan Agama Katolik'}</span>
+                    <span className="px-2 py-0.5 rounded bg-indigo-600 text-white text-[9.5px] font-mono font-black">
+                      {activeAccessRecord?.kodeAkses}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 text-[9.5px] font-bold">
+                      Fase A, B, C (Kelas 1-6) Bebas Diakses
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-indigo-800 leading-relaxed mt-0.5">
+                    Anda memiliki hak akses penuh ke seluruh jenjang <strong>Kelas 1 s.d. 6 (Fase A, Fase B, dan Fase C)</strong> untuk mata pelajaran <strong>{activeAccessRecord?.mataPelajaran}</strong>. Mata pelajaran lain terkunci otomatis.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Regular Teacher Phase-Locked Status Banner */}
-            {isPhaseRestricted && (
+            {isPhaseRestricted && !isSubjectRestricted && (
               <div className="p-3.5 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 border-2 border-blue-300 rounded-xl flex items-start gap-2.5 text-xs text-blue-950">
                 <Lock className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -689,7 +723,9 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 max-h-[460px] overflow-y-auto pr-1.5 p-1">
               {filteredFolders.map((folder) => {
                 const isSelected = activeFolderId === folder.id;
-                const isFolderLocked = isPhaseRestricted && folder.fase !== allowedFase;
+                const isFolderSubjectLocked = isSubjectRestricted && !isSubjectAllowedForRecord(folder.mataPelajaran, activeAccessRecord);
+                const isFolderPhaseLocked = isPhaseRestricted && folder.fase !== allowedFase;
+                const isFolderLocked = isFolderPhaseLocked || isFolderSubjectLocked;
                 const style = getSubjectCardStyle(folder.mataPelajaran, isSelected);
 
                 return (

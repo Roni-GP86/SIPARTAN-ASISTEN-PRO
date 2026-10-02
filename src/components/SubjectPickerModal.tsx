@@ -19,6 +19,13 @@ import {
   getSubjectEmoticon,
 } from '../utils/subjectWorkspaceService';
 import { sounds } from '../utils/audioEffects';
+import {
+  isSubjectAllowedForRecord,
+  isSubjectTeacher,
+  isMasterAccessCode,
+  isDemoAccessCode,
+} from '../services/accessCodeService';
+import { AccessRecord } from '../types';
 
 interface SubjectPickerModalProps {
   isOpen: boolean;
@@ -27,6 +34,7 @@ interface SubjectPickerModalProps {
   currentMataPelajaran?: string;
   currentFase: string;
   allowedFase?: string;
+  activeAccessRecord?: AccessRecord | null;
   onSelectSubject?: (folder: SubjectFolder) => void;
   onSelectAnalyzedSubject?: (folder: SubjectFolder) => void;
   onRequestUnanalyzedSubject?: (folder: SubjectFolder) => void;
@@ -141,13 +149,16 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
   currentMataPelajaran,
   currentFase,
   allowedFase = 'ALL',
+  activeAccessRecord,
   onSelectSubject,
   onSelectAnalyzedSubject,
   onRequestUnanalyzedSubject,
 }) => {
   const activeSubjectName = currentMataPelajaran || currentSubject || '';
+  const isSubjectTeacherUser = isSubjectTeacher(activeAccessRecord) && !isMasterAccessCode(activeAccessRecord?.kodeAkses) && !isDemoAccessCode(activeAccessRecord?.kodeAkses);
   const [searchQuery, setSearchQuery] = useState('');
   const [faseFilter, setFaseFilter] = useState<string>(allowedFase !== 'ALL' ? allowedFase : currentFase);
+  const [modalAlert, setModalAlert] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -234,6 +245,23 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
           )}
         </div>
 
+        {/* Modal Alert Banner */}
+        {modalAlert && (
+          <div className="mx-4 mt-3 p-3 rounded-xl bg-red-950/80 border-2 border-red-500 text-xs text-red-200 flex items-center justify-between gap-2 shadow-lg animate-fade-in">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+              <span>{modalAlert}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setModalAlert(null)}
+              className="px-2 py-0.5 rounded text-xs font-bold text-red-300 hover:bg-red-900/50"
+            >
+              Tutup
+            </button>
+          </div>
+        )}
+
         {/* Interactive Subject Cards Grid */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-[#040814]">
           {filteredFolders.length === 0 ? (
@@ -246,6 +274,10 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
               {filteredFolders.map((folder) => {
                 const status = getSubjectAnalysisStatus(folder.mataPelajaran, folder.fase);
+                const isSubjectLocked = isSubjectTeacherUser && !isSubjectAllowedForRecord(folder.mataPelajaran, activeAccessRecord);
+                const isPhaseLocked = allowedFase !== 'ALL' && folder.fase !== allowedFase;
+                const isFolderLocked = isSubjectLocked || isPhaseLocked;
+
                 const isActive =
                   (folder.mataPelajaran || '').toLowerCase().trim() === activeSubjectName.toLowerCase().trim() &&
                   (folder.fase || '').toLowerCase().trim() === (currentFase || '').toLowerCase().trim();
@@ -255,8 +287,18 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                 return (
                   <div
                     key={folder.id}
-                    onMouseEnter={() => sounds.playCardHover()}
+                    onMouseEnter={() => !isFolderLocked && sounds.playCardHover()}
                     onClick={() => {
+                      if (isFolderLocked) {
+                        sounds.playError?.();
+                        if (isSubjectLocked) {
+                          setModalAlert(`Mata pelajaran "${folder.mataPelajaran}" terkunci! Akun Anda terdaftar khusus untuk "${activeAccessRecord?.mataPelajaran}".`);
+                        } else {
+                          setModalAlert(`Fase ${folder.fase} terkunci! Akun Anda terdaftar khusus untuk ${allowedFase}.`);
+                        }
+                        return;
+                      }
+                      setModalAlert(null);
                       sounds.playSelect();
                       if (onSelectSubject) {
                         onSelectSubject(folder);
@@ -268,7 +310,11 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                         onRequestUnanalyzedSubject?.(folder);
                       }
                     }}
-                    className={`group relative p-4 sm:p-4.5 rounded-2xl border-2 transition-all duration-300 cursor-pointer flex flex-col justify-between overflow-hidden shadow-lg bg-gradient-to-br hover:-translate-y-1 hover:shadow-xl active:scale-98 ${theme.gradient}`}
+                    className={`group relative p-4 sm:p-4.5 rounded-2xl border-2 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-lg ${
+                      isFolderLocked
+                        ? 'opacity-40 grayscale-[50%] bg-[#080F1E] border-slate-700 cursor-not-allowed'
+                        : `cursor-pointer bg-gradient-to-br hover:-translate-y-1 hover:shadow-xl active:scale-98 ${theme.gradient}`
+                    }`}
                   >
                     {/* Corner decorative light */}
                     <div className="absolute top-0 right-0 w-28 h-28 bg-white/5 rounded-bl-full pointer-events-none group-hover:scale-110 transition-transform" />
@@ -277,15 +323,19 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                       {/* Top Row: Icon + Title + Active/Status Indicator */}
                       <div className="flex items-start gap-3.5 mb-3">
                         <div
-                          className={`w-13 h-13 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-lg border-2 border-white/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${theme.iconBg}`}
+                          className={`w-13 h-13 rounded-2xl flex items-center justify-center text-2xl shrink-0 shadow-lg border-2 border-white/20 transition-transform duration-300 ${
+                            isFolderLocked ? 'bg-slate-800 text-slate-500' : `group-hover:scale-110 group-hover:rotate-3 ${theme.iconBg}`
+                          }`}
                         >
-                          {emoticon || theme.emoji}
+                          {isFolderLocked ? '🔒' : (emoticon || theme.emoji)}
                         </div>
 
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap mb-1">
                             <span
-                              className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-xs ${theme.badgeFase}`}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider border shadow-xs ${
+                                isFolderLocked ? 'bg-slate-900 text-slate-500 border-slate-700' : theme.badgeFase
+                              }`}
                             >
                               {folder.fase}
                             </span>
@@ -293,15 +343,21 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
                               Kelas {folder.kelas}
                             </span>
 
-                            {isActive && (
+                            {isFolderLocked ? (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-red-950/80 text-red-300 border border-red-700/60 flex items-center gap-1 shadow-sm">
+                                <span>Terkunci</span>
+                              </span>
+                            ) : isActive ? (
                               <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-400 text-slate-950 flex items-center gap-1 shadow-sm">
                                 <Star className="w-3 h-3 fill-slate-950" />
                                 <span>Aktif</span>
                               </span>
-                            )}
+                            ) : null}
                           </div>
 
-                          <h4 className="font-black text-white text-sm sm:text-base leading-snug group-hover:text-amber-300 transition-colors">
+                          <h4 className={`font-black text-sm sm:text-base leading-snug transition-colors ${
+                            isFolderLocked ? 'text-slate-400' : 'text-white group-hover:text-amber-300'
+                          }`}>
                             {folder.mataPelajaran}
                           </h4>
                         </div>

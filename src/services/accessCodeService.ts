@@ -185,34 +185,252 @@ export const DEFAULT_DEMO_RECORD: AccessRecord = {
 export const DEFAULT_SIMULASI_RECORD = DEFAULT_DEMO_RECORD;
 
 /**
- * Data Guru Resmi Terdaftar: Bapak Ferianus Ellu, S.Pd. SD
- * Satuan Pendidikan: SD Negeri Fatubai
- * Pendaftar resmi via Google Form / Formulir SIPARTAN
+ * Daftar Akun Guru & Tenaga Kependidikan Permanen Resmi SIPARTAN:
+ * 1. Master Admin: GP-1386 (SD Negeri Fatubai)
+ * 2. Akun Demo Resmi: GP-RHB1 (SD Negeri Fatubai)
+ * 3. SD Negeri Bele:
+ *    - Opsila Lodia Opat, S.Pd., Gr. (Guru Kelas I / Fase A)
+ *    - Lusia Tiumlafu, S.Pd., Gr. (Guru Kelas II / Fase A)
+ *    - Imelda Subun, S.Pd.SD., Gr. (Guru Kelas III / Fase B)
+ *    - Yuniverus Jua, S.Pd., Gr. (Guru Kelas IV / Fase B)
+ *    - Venidora Tefi, S.Pd. (Guru Kelas V / Fase C)
+ *    - Lidia Igniosa Siki, S.Pd., Gr. (Guru Kelas VI / Fase C)
+ *    - Adelfina Bano, S.Ag. (Guru Mata Pelajaran Agama Katolik I-VI)
+ * 4. Guru Tambahan Terdaftar:
+ *    - Yeni Getrudis Ellu, S.Pd.,Gr. (Guru Kelas Fase A - SD Negeri Kecil Obenaf)
+ *    - Ferianus Ellu, S.Pd. SD (Guru Kelas Fase C - SD Negeri Gua Aplasi)
+ *    - Chandrawati Tunliu, S.Pd (Guru Kelas Fase C - SD GMIT 2 Kefamenanu)
  */
-export const DEFAULT_FERIANUS_RECORD: AccessRecord = {
-  id: 'acc-teacher-ferianus-ellu',
-  kodeAkses: 'GP-FE86',
-  isActive: true,
-  status: 'active',
-  isPremiumMaster: false,
-  isDemo: false,
-  tanggalDibuat: '2026-07-02T08:00:00.000Z',
-  tanggalAktivasi: '2026-07-02T08:30:00.000Z',
-  namaGuru: 'Ferianus Ellu, S.Pd. SD',
-  nipGuru: '198205142010011018',
-  jabatan: 'Guru Kelas',
-  namaSekolah: 'SD Negeri Fatubai',
-  namaSatuanPendidikan: 'SD Negeri Fatubai',
-  fase: 'Fase C',
-  kelas: '5 & 6',
-  mataPelajaran: 'Matematika',
-  namaKepalaSekolah: 'Darius Kusi, S.Pd.',
-  nipKepalaSekolah: '196709192008011008',
-  emailPendaftar: 'yeniellu20@gmail.com',
-  nomorHpPendaftar: '082236015517',
-  sumberPendaftaran: 'Google Form',
-  catatanStatus: 'Pendaftar Resmi Guru SIPARTAN (Terverifikasi & Aktif)',
-};
+export const DEFAULT_PERMANENT_RECORDS: AccessRecord[] = [
+  DEFAULT_PREMIUM_RECORD,
+  DEFAULT_DEMO_RECORD,
+  // --- SD NEGERI BELE ---
+  {
+    id: 'acc-bele-opsila-opat',
+    kodeAkses: 'GP-OLO1',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Opsila Lodia Opat, S.Pd., Gr.',
+    nipGuru: '199709122023212010',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase A',
+    kelas: '1',
+    mataPelajaran: 'Bahasa Indonesia',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas I (Fase A) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-lusia-tiumlafu',
+    kodeAkses: 'GP-LT02',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Lusia Tiumlafu, S.Pd., Gr.',
+    nipGuru: '196906022023212007',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase A',
+    kelas: '2',
+    mataPelajaran: 'Bahasa Indonesia',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas II (Fase A) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-imelda-subun',
+    kodeAkses: 'GP-IS03',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Imelda Subun, S.Pd.SD., Gr.',
+    nipGuru: '197804252022212008',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase B',
+    kelas: '3',
+    mataPelajaran: 'Bahasa Indonesia',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas III (Fase B) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-yuniverus-jua',
+    kodeAkses: 'GP-YJ04',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Yuniverus Jua, S.Pd., Gr.',
+    nipGuru: '198806012023211016',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase B',
+    kelas: '4',
+    mataPelajaran: 'Bahasa Indonesia',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas IV (Fase B) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-venidora-tefi',
+    kodeAkses: 'GP-VT05',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Venidora Tefi, S.Pd.',
+    nipGuru: '199209082023022035',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase C',
+    kelas: '5',
+    mataPelajaran: 'Matematika',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas V (Fase C) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-lidia-siki',
+    kodeAkses: 'GP-LIS6',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Lidia Igniosa Siki, S.Pd., Gr.',
+    nipGuru: '199201112023212048',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase C',
+    kelas: '6',
+    mataPelajaran: 'Matematika',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas VI (Fase C) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-adelfina-bano',
+    kodeAkses: 'GP-AB07',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Adelfina Bano, S.Ag.',
+    nipGuru: '198006292025212013',
+    jabatan: 'Guru Mata Pelajaran',
+    mataPelajaran: 'Pendidikan Agama Katolik dan Budi Pekerti',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase C',
+    kelas: '1 - 6',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Mata Pelajaran Agama Katolik (Kelas 1-6) SD Negeri Bele (Permanen)',
+  },
+  // --- GURU TAMBAHAN RESMI ---
+  {
+    id: 'acc-obenaf-yeni-ellu',
+    kodeAkses: 'GP-YGE1',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Yeni Getrudis Ellu, S.Pd.,Gr.',
+    nipGuru: '199006032025212045',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Kecil Obenaf',
+    namaSatuanPendidikan: 'SD Negeri Kecil Obenaf',
+    fase: 'Fase A',
+    kelas: '1 & 2',
+    mataPelajaran: 'Bahasa Indonesia',
+    namaKepalaSekolah: 'Veronika Humoen, S.Pd.,Gr.',
+    nipKepalaSekolah: '199010202020122016',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas Fase A SD Negeri Kecil Obenaf (Permanen)',
+  },
+  {
+    id: 'acc-aplasi-ferianus-ellu',
+    kodeAkses: 'GP-FE86',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Ferianus Ellu, S.Pd. SD',
+    nipGuru: '198602112019031002',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Gua Aplasi',
+    namaSatuanPendidikan: 'SD Negeri Gua Aplasi',
+    fase: 'Fase C',
+    kelas: '5 & 6',
+    mataPelajaran: 'Matematika',
+    namaKepalaSekolah: 'Maria Y. Lika Bau, S.Pd. SD.',
+    nipKepalaSekolah: '196801111999032004',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas Fase C SD Negeri Gua Aplasi (Permanen)',
+  },
+  {
+    id: 'acc-gmit-chandrawati-tunliu',
+    kodeAkses: 'GP-CT03',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Chandrawati Tunliu, S.Pd',
+    nipGuru: '197610212005022009',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD GMIT 2 Kefamenanu',
+    namaSatuanPendidikan: 'SD GMIT 2 Kefamenanu',
+    fase: 'Fase C',
+    kelas: '5 & 6',
+    mataPelajaran: 'Matematika',
+    namaKepalaSekolah: 'Marlyn B. Y. Henukh, S.Pd. SD',
+    nipKepalaSekolah: '197605302009042001',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas Fase C SD GMIT 2 Kefamenanu (Permanen)',
+  },
+];
+
+export const DEFAULT_FERIANUS_RECORD = DEFAULT_PERMANENT_RECORDS.find((r) => r.kodeAkses === 'GP-FE86') || DEFAULT_PERMANENT_RECORDS[9];
+
+/**
+ * Memeriksa apakah sebuah kode akses adalah akun resmi permanen bawaan sistem
+ */
+export function isPermanentAccessCode(code?: string | null): boolean {
+  if (!code) return false;
+  const clean = code.toUpperCase().trim();
+  if (isMasterAccessCode(clean) || isDemoAccessCode(clean)) return true;
+  return DEFAULT_PERMANENT_RECORDS.some(
+    (r) => r.kodeAkses.toUpperCase().trim() === clean
+  );
+}
 
 /**
  * Membaca konfigurasi Google Form tersimpan
@@ -311,51 +529,62 @@ export async function setWordExportDisabledAsync(
 
 /**
  * Membaca seluruh daftar kode akses tersimpan.
- * Memastikan MASTER_ACCESS_CODE selalu ada dan terdefinisi.
+ * Memastikan MASTER_ACCESS_CODE dan seluruh DEFAULT_PERMANENT_RECORDS selalu ada dan terdefinisi.
  */
 export function getAllAccessRecords(): AccessRecord[] {
   try {
     const raw = localStorage.getItem(ACCESS_CODES_STORAGE_KEY);
-    if (!raw) {
-      const initial = [DEFAULT_PREMIUM_RECORD, DEFAULT_DEMO_RECORD];
-      localStorage.setItem(ACCESS_CODES_STORAGE_KEY, JSON.stringify(initial));
-      return initial;
-    }
-    const parsed: AccessRecord[] = JSON.parse(raw);
+    let parsed: AccessRecord[] = raw ? JSON.parse(raw) : [];
 
     // Filter keluar secara permanen kode lama GP-86OK / GP-860K yang telah dinonaktifkan
-    const cleaned = parsed.filter(
+    parsed = parsed.filter(
       (r) => !isDeactivatedLegacyCode(r.kodeAkses) && r.id !== 'acc-master-gp86ok'
     );
 
-    const hasMaster = cleaned.some(
-      (r) => isMasterAccessCode(r.kodeAkses)
-    );
-    if (!hasMaster) {
-      cleaned.unshift(DEFAULT_PREMIUM_RECORD);
-    }
-    const hasDemo = cleaned.some(
-      (r) => r.kodeAkses.toUpperCase().trim() === DEMO_ACCESS_CODE
-    );
-    if (!hasDemo) {
-      cleaned.push(DEFAULT_DEMO_RECORD);
-    }
+    // Map existing records by clean uppercase code
+    const recordMap = new Map<string, AccessRecord>();
 
-    const normalized: AccessRecord[] = cleaned.map((r) => {
+    // 1. Inisialisasi baseline seluruh data permanen bawaan sistem
+    DEFAULT_PERMANENT_RECORDS.forEach((defRec) => {
+      recordMap.set(defRec.kodeAkses.toUpperCase().trim(), { ...defRec });
+    });
+
+    // 2. Terapkan data hasil penyimpanan/pengeditan admin (jika ada di local storage)
+    parsed.forEach((userRec) => {
+      if (!userRec.kodeAkses) return;
+      const key = userRec.kodeAkses.toUpperCase().trim();
+      const existingDef = recordMap.get(key);
+      if (existingDef) {
+        recordMap.set(key, {
+          ...existingDef,
+          ...userRec,
+          isPermanent: true,
+          isPremiumMaster: existingDef.isPremiumMaster || userRec.isPremiumMaster,
+          isDemo: existingDef.isDemo || userRec.isDemo,
+        });
+      } else {
+        recordMap.set(key, userRec);
+      }
+    });
+
+    const normalized: AccessRecord[] = Array.from(recordMap.values()).map((r) => {
       const isMaster = isMasterAccessCode(r.kodeAkses);
       const isDemo = isSimulationAccessCode(r.kodeAkses);
+      const isPerm = Boolean(r.isPermanent || isPermanentAccessCode(r.kodeAkses));
       return {
         ...r,
+        isPermanent: isPerm,
         status: (r.isActive ?? true) ? ('active' as const) : ('inactive' as const),
         namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah,
         namaGuru: (isMaster || isDemo) ? 'Roni Hariyanto Bhidju, S.Pd' : (r.namaGuru || 'Guru SIPARTAN'),
         nipGuru: (isMaster || isDemo) ? '198603012020121005' : (r.nipGuru || '-'),
       };
     });
+
     return normalized;
   } catch (e) {
     console.error('Gagal membaca data kode akses:', e);
-    return [DEFAULT_PREMIUM_RECORD, DEFAULT_DEMO_RECORD];
+    return DEFAULT_PERMANENT_RECORDS;
   }
 }
 
@@ -511,15 +740,18 @@ export function deactivateAllAccessCodes(includeMaster: boolean = false): void {
 }
 
 /**
- * Menghapus 1 kode akses (kecuali Master Code)
+ * Menghapus 1 kode akses (kecuali Master Code & Akun Permanen)
  */
 export function deleteAccessCode(code: string): boolean {
   if (!code) return false;
   const cleanCode = code.toUpperCase().trim();
-  if (isMasterAccessCode(cleanCode)) return false;
+  if (isMasterAccessCode(cleanCode) || isPermanentAccessCode(cleanCode)) return false;
 
   const records = getAllAccessRecords();
   const targetRecord = records.find((r) => r.kodeAkses.toUpperCase().trim() === cleanCode);
+  if (targetRecord?.isPermanent || targetRecord?.isPremiumMaster || targetRecord?.isDemo) {
+    return false;
+  }
   const filtered = records.filter((r) => {
     const rCode = r.kodeAkses.toUpperCase().trim();
     return rCode !== cleanCode;
@@ -551,10 +783,13 @@ export function deleteAccessCode(code: string): boolean {
 export async function deleteAccessCodeAsync(code: string): Promise<boolean> {
   if (!code) return false;
   const cleanCode = code.toUpperCase().trim();
-  if (isMasterAccessCode(cleanCode)) return false;
+  if (isMasterAccessCode(cleanCode) || isPermanentAccessCode(cleanCode)) return false;
 
   const records = getAllAccessRecords();
   const targetRecord = records.find((r) => r.kodeAkses.toUpperCase().trim() === cleanCode);
+  if (targetRecord?.isPermanent || targetRecord?.isPremiumMaster || targetRecord?.isDemo) {
+    return false;
+  }
   const filtered = records.filter((r) => r.kodeAkses.toUpperCase().trim() !== cleanCode);
 
   saveAllAccessRecords(filtered);
@@ -580,6 +815,7 @@ export function createNewAccessRecord(data: {
   namaSekolah: string;
   fase?: 'Fase A' | 'Fase B' | 'Fase C';
   kelas?: string;
+  mataPelajaran?: string;
   namaKepalaSekolah?: string;
   nipKepalaSekolah?: string;
   emailPendaftar?: string;
@@ -607,7 +843,7 @@ export function createNewAccessRecord(data: {
     namaSatuanPendidikan: data.namaSekolah.trim(),
     fase: data.fase || 'Fase C',
     kelas: data.kelas || (data.fase === 'Fase A' ? '1 & 2' : data.fase === 'Fase B' ? '3 & 4' : '5 & 6'),
-    mataPelajaran: 'Matematika',
+    mataPelajaran: data.mataPelajaran || 'Matematika',
     namaKepalaSekolah: (data.namaKepalaSekolah || '-').trim(),
     nipKepalaSekolah: (data.nipKepalaSekolah || '-').trim(),
     emailPendaftar: data.emailPendaftar,
@@ -650,7 +886,7 @@ export async function createNewAccessRecordAsync(
     namaSatuanPendidikan: data.namaSekolah.trim(),
     fase: data.fase || 'Fase C',
     kelas: data.kelas || (data.fase === 'Fase A' ? '1 & 2' : data.fase === 'Fase B' ? '3 & 4' : '5 & 6'),
-    mataPelajaran: 'Matematika',
+    mataPelajaran: data.mataPelajaran || 'Matematika',
     namaKepalaSekolah: (data.namaKepalaSekolah || '-').trim(),
     nipKepalaSekolah: (data.nipKepalaSekolah || '-').trim(),
     emailPendaftar: data.emailPendaftar,
@@ -756,14 +992,24 @@ export async function updateAccessRecordAsync(
 }
 
 /**
- * Mencari kode akses baik dari cache lokal maupun verifikasi langsung ke Cloud Firestore
+ * Mencari kode akses baik dari cache lokal maupun verifikasi langsung ke Cloud Firestore.
+ * Jika ditemukan dari Firestore, otomatis disimpan ke cache gawai lokal untuk sesi cepat.
  */
 export async function findAccessRecordAsync(code: string): Promise<AccessRecord | null> {
   const local = findAccessRecord(code);
   if (local && local.isActive) {
     return local;
   }
-  return await findAccessRecordInFirestore(code);
+  const cloud = await findAccessRecordInFirestore(code);
+  if (cloud) {
+    // Sinkronkan ke local storage gawai saat ini
+    const existing = getAllAccessRecords();
+    const cleanCloudCode = cloud.kodeAkses.toUpperCase().trim();
+    const updated = [cloud, ...existing.filter((r) => r.kodeAkses.toUpperCase().trim() !== cleanCloudCode)];
+    saveAllAccessRecords(updated);
+    return cloud;
+  }
+  return local || null;
 }
 
 /**
@@ -800,32 +1046,143 @@ export function clearActiveSessionCode(): void {
 }
 
 /**
+ * Daftar Mata Pelajaran Resmi untuk Jabatan Guru Mata Pelajaran di SD
+ */
+export const GURU_MAPEL_SUBJECT_OPTIONS = [
+  'Pendidikan Agama Katolik dan Budi Pekerti',
+  'Pendidikan Agama Kristen dan Budi Pekerti',
+  'Pendidikan Agama Islam dan Budi Pekerti',
+  'Pendidikan Agama Hindu dan Budi Pekerti',
+  'Pendidikan Agama Buddha dan Budi Pekerti',
+  'Pendidikan Agama Khonghucu dan Budi Pekerti',
+  'Pendidikan Jasmani, Olahraga, dan Kesehatan (PJOK)',
+  'Bahasa Inggris',
+  'Seni Musik',
+  'Seni Rupa',
+  'Seni Tari',
+  'Seni Teater',
+  'Muatan Lokal / Bahasa Daerah',
+] as const;
+
+/**
+ * Memeriksa apakah suatu profil akun adalah Guru Mata Pelajaran
+ */
+export function isSubjectTeacher(record?: AccessRecord | null): boolean {
+  if (!record) return false;
+  return record.jabatan === 'Guru Mata Pelajaran';
+}
+
+/**
+ * Memeriksa apakah mata pelajaran yang dipilih sesuai dengan hak akses akun:
+ * - Master Admin & Demo (GP-RHB1): Bebas mengakses seluruh mata pelajaran.
+ * - Guru Mata Pelajaran: Hanya boleh mengakses mata pelajaran yang diampunya (Agama, PJOK, Bahasa Inggris, dll) di seluruh Fase A, B, C (Kelas 1-6).
+ * - Guru Kelas: Bebas mengakses mata pelajaran tematik/umum kelas (Bahasa Indonesia, Matematika, IPAS, Pendidikan Pancasila, Seni Musik/Rupa/Tari/Teater, Muatan Lokal), tetapi dibatasi dari mata pelajaran khusus guru mapel (Agama, PJOK, Bahasa Inggris).
+ */
+export function isSubjectAllowedForRecord(subjectName: string, record?: AccessRecord | null): boolean {
+  if (!record) return true;
+  if (isMasterAccessCode(record.kodeAkses) || record.isPremiumMaster) return true;
+  if (isDemoAccessCode(record.kodeAkses) || record.isDemo) return true;
+  
+  const target = (subjectName || '').toLowerCase().trim();
+
+  // 1. Jika Guru Mata Pelajaran, hanya boleh mengakses mata pelajaran yang diampunya
+  if (record.jabatan === 'Guru Mata Pelajaran') {
+    const assigned = (record.mataPelajaran || '').toLowerCase().trim();
+    if (!assigned) return true;
+
+    // Normalisasi pencocokan cerdas
+    if (assigned.includes('katolik') && target.includes('katolik')) return true;
+    if (assigned.includes('kristen') && (target.includes('kristen') || target.includes('protestan'))) return true;
+    if (assigned.includes('islam') && (target.includes('islam') || target.includes('pai'))) return true;
+    if (assigned.includes('hindu') && target.includes('hindu')) return true;
+    if (assigned.includes('buddha') && target.includes('buddha')) return true;
+    if (assigned.includes('khonghucu') && target.includes('khonghucu')) return true;
+    if ((assigned.includes('pjok') || assigned.includes('jasmani') || assigned.includes('olahraga')) && 
+        (target.includes('pjok') || target.includes('jasmani') || target.includes('olahraga'))) return true;
+    if ((assigned.includes('inggris') || assigned.includes('english')) && 
+        (target.includes('inggris') || target.includes('english'))) return true;
+    if (assigned.includes('rupa') && target.includes('rupa')) return true;
+    if (assigned.includes('musik') && target.includes('musik')) return true;
+    if (assigned.includes('tari') && target.includes('tari')) return true;
+    if (assigned.includes('teater') && target.includes('teater')) return true;
+
+    return assigned === target || target.includes(assigned) || assigned.includes(target);
+  }
+
+  // 2. Jika Guru Kelas: dibatasi dari mata pelajaran khusus guru mapel (Agama, PJOK, Bahasa Inggris)
+  if (record.jabatan === 'Guru Kelas') {
+    const isAgama = target.includes('agama') || target.includes('katolik') || target.includes('kristen') || target.includes('islam') || target.includes('hindu') || target.includes('buddha') || target.includes('khonghucu');
+    const isPJOK = target.includes('pjok') || target.includes('jasmani') || target.includes('olahraga');
+    const isBahasaInggris = target.includes('bahasa inggris') || target.includes('english');
+
+    if (isAgama || isPJOK || isBahasaInggris) {
+      return false;
+    }
+    return true;
+  }
+
+  return true;
+}
+
+/**
  * Mengetahui batasan Fase yang diizinkan untuk akun tertentu:
  * - Master Admin & Demo (GP-RHB1): 'ALL' (bebas mengakses dan memilih Fase A, B, C)
- * - Akun Guru Reguler: Terkunci khusus pada record.fase ('Fase A', 'Fase B', atau 'Fase C')
+ * - Guru Mata Pelajaran (Agama, PJOK, Bahasa Inggris, dll): 'ALL' (mengajar Kelas 1-6 dari Fase A sampai Fase C)
+ * - Guru Kelas: Terkunci khusus pada record.fase ('Fase A', 'Fase B', atau 'Fase C')
  */
 export function getAllowedFaseForRecord(record?: AccessRecord | null): 'Fase A' | 'Fase B' | 'Fase C' | 'ALL' {
   if (!record) return 'ALL';
   if (isMasterAccessCode(record.kodeAkses) || record.isPremiumMaster) return 'ALL';
   if (isDemoAccessCode(record.kodeAkses) || record.isDemo) return 'ALL';
+  // Guru Mata Pelajaran mengajar dari kelas 1 s.d. kelas 6 (Fase A s.d. Fase C), tidak dibatasi fase!
+  if (record.jabatan === 'Guru Mata Pelajaran') return 'ALL';
   return record.fase || 'ALL';
 }
 
 /**
  * Mengonversi AccessRecord menjadi SchoolIdentity resmi aplikasi SIPARTAN.
  * Memastikan data sekolah dan guru terkunci 100% dengan apa yang tertera di form/record.
- * Untuk Akun Demo (GP-RHB1) & Master Admin: Pilihan Fase dan Kelas fleksibel mengikuti pilihan pengguna.
- * Untuk Akun Guru Reguler: Fase dan Kelas TERKUNCI PERMANEN sesuai form permintaan kode!
+ * - Untuk Akun Demo (GP-RHB1) & Master Admin: Pilihan Fase, Kelas, dan Mata Pelajaran fleksibel.
+ * - Untuk Guru Mata Pelajaran: Mata Pelajaran TERKUNCI PERMANEN pada mata pelajaran yang diampu, sedangkan Fase dan Kelas BEBAS dipilih dari Kelas 1 s.d. 6 (Fase A, B, C).
+ * - Untuk Guru Kelas: Fase dan Kelas TERKUNCI PERMANEN sesuai form pendaftaran!
  */
 export function convertAccessRecordToIdentity(
   record: AccessRecord,
   currentIdentity?: Partial<SchoolIdentity>
 ): SchoolIdentity {
-  const isFlexibleFaseKelas =
+  const isMasterOrDemo =
     isMasterAccessCode(record.kodeAkses) ||
     isDemoAccessCode(record.kodeAkses) ||
     record.isPremiumMaster ||
     Boolean(record.isDemo);
+
+  const isMapelTeacher = record.jabatan === 'Guru Mata Pelajaran';
+
+  // Penentuan Mata Pelajaran
+  let finalMataPelajaran: string;
+  if (isMasterOrDemo) {
+    finalMataPelajaran = currentIdentity?.mataPelajaran || record.mataPelajaran || 'Matematika';
+  } else if (isMapelTeacher) {
+    // Guru Mapel: Terkunci pada mata pelajaran pilihannya
+    finalMataPelajaran = record.mataPelajaran || 'Pendidikan Agama Katolik dan Budi Pekerti';
+  } else {
+    // Guru Kelas: Mengajar mata pelajaran tematik/umum kelasnya
+    finalMataPelajaran = currentIdentity?.mataPelajaran || 'Matematika';
+  }
+
+  // Penentuan Fase & Kelas
+  let finalFase: 'Fase A' | 'Fase B' | 'Fase C';
+  let finalKelas: string;
+
+  if (isMasterOrDemo || isMapelTeacher) {
+    // Guru Mapel & Master bebas berganti fase dan kelas
+    finalFase = (currentIdentity?.fase as any) || record.fase || 'Fase C';
+    finalKelas = currentIdentity?.kelas || (finalFase === 'Fase A' ? '1' : finalFase === 'Fase B' ? '3' : '5');
+  } else {
+    // Guru Kelas: Terkunci pada fase dan kelas yang tertera di record pendaftaran
+    finalFase = record.fase || 'Fase C';
+    finalKelas = record.kelas || '5';
+  }
 
   return {
     // Data Satuan Pendidikan & Guru SELALU TERKUNCI PERMANEN sesuai record
@@ -837,16 +1194,15 @@ export function convertAccessRecordToIdentity(
     peranGuru: record.jabatan,
     namaKepalaSekolah: record.namaKepalaSekolah,
     nipKepalaSekolah: record.nipKepalaSekolah,
-    mataPelajaran: currentIdentity?.mataPelajaran || record.mataPelajaran || 'Matematika',
-    // Fase & Kelas: Dapat diubah bebas jika akun demo atau master. Terkunci jika akun guru reguler!
-    fase: isFlexibleFaseKelas ? (currentIdentity?.fase || record.fase) : record.fase,
-    kelas: isFlexibleFaseKelas ? (currentIdentity?.kelas || record.kelas) : record.kelas,
+    mataPelajaran: finalMataPelajaran,
+    fase: finalFase,
+    kelas: finalKelas,
     tahunPelajaran: currentIdentity?.tahunPelajaran || '2026/2027',
     semester: currentIdentity?.semester || '1 (Ganjil)',
     alokasiWaktuTotal: currentIdentity?.alokasiWaktuTotal || '180 JP / Tahun (5 JP/Minggu Intrakurikuler @ 35 Menit) - Permendikdasmen No. 13 Tahun 2025',
     tempatPenetapan: currentIdentity?.tempatPenetapan || (record.namaSatuanPendidikan || record.namaSekolah).replace(/UPTD?|SD|Negeri|Swasta/gi, '').trim() || 'Fatubai',
     tanggalPenetapan: currentIdentity?.tanggalPenetapan || new Date().toISOString().split('T')[0],
-    isLockedByAdmin: Boolean(record.isLockedByAdmin || !isFlexibleFaseKelas),
+    isLockedByAdmin: Boolean(record.isLockedByAdmin || !isMasterOrDemo),
   };
 }
 

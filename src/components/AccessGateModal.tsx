@@ -34,6 +34,8 @@ import {
   createAdminWhatsAppLink,
   formatWhatsAppNumber,
   resetCloudCooldown,
+  GURU_MAPEL_SUBJECT_OPTIONS,
+  isSubjectTeacher,
 } from '../services/accessCodeService';
 import { AccessRecord } from '../types';
 
@@ -66,6 +68,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
   const [regNamaGuru, setRegNamaGuru] = useState('');
   const [regNipGuru, setRegNipGuru] = useState('');
   const [regJabatan, setRegJabatan] = useState<'Guru Kelas' | 'Guru Mata Pelajaran'>('Guru Kelas');
+  const [regMataPelajaran, setRegMataPelajaran] = useState<string>('Pendidikan Agama Katolik dan Budi Pekerti');
   const [regNamaSekolah, setRegNamaSekolah] = useState('');
   const [regNomorWA, setRegNomorWA] = useState('');
   const [regFase, setRegFase] = useState<'Fase A' | 'Fase B' | 'Fase C'>('Fase C');
@@ -202,13 +205,15 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
     setIsSubmittingReg(true);
     resetCloudCooldown();
     try {
+      const isMapel = regJabatan === 'Guru Mata Pelajaran';
       const created = await createNewAccessRecordAsync({
         namaGuru: regNamaGuru.trim(),
         nipGuru: regNipGuru.trim() || '-',
         jabatan: regJabatan,
         namaSekolah: regNamaSekolah.trim(),
-        fase: regFase,
-        kelas: regKelas,
+        fase: isMapel ? 'Fase C' : regFase,
+        kelas: isMapel ? '1 - 6' : regKelas,
+        mataPelajaran: isMapel ? regMataPelajaran : 'Matematika',
         namaKepalaSekolah: regNamaKS.trim() || '-',
         nipKepalaSekolah: regNipKS.trim() || '-',
         nomorHpPendaftar: regNomorWA.trim(),
@@ -235,7 +240,11 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
   };
 
   const getAdminWhatsAppMessage = (rec: AccessRecord) => {
-    return `Halo Admin SIPARTAN (Bapak Roni Hariyanto Bhidju, S. Pd / ${ADMIN_WA_DISPLAY}),\n\nSaya telah mengajukan permohonan kode akses SIPARTAN:\n- Nama Guru: ${rec.namaGuru}\n- NIP Guru: ${rec.nipGuru}\n- Jabatan: ${rec.jabatan} (${rec.fase} - Kelas ${rec.kelas})\n- Satuan Pendidikan: ${rec.namaSekolah}\n- Kepala Sekolah: ${rec.namaKepalaSekolah} (NIP: ${rec.nipKepalaSekolah})\n- Nomor WA Saya: ${rec.nomorHpPendaftar || '-'}\n- Kode Akses Terbit: *${rec.kodeAkses}*\n\nMohon kesediaan Admin untuk memverifikasi dan mengaktifkan kode akses saya. Terima kasih!`;
+    const penugasanText = rec.jabatan === 'Guru Mata Pelajaran'
+      ? `Guru Mata Pelajaran (${rec.mataPelajaran || 'Pendidikan Agama Katolik'} - Kelas 1 s.d. 6 / Fase A s.d. C)`
+      : `Guru Kelas (${rec.fase} - Kelas ${rec.kelas})`;
+
+    return `Halo Admin SIPARTAN (Bapak Roni Hariyanto Bhidju, S. Pd / ${ADMIN_WA_DISPLAY}),\n\nSaya telah mengajukan permohonan kode akses SIPARTAN:\n- Nama Guru: ${rec.namaGuru}\n- NIP Guru: ${rec.nipGuru}\n- Jabatan: ${penugasanText}\n- Satuan Pendidikan: ${rec.namaSekolah}\n- Kepala Sekolah: ${rec.namaKepalaSekolah} (NIP: ${rec.nipKepalaSekolah})\n- Nomor WA Saya: ${rec.nomorHpPendaftar || '-'}\n- Kode Akses Terbit: *${rec.kodeAkses}*\n\nMohon kesediaan Admin untuk memverifikasi dan mengaktifkan kode akses saya. Terima kasih!`;
   };
 
   return (
@@ -582,7 +591,12 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
                       <div><strong>Nama Guru:</strong> {newlyCreatedCode.namaGuru}</div>
                       <div><strong>NIP Guru:</strong> {newlyCreatedCode.nipGuru}</div>
                       <div><strong>Satuan Pendidikan:</strong> {newlyCreatedCode.namaSekolah}</div>
-                      <div><strong>Penugasan:</strong> {newlyCreatedCode.jabatan} ({newlyCreatedCode.fase} - Kelas {newlyCreatedCode.kelas})</div>
+                      <div>
+                        <strong>Penugasan:</strong>{' '}
+                        {newlyCreatedCode.jabatan === 'Guru Mata Pelajaran'
+                          ? `Guru Mata Pelajaran ${newlyCreatedCode.mataPelajaran || 'Pendidikan Agama Katolik'} (Kelas 1 s.d. 6 / Fase A-C)`
+                          : `Guru Kelas (${newlyCreatedCode.fase} - Kelas ${newlyCreatedCode.kelas})`}
+                      </div>
                       <div><strong>Kepala Sekolah:</strong> {newlyCreatedCode.namaKepalaSekolah}</div>
                       <div><strong>Nomor WhatsApp Guru:</strong> {newlyCreatedCode.nomorHpPendaftar || '-'}</div>
                     </div>
@@ -769,55 +783,79 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
                     </span>
                   </div>
 
-                  {/* 6. Fase & Pilihan Kelas */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      6. Fase yang Diampu <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={regFase}
-                      onChange={(e) => {
-                        const f = e.target.value as any;
-                        setRegFase(f);
-                        setRegKelas(f === 'Fase A' ? '1' : f === 'Fase B' ? '3' : '5');
-                      }}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
-                    >
-                      <option value="Fase C">Fase C (SD Kelas 5 & 6)</option>
-                      <option value="Fase B">Fase B (SD Kelas 3 & 4)</option>
-                      <option value="Fase A">Fase A (SD Kelas 1 & 2)</option>
-                    </select>
-                  </div>
+                  {/* 6. Penugasan Berdasarkan Jabatan: Guru Mata Pelajaran vs Guru Kelas */}
+                  {regJabatan === 'Guru Mata Pelajaran' ? (
+                    <div className="sm:col-span-2 p-3.5 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-2">
+                      <label className="block text-xs font-bold text-indigo-950 mb-1">
+                        6. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={regMataPelajaran}
+                        onChange={(e) => setRegMataPelajaran(e.target.value)}
+                        className="w-full px-3 py-2 text-xs border border-indigo-300 rounded-lg bg-white text-black focus:border-indigo-600 focus:outline-none font-bold"
+                      >
+                        {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="text-[11px] text-indigo-900 leading-relaxed bg-white/70 p-2 rounded-lg border border-indigo-200/60">
+                        ✨ <strong>Akses Penuh Kelas 1 s.d. 6 (Fase A, B, dan C):</strong> Sebagai Guru Mata Pelajaran, Anda tidak dibatasi fase. Anda berhak mengajar dan menghasilkan seluruh dokumen modul ajar &amp; perangkat untuk <strong>semua tingkatan kelas 1 s.d. 6</strong> khusus pada mata pelajaran yang dipilih.
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                          6. Fase yang Diampu <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={regFase}
+                          onChange={(e) => {
+                            const f = e.target.value as any;
+                            setRegFase(f);
+                            setRegKelas(f === 'Fase A' ? '1' : f === 'Fase B' ? '3' : '5');
+                          }}
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
+                        >
+                          <option value="Fase C">Fase C (SD Kelas 5 & 6)</option>
+                          <option value="Fase B">Fase B (SD Kelas 3 & 4)</option>
+                          <option value="Fase A">Fase A (SD Kelas 1 & 2)</option>
+                        </select>
+                      </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      Pilihan Kelas Target
-                    </label>
-                    <select
-                      value={regKelas}
-                      onChange={(e) => setRegKelas(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
-                    >
-                      {regFase === 'Fase A' && (
-                        <>
-                          <option value="1">Kelas 1</option>
-                          <option value="2">Kelas 2</option>
-                        </>
-                      )}
-                      {regFase === 'Fase B' && (
-                        <>
-                          <option value="3">Kelas 3</option>
-                          <option value="4">Kelas 4</option>
-                        </>
-                      )}
-                      {regFase === 'Fase C' && (
-                        <>
-                          <option value="5">Kelas 5</option>
-                          <option value="6">Kelas 6</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-800 mb-1">
+                          Pilihan Kelas Target
+                        </label>
+                        <select
+                          value={regKelas}
+                          onChange={(e) => setRegKelas(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
+                        >
+                          {regFase === 'Fase A' && (
+                            <>
+                              <option value="1">Kelas 1</option>
+                              <option value="2">Kelas 2</option>
+                            </>
+                          )}
+                          {regFase === 'Fase B' && (
+                            <>
+                              <option value="3">Kelas 3</option>
+                              <option value="4">Kelas 4</option>
+                            </>
+                          )}
+                          {regFase === 'Fase C' && (
+                            <>
+                              <option value="5">Kelas 5</option>
+                              <option value="6">Kelas 6</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+                    </>
+                  )}
 
                   {/* 7. Nama Kepala Sekolah */}
                   <div>

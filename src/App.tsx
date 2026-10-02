@@ -93,6 +93,7 @@ import {
   isDeactivatedLegacyCode,
   isWordExportDisabled,
   getAllowedFaseForRecord,
+  isSubjectAllowedForRecord,
   subscribeToAccessRecordsFromFirestore,
   subscribeToWordExportDisabledFromFirestore,
   fetchWordExportDisabledFromFirestore,
@@ -739,6 +740,13 @@ export default function App() {
     const allowedFase = getAllowedFaseForRecord(activeAccessRecord);
     if (allowedFase !== 'ALL' && folder.fase !== allowedFase) {
       showToast(`Fase ${folder.fase} terkunci. Akun Anda terdaftar khusus untuk ${allowedFase}.`);
+      return;
+    }
+
+    if (!isSubjectAllowedForRecord(folder.mataPelajaran, activeAccessRecord)) {
+      showToast(
+        `Mata Pelajaran "${folder.mataPelajaran}" terkunci. Akun Anda terdaftar khusus untuk ${activeAccessRecord?.mataPelajaran || 'Mata Pelajaran Tertentu'}.`
+      );
       return;
     }
 
@@ -2811,6 +2819,7 @@ export default function App() {
           currentMataPelajaran={identitas.mataPelajaran}
           currentFase={identitas.fase}
           allowedFase={getAllowedFaseForRecord(activeAccessRecord)}
+          activeAccessRecord={activeAccessRecord}
           onSelectSubject={handleSelectSubject}
         />
       )}

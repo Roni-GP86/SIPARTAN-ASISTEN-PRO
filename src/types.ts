@@ -576,6 +576,7 @@ export interface AccessRecord {
   status?: 'active' | 'inactive'; // Helper status alias
   isPremiumMaster?: boolean; // Kode master pengembang rahasia
   isDemo?: boolean; // Akun demo resmi (GP-RHB1)
+  isPermanent?: boolean; // Akun premium bawaan sistem yang tidak bisa dihapus oleh user, hanya diedit oleh admin
   tanggalDibuat: string;
   tanggalAktivasi?: string;
   

@@ -27,10 +27,13 @@ import {
   Database,
   HelpCircle,
   CheckSquare,
-  Edit2,
   Pencil,
   Save,
+  FileText,
+  Filter,
+  Image as ImageIcon,
 } from 'lucide-react';
+import { generateUserAccessListPDF } from '../utils/userAccessPdfGenerator';
 import {
   getAllAccessRecords,
   saveAllAccessRecords,
@@ -45,6 +48,7 @@ import {
   updateAccessRecordAsync,
   MASTER_ACCESS_CODE,
   isMasterAccessCode,
+  isPermanentAccessCode,
   isDeactivatedLegacyCode,
   getActiveSessionCode,
   setActiveSessionCode,
@@ -63,6 +67,8 @@ import {
   getLastCloudErrorDetail,
   testFirestoreConnectionAsync,
   resetCloudCooldown,
+  GURU_MAPEL_SUBJECT_OPTIONS,
+  isSubjectTeacher,
 } from '../services/accessCodeService';
 import {
   getActiveFirebaseConfig,
@@ -108,6 +114,7 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   const [newNamaGuru, setNewNamaGuru] = useState('');
   const [newNipGuru, setNewNipGuru] = useState('');
   const [newJabatan, setNewJabatan] = useState<'Guru Kelas' | 'Guru Mata Pelajaran'>('Guru Kelas');
+  const [newMataPelajaran, setNewMataPelajaran] = useState<string>('Pendidikan Agama Katolik dan Budi Pekerti');
   const [newNamaSekolah, setNewNamaSekolah] = useState('');
   const [newNomorWA, setNewNomorWA] = useState('');
   const [newFase, setNewFase] = useState<'Fase A' | 'Fase B' | 'Fase C'>('Fase C');
@@ -143,6 +150,14 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   const [isWordDisabled, setIsWordDisabled] = useState<boolean>(() => isWordExportDisabled());
   const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
   const [isRuangMuridActive, setIsRuangMuridActive] = useState<boolean>(() => isRuangMuridEnabled());
+  const [selectedSchoolForPdf, setSelectedSchoolForPdf] = useState<string>('ALL');
+  const [pdfLogoBase64, setPdfLogoBase64] = useState<string>(() => {
+    try {
+      return localStorage.getItem('sipartan_admin_pdf_logo_v1') || '';
+    } catch {
+      return '';
+    }
+  });
 
   const refreshList = async () => {
     resetCloudCooldown();
@@ -294,11 +309,21 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   };
 
   const handleDelete = (code: string) => {
-    if (isMasterAccessCode(code)) {
-      setNotification({ type: 'error', text: 'Kode Master Administrator tidak dapat dihapus.' });
+    if (isMasterAccessCode(code) || isPermanentAccessCode(code)) {
+      setNotification({
+        type: 'error',
+        text: 'Akun ini adalah Akun Resmi Permanen sistem dan tidak dapat dihapus. Anda dapat mengubah statusnya menjadi nonaktif jika ingin menonaktifkan akses guru.',
+      });
       return;
     }
     const target = records.find((r) => r.kodeAkses.toUpperCase().trim() === code.toUpperCase().trim());
+    if (target?.isPermanent) {
+      setNotification({
+        type: 'error',
+        text: 'Akun ini adalah Akun Resmi Permanen sistem dan tidak dapat dihapus.',
+      });
+      return;
+    }
     if (target) {
       setDeleteConfirmTarget(target);
     }
@@ -357,13 +382,15 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     }
 
     try {
+      const isMapel = newJabatan === 'Guru Mata Pelajaran';
       const created = await createNewAccessRecordAsync({
         namaGuru: newNamaGuru.trim(),
         nipGuru: newNipGuru.trim() || '-',
         jabatan: newJabatan,
         namaSekolah: newNamaSekolah.trim(),
-        fase: newFase,
-        kelas: newKelas,
+        fase: isMapel ? 'Fase C' : newFase,
+        kelas: isMapel ? '1 - 6' : newKelas,
+        mataPelajaran: isMapel ? newMataPelajaran : 'Matematika',
         namaKepalaSekolah: newNamaKS.trim() || '-',
         nipKepalaSekolah: newNipKS.trim() || '-',
         nomorHpPendaftar: newNomorWA.trim(),
@@ -430,15 +457,16 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     setEditSuccessMsg(null);
 
     try {
+      const isMapel = editJabatan === 'Guru Mata Pelajaran';
       const res = await updateAccessRecordAsync(editingRecord.kodeAkses, {
         namaGuru: editNamaGuru.trim(),
         nipGuru: editNipGuru.trim() || '-',
         namaSekolah: editNamaSekolah.trim(),
         namaSatuanPendidikan: editNamaSekolah.trim(),
         jabatan: editJabatan,
-        fase: editFase,
-        kelas: editKelas.trim() || (editFase === 'Fase A' ? '1' : editFase === 'Fase B' ? '3' : '5'),
-        mataPelajaran: editMataPelajaran.trim() || 'Matematika',
+        fase: isMapel ? 'Fase C' : editFase,
+        kelas: isMapel ? '1 - 6' : (editKelas.trim() || (editFase === 'Fase A' ? '1' : editFase === 'Fase B' ? '3' : '5')),
+        mataPelajaran: isMapel ? editMataPelajaran.trim() : (editingRecord.mataPelajaran || 'Matematika'),
         namaKepalaSekolah: editNamaKS.trim() || '-',
         nipKepalaSekolah: editNipKS.trim() || '-',
         nomorHpPendaftar: editNomorWA.trim(),
@@ -480,7 +508,11 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   };
 
   const getTeacherActivationWAMessage = (record: AccessRecord) => {
-    return `Halo Bapak/Ibu ${record.namaGuru},\n\nKabar baik! Permohonan Kode Akses SIPARTAN Anda telah DIVERIFIKASI & DIAKTIFKAN oleh Administrator (${ADMIN_WA_DISPLAY}):\n\n🔑 KODE AKSES: *${record.kodeAkses}*\n🏫 Satuan Pendidikan: ${record.namaSekolah}\n📚 Penugasan: ${record.jabatan} (${record.fase} - Kelas ${record.kelas})\n👤 Kepala Sekolah: ${record.namaKepalaSekolah}\n📱 Nomor WA: ${record.nomorHpPendaftar || '-'}\nStatus: *AKTIF*\n\nSilakan buka aplikasi SIPARTAN, klik menu *"Masuk ke SIPARTAN"*, lalu masukkan kode: *${record.kodeAkses}*.\nIdentitas resmi Anda otomatis terkunci permanen pada cover dan seluruh dokumen.\n\nSelamat menyusun perangkat pembelajaran!`;
+    const penugasanText = record.jabatan === 'Guru Mata Pelajaran'
+      ? `Guru Mata Pelajaran (${record.mataPelajaran || 'Pendidikan Agama Katolik'} - Kelas 1 s.d. 6 / Fase A-C)`
+      : `Guru Kelas (${record.fase} - Kelas ${record.kelas})`;
+
+    return `Halo Bapak/Ibu ${record.namaGuru},\n\nKabar baik! Permohonan Kode Akses SIPARTAN Anda telah DIVERIFIKASI & DIAKTIFKAN oleh Administrator (${ADMIN_WA_DISPLAY}):\n\n🔑 KODE AKSES: *${record.kodeAkses}*\n🏫 Satuan Pendidikan: ${record.namaSekolah}\n📚 Penugasan: ${penugasanText}\n👤 Kepala Sekolah: ${record.namaKepalaSekolah}\n📱 Nomor WA: ${record.nomorHpPendaftar || '-'}\nStatus: *AKTIF*\n\nSilakan buka aplikasi SIPARTAN, klik menu *"Masuk ke SIPARTAN"*, lalu masukkan kode: *${record.kodeAkses}*.\nIdentitas resmi Anda otomatis terkunci permanen pada cover dan seluruh dokumen.\n\nSelamat menyusun perangkat pembelajaran!`;
   };
 
   const handleCopyWAMessage = (record: AccessRecord) => {
@@ -714,6 +746,91 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     };
     reader.readAsText(file);
     e.target.value = '';
+  };
+
+  // Daftar seluruh nama sekolah / satuan pendidikan yang memiliki data pendidik terdaftar
+  const availableSchools = Array.from(
+    new Set(
+      records
+        .map((r) => (r.namaSekolah || r.namaSatuanPendidikan || '').trim())
+        .filter((s) => s.length > 0)
+    )
+  ).sort();
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      setNotification({ type: 'error', text: 'Ukuran file logo maksimal 2MB.' });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setPdfLogoBase64(base64);
+      try {
+        localStorage.setItem('sipartan_admin_pdf_logo_v1', base64);
+      } catch {}
+      setNotification({
+        type: 'success',
+        text: 'Logo Kop Surat berhasil diunggah! Logo ini akan otomatis dicetak pada Kop Dokumen PDF.',
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveLogo = () => {
+    setPdfLogoBase64('');
+    try {
+      localStorage.removeItem('sipartan_admin_pdf_logo_v1');
+    } catch {}
+    setNotification({
+      type: 'success',
+      text: 'Logo Kop Surat telah dihapus dari template cetak PDF.',
+    });
+  };
+
+  const handleDownloadPdfBySchool = () => {
+    let targetRecords: AccessRecord[];
+    let targetSchoolName = selectedSchoolForPdf;
+
+    if (selectedSchoolForPdf === 'ALL' || !selectedSchoolForPdf) {
+      targetRecords = records;
+      targetSchoolName = 'Semua Satuan Pendidikan';
+    } else {
+      targetRecords = records.filter(
+        (r) =>
+          (r.namaSekolah || r.namaSatuanPendidikan || '').toLowerCase().trim() ===
+          selectedSchoolForPdf.toLowerCase().trim()
+      );
+    }
+
+    if (targetRecords.length === 0) {
+      setNotification({
+        type: 'error',
+        text: `Tidak ada data pengguna terdaftar untuk sekolah "${targetSchoolName}".`,
+      });
+      return;
+    }
+
+    try {
+      generateUserAccessListPDF({
+        schoolName: targetSchoolName,
+        records: targetRecords,
+        logoBase64: pdfLogoBase64 || undefined,
+      });
+      setNotification({
+        type: 'success',
+        text: `📄 Laporan PDF Rekap Kode Akses untuk "${targetSchoolName}" (${targetRecords.length} guru) berhasil diunduh!`,
+      });
+    } catch (e: any) {
+      console.error(e);
+      setNotification({
+        type: 'error',
+        text: `Gagal menghasilkan dokumen PDF: ${e?.message || 'Error'}`,
+      });
+    }
   };
 
   // Filtered records
@@ -1326,6 +1443,108 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
             </div>
           </div>
 
+          {/* Section: Download Rekap Kode Akses Guru Per Satuan Pendidikan (Format PDF) */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-2 border-blue-500/50 shadow-md text-white space-y-3.5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-blue-800/50 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/30 border border-blue-400/50 flex items-center justify-center text-blue-300 shadow-inner shrink-0">
+                  <FileText className="w-5 h-5 text-blue-300" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-black text-white tracking-wide">
+                      Cetak &amp; Unduh Laporan Kode Akses Guru (Format PDF)
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-400 text-slate-950 uppercase">
+                      Siap Cetak / A4
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-200/80">
+                    Pilih nama sekolah di bawah ini untuk mengunduh dokumen PDF resmi berisi daftar nama guru, NIP, penugasan, dan kode akses unik masing-masing.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 bg-white/5 border border-white/10 p-3.5 rounded-xl">
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+                {/* 1. Pilih Satuan Pendidikan */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 flex-1">
+                  <label className="text-xs font-bold text-blue-200 shrink-0 flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Satuan Pendidikan:</span>
+                  </label>
+                  <select
+                    value={selectedSchoolForPdf}
+                    onChange={(e) => setSelectedSchoolForPdf(e.target.value)}
+                    className="w-full sm:w-80 px-3 py-2 text-xs rounded-xl bg-slate-900 border border-blue-400/50 text-white font-bold focus:outline-none focus:border-amber-400 cursor-pointer"
+                  >
+                    <option value="ALL">Semua Satuan Pendidikan ({records.length} Guru Terdaftar)</option>
+                    {availableSchools.map((sch) => {
+                      const count = records.filter(
+                        (r) => (r.namaSekolah || r.namaSatuanPendidikan || '').toLowerCase().trim() === sch.toLowerCase().trim()
+                      ).length;
+                      return (
+                        <option key={sch} value={sch}>
+                          {sch} ({count} Guru)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* 2. Unggah Logo Kop Surat */}
+                <div className="flex items-center gap-2.5 shrink-0 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-blue-400/40">
+                  {pdfLogoBase64 ? (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={pdfLogoBase64}
+                        alt="Logo Kop"
+                        className="w-7 h-7 object-contain bg-white rounded p-0.5 border border-slate-300"
+                      />
+                      <span className="text-[11px] font-bold text-emerald-300 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Logo Kop Aktif
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        className="text-[10px] text-red-300 hover:text-red-100 font-bold underline ml-1 cursor-pointer"
+                        title="Hapus logo"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-1.5 text-xs font-bold text-blue-200 hover:text-white cursor-pointer transition-colors">
+                      <ImageIcon className="w-4 h-4 text-amber-400" />
+                      <span>Unggah Logo Kop</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {/* 3. Tombol Unduh PDF */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleDownloadPdfBySchool}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-linear-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>
+                      Unduh PDF ({selectedSchoolForPdf === 'ALL' ? 'Semua Sekolah' : selectedSchoolForPdf})
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Section 3: Action Toolbar & Search */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
             <div className="flex flex-wrap items-center gap-2">
@@ -1489,9 +1708,20 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
                             <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300">
                               Akses Bebas Semua Fase &amp; Semua Kelas • Jabatan Bebas
                             </span>
+                          ) : r.isPermanent ? (
+                            <span className="px-2 py-0.5 rounded bg-amber-100/80 text-amber-950 text-[10px] font-bold border border-amber-300 flex items-center gap-1">
+                              <Crown className="w-3 h-3 text-amber-700" />
+                              {r.jabatan === 'Guru Mata Pelajaran'
+                                ? `Guru Mapel: ${r.mataPelajaran || 'Pendidikan Agama Katolik'} (Kelas 1-6 • Permanen)`
+                                : `Guru Kelas: ${r.fase} (Kelas ${r.kelas} • Permanen)`}
+                            </span>
+                          ) : r.jabatan === 'Guru Mata Pelajaran' ? (
+                            <span className="px-2 py-0.5 rounded bg-indigo-100 text-indigo-900 text-[10px] font-bold border border-indigo-300">
+                              Guru Mapel: {r.mataPelajaran || 'Pendidikan Agama Katolik'} (Akses Semua Kelas 1-6)
+                            </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">
-                              {r.jabatan} • {r.fase} (Kelas {r.kelas})
+                            <span className="px-2 py-0.5 rounded bg-blue-100 text-blue-900 text-[10px] font-semibold border border-blue-200">
+                              Guru Kelas: {r.fase} (Kelas {r.kelas})
                             </span>
                           )}
 
@@ -1626,8 +1856,20 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
                           )}
                         </button>
 
-                        {/* Delete button (except master) */}
+                        {/* Edit button (available for all records except master) */}
                         {!isMaster && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEdit(r)}
+                            className="p-1.5 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-600 transition-colors cursor-pointer"
+                            title="Edit Data Guru & Penugasan Mapel/Fase (Khusus Admin)"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                        )}
+
+                        {/* Delete button (ONLY for non-master and non-permanent records) */}
+                        {!isMaster && !r.isPermanent && !isPermanentAccessCode(r.kodeAkses) && (
                           <button
                             type="button"
                             onClick={() => handleDelete(r.kodeAkses)}
@@ -1792,32 +2034,56 @@ Kepala Sekolah: Gusmardi, S.Pd."
                   />
                 </div>
 
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">5. Fase</label>
-                  <select
-                    value={newFase}
-                    onChange={(e) => {
-                      const f = e.target.value as any;
-                      setNewFase(f);
-                      setNewKelas(f === 'Fase A' ? '1 & 2' : f === 'Fase B' ? '3 & 4' : '5 & 6');
-                    }}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
-                  >
-                    <option value="Fase C">Fase C (Kelas 5 & 6)</option>
-                    <option value="Fase B">Fase B (Kelas 3 & 4)</option>
-                    <option value="Fase A">Fase A (Kelas 1 & 2)</option>
-                  </select>
-                </div>
+                {newJabatan === 'Guru Mata Pelajaran' ? (
+                  <div className="sm:col-span-2 p-3 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-1.5">
+                    <label className="block font-bold text-indigo-950 mb-1">
+                      5. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newMataPelajaran}
+                      onChange={(e) => setNewMataPelajaran(e.target.value)}
+                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold text-xs"
+                    >
+                      {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10.5px] text-indigo-900 leading-tight">
+                      ✨ <strong>Hak Akses Kelas 1 s.d. 6:</strong> Guru Mata Pelajaran otomatis berhak mengakses seluruh Fase A, B, C (Kelas 1 s.d. 6) khusus mata pelajaran yang dipilih.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block font-bold text-slate-800 mb-1">5. Fase</label>
+                      <select
+                        value={newFase}
+                        onChange={(e) => {
+                          const f = e.target.value as any;
+                          setNewFase(f);
+                          setNewKelas(f === 'Fase A' ? '1 & 2' : f === 'Fase B' ? '3 & 4' : '5 & 6');
+                        }}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                      >
+                        <option value="Fase C">Fase C (Kelas 5 & 6)</option>
+                        <option value="Fase B">Fase B (Kelas 3 & 4)</option>
+                        <option value="Fase A">Fase A (Kelas 1 & 2)</option>
+                      </select>
+                    </div>
 
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">Kelas</label>
-                  <input
-                    type="text"
-                    value={newKelas}
-                    onChange={(e) => setNewKelas(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
+                    <div>
+                      <label className="block font-bold text-slate-800 mb-1">Kelas</label>
+                      <input
+                        type="text"
+                        value={newKelas}
+                        onChange={(e) => setNewKelas(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="block font-bold text-slate-800 mb-1">6. Nama Kepala Sekolah</label>
@@ -1856,6 +2122,216 @@ Kepala Sekolah: Gusmardi, S.Pd."
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   Terbitkan Kode (GP-XXXX)
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Modal Sub: Edit Data Guru & Penugasan Mapel */}
+        {editingRecord && (
+          <div className="absolute inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <form
+              onSubmit={handleSaveEdit}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 space-y-4 animate-in fade-in zoom-in-95 my-auto max-h-[92vh] overflow-y-auto"
+            >
+              <div className="flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-indigo-600" />
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Edit Data Guru &amp; Penugasan</h3>
+                    <p className="text-xs text-slate-500 font-mono">Kode Akses: {editingRecord.kodeAkses}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingRecord(null)}
+                  className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg hover:bg-slate-100"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {editSuccessMsg && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{editSuccessMsg}</span>
+                </div>
+              )}
+
+              {editErrorMsg && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-800 font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span>{editErrorMsg}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1">1. Nama Lengkap Guru <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={editNamaGuru}
+                    onChange={(e) => setEditNamaGuru(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">2. NIP Guru</label>
+                  <input
+                    type="text"
+                    value={editNipGuru}
+                    onChange={(e) => setEditNipGuru(e.target.value)}
+                    placeholder="18 digit atau -"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">3. Jabatan Guru <span className="text-red-500">*</span></label>
+                  <select
+                    value={editJabatan}
+                    onChange={(e) => setEditJabatan(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold"
+                  >
+                    <option value="Guru Kelas">Guru Kelas</option>
+                    <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1">4. Nama Satuan Pendidikan <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    required
+                    value={editNamaSekolah}
+                    onChange={(e) => setEditNamaSekolah(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1">Nomor WhatsApp Guru</label>
+                  <input
+                    type="text"
+                    value={editNomorWA}
+                    onChange={(e) => setEditNomorWA(e.target.value)}
+                    placeholder="Contoh: 081234567890"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                  />
+                </div>
+
+                {editJabatan === 'Guru Mata Pelajaran' ? (
+                  <div className="sm:col-span-2 p-3 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-1.5">
+                    <label className="block font-bold text-indigo-950 mb-1">
+                      5. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={editMataPelajaran}
+                      onChange={(e) => setEditMataPelajaran(e.target.value)}
+                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold text-xs"
+                    >
+                      {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10.5px] text-indigo-900 leading-tight">
+                      ✨ <strong>Hak Akses Kelas 1 s.d. 6:</strong> Guru Mata Pelajaran otomatis berhak mengakses seluruh Fase A, B, C (Kelas 1 s.d. 6) khusus mata pelajaran yang dipilih.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block font-bold text-slate-800 mb-1">5. Fase</label>
+                      <select
+                        value={editFase}
+                        onChange={(e) => {
+                          const f = e.target.value as any;
+                          setEditFase(f);
+                          setEditKelas(f === 'Fase A' ? '1 & 2' : f === 'Fase B' ? '3 & 4' : '5 & 6');
+                        }}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold"
+                      >
+                        <option value="Fase C">Fase C (Kelas 5 & 6)</option>
+                        <option value="Fase B">Fase B (Kelas 3 & 4)</option>
+                        <option value="Fase A">Fase A (Kelas 1 & 2)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-bold text-slate-800 mb-1">Kelas</label>
+                      <input
+                        type="text"
+                        value={editKelas}
+                        onChange={(e) => setEditKelas(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">6. Nama Kepala Sekolah</label>
+                  <input
+                    type="text"
+                    value={editNamaKS}
+                    onChange={(e) => setEditNamaKS(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">7. NIP Kepala Sekolah</label>
+                  <input
+                    type="text"
+                    value={editNipKS}
+                    onChange={(e) => setEditNipKS(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
+                  />
+                </div>
+
+                <div className="sm:col-span-2 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editIsActive}
+                      onChange={(e) => setEditIsActive(e.target.checked)}
+                      className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                    />
+                    <span className="font-bold text-slate-800">Status Akun Aktif (Dapat Masuk ke Aplikasi)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  disabled={isSavingEdit}
+                  onClick={() => setEditingRecord(null)}
+                  className="px-3.5 py-2 rounded-xl border text-xs font-semibold hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                >
+                  {isSavingEdit ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan ke Cloud...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Simpan Perubahan</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
