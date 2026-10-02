@@ -847,8 +847,8 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
 
               {/* Firestore Cloud Status Pill */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold shadow-2xs shrink-0">
-                <span className={`w-2 h-2 rounded-full ${isFirestoreOnline() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></span>
-                <span>{isFirestoreOnline() ? 'Firestore Cloud Aktif (Sinkron)' : 'Penyimpanan Lokal Aktif (Offline Ready)'}</span>
+                <span className={`w-2 h-2 rounded-full ${isFirestoreOnline() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-ping'}`}></span>
+                <span>{isFirestoreOnline() ? 'Cloud Firestore: Online (Sinkron Realtime)' : 'Cloud Firestore: Menunggu Database Dibuat'}</span>
               </div>
             </div>
 
