@@ -127,7 +127,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
 
     if (isDeactivatedLegacyCode(target)) {
       setErrorMessage(
-        'Kode akses "GP-86OK" telah dinonaktifkan/kadaluarsa secara permanen dan tidak berlaku lagi. Silakan gunakan Kode Master resmi terbaru (GP-1386) atau ajukan kode akses baru.'
+        'Kode akses "GP-86OK" telah dinonaktifkan/kadaluarsa secara permanen dan tidak berlaku lagi. Silakan gunakan Kode Akses Guru yang aktif atau ajukan kode akses baru.'
       );
       return;
     }

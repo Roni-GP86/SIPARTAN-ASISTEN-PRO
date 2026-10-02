@@ -48,7 +48,7 @@ export async function setRuangMuridEnabled(
     return {
       success: false,
       cloudSynced: false,
-      message: 'Kode akses tidak valid. Hanya Master Admin (GP-1386) yang berhak mengubah status Ruang Murid.',
+      message: 'Kode akses tidak valid. Hanya Administrator yang berhak mengubah status Ruang Murid.',
     };
   }
 

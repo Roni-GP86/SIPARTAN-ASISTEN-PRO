@@ -41,7 +41,7 @@ export const RuangMuridDeactivatedModal: React.FC<RuangMuridDeactivatedModalProp
 
     const clean = adminCodeInput.trim().toUpperCase();
     if (clean !== MASTER_ADMIN_ACCESS_CODE) {
-      setErrorMsg('Kode otorisasi salah. Hanya Master Admin (GP-1386) yang dapat mengaktifkan kembali Ruang Murid.');
+      setErrorMsg('Kode otorisasi salah. Akses ditolak.');
       setIsProcessing(false);
       return;
     }
@@ -108,7 +108,7 @@ export const RuangMuridDeactivatedModal: React.FC<RuangMuridDeactivatedModalProp
                 "Mohon maaf, fitur ini tersedia khusus untuk murid Kelas 6 SDN Fatubai."
               </p>
               <p className="text-xs text-amber-300/80 font-medium">
-                Pintu evaluasi belajar sedang ditutup oleh Bapak/Ibu Guru Admin (GP-1386) atau dibatasi khusus bagi siswa terdaftar resmi.
+                Pintu evaluasi belajar sedang ditutup oleh Administrator atau dibatasi khusus bagi siswa terdaftar resmi.
               </p>
             </div>
 
@@ -145,7 +145,7 @@ export const RuangMuridDeactivatedModal: React.FC<RuangMuridDeactivatedModalProp
                 <div className="flex items-center justify-between text-xs font-bold text-blue-300">
                   <span className="flex items-center gap-1.5">
                     <KeyRound className="w-4 h-4 text-blue-400" />
-                    Otorisasi Buka Akses (Master Admin)
+                    Otorisasi Buka Akses (Guru / Admin)
                   </span>
                   <button
                     type="button"
@@ -161,8 +161,8 @@ export const RuangMuridDeactivatedModal: React.FC<RuangMuridDeactivatedModalProp
                     type="password"
                     value={adminCodeInput}
                     onChange={(e) => setAdminCodeInput(e.target.value)}
-                    placeholder="Masukkan Kode Akses Admin / Guru..."
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-blue-500/50 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400"
+                    placeholder="Masukkan Kode Akses Admin..."
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-blue-500/50 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-400 font-mono tracking-widest text-center"
                     autoFocus
                   />
                   {errorMsg && (
@@ -197,10 +197,10 @@ export const RuangMuridDeactivatedModal: React.FC<RuangMuridDeactivatedModalProp
                   type="button"
                   onClick={() => setShowAdminUnlock(true)}
                   className="w-full sm:w-auto px-4 py-3 rounded-2xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                  title="Masuk sebagai Administrator untuk mengaktifkan kembali"
+                  title="Masuk sebagai Administrator / Guru untuk mengaktifkan kembali"
                 >
                   <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Saya Guru / Admin (GP-1386)</span>
+                  <span>Saya Guru / Admin</span>
                 </button>
               )}
             </div>
