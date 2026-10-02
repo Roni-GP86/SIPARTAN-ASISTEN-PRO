@@ -490,6 +490,41 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
             {newlyCreatedCode ? (
               /* Success / Pending Activation Screen */
               <div className="space-y-4 animate-in fade-in duration-200">
+                {/* Banner Konfirmasi Penyimpanan Cloud Firebase */}
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-700 text-white shadow-lg space-y-2 border border-emerald-400 animate-in fade-in zoom-in-95">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center font-bold text-white shrink-0 shadow-inner">
+                      <CheckCircle2 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-black text-sm tracking-tight text-white">
+                          BERHASIL TERKIRIM &amp; TERSIMPAN DI CLOUD FIREBASE!
+                        </h3>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider">
+                          Antrean Admin
+                        </span>
+                      </div>
+                      <p className="text-[11.5px] text-emerald-100 font-medium leading-relaxed mt-0.5">
+                        Data pendaftaran guru Anda telah berhasil masuk dan tersimpan aman di database Cloud Firestore online SIPARTAN.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-emerald-950/40 p-2.5 rounded-xl text-[11px] text-emerald-100 border border-emerald-500/30 flex items-center gap-2">
+                    <span className="text-base">🛡️</span>
+                    <span><strong>Jangan mendaftar ulang!</strong> Permohonan Anda sudah diterima dan notifikasi masuk telah dikirimkan ke Admin untuk verifikasi aktivasi.</span>
+                  </div>
+                </div>
+
+                {/* Status Listener Real-Time */}
+                <div className="flex items-center justify-center gap-2.5 p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs font-semibold">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                  </span>
+                  <span>Sistem sedang mendengarkan aktivasi real-time dari Admin (Aplikasi akan terbuka otomatis begitu diaktifkan).</span>
+                </div>
+
                 <div className="p-4 rounded-xl bg-amber-50 border-2 border-amber-300 text-amber-950 space-y-3">
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 rounded-full bg-amber-200 text-amber-900 flex items-center justify-center shrink-0">
@@ -497,14 +532,13 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-sm text-amber-950">Permohonan Kode Akses Berhasil Diajukan!</h3>
+                        <h3 className="font-bold text-sm text-amber-950">Rincian Permohonan Kode Akses Anda</h3>
                         <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-300 text-amber-950">
-                          MENUNGGU AKTIVASI ADMIN
+                          MENUNGGU VERIFIKASI ADMIN
                         </span>
                       </div>
                       <p className="text-xs text-amber-900 mt-1 leading-relaxed">
-                        Data pendaftaran Anda telah tercatat dengan aman di SIPARTAN.
-                        Sesuai standar verifikasi resmi, <strong>kode akses tidak langsung otomatis aktif</strong> dan harus diaktifkan oleh Administrator SIPARTAN.
+                        Kode akses Anda akan segera diaktifkan oleh Administrator SIPARTAN (Bapak Roni Hariyanto Bhidju, S. Pd).
                       </p>
                     </div>
                   </div>

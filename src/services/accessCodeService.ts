@@ -584,7 +584,7 @@ export function createNewAccessRecord(data: {
   nipKepalaSekolah?: string;
   emailPendaftar?: string;
   nomorHpPendaftar?: string;
-  sumberPendaftaran?: 'Google Form' | 'Input Langsung' | 'Sistem Bawaan';
+  sumberPendaftaran?: 'Input Langsung' | 'Sistem Bawaan';
   autoActivate?: boolean;
 }): AccessRecord {
   const records = getAllAccessRecords();
@@ -625,13 +625,46 @@ export function createNewAccessRecord(data: {
 }
 
 /**
- * Mendaftarkan / menerbitkan kode akses baru secara asinkron dengan jaminan penyimpanan ke Cloud Firestore
+ * Mendaftarkan / menerbitkan kode akses baru secara asinkron dengan jaminan penyimpanan langsung ke Cloud Firestore
  */
 export async function createNewAccessRecordAsync(
   data: Parameters<typeof createNewAccessRecord>[0]
 ): Promise<AccessRecord & { cloudSynced: boolean; cloudError?: string }> {
-  const newRecord = createNewAccessRecord(data);
+  const records = getAllAccessRecords();
+  const kodeAkses = generateUniqueAccessCode(records);
+  const now = new Date().toISOString();
+
+  const cleanCode = kodeAkses.toUpperCase().trim();
+  const newRecord: AccessRecord = {
+    id: `acc-${cleanCode.replace(/\s+/g, '')}`,
+    kodeAkses,
+    isActive: data.autoActivate ?? false,
+    status: (data.autoActivate ?? false) ? 'active' : 'inactive',
+    isPremiumMaster: false,
+    tanggalDibuat: now,
+    tanggalAktivasi: data.autoActivate ? now : undefined,
+    namaGuru: data.namaGuru.trim(),
+    nipGuru: (data.nipGuru || '-').trim(),
+    jabatan: data.jabatan || 'Guru Kelas',
+    namaSekolah: data.namaSekolah.trim(),
+    namaSatuanPendidikan: data.namaSekolah.trim(),
+    fase: data.fase || 'Fase C',
+    kelas: data.kelas || (data.fase === 'Fase A' ? '1 & 2' : data.fase === 'Fase B' ? '3 & 4' : '5 & 6'),
+    mataPelajaran: 'Matematika',
+    namaKepalaSekolah: (data.namaKepalaSekolah || '-').trim(),
+    nipKepalaSekolah: (data.nipKepalaSekolah || '-').trim(),
+    emailPendaftar: data.emailPendaftar,
+    nomorHpPendaftar: (data.nomorHpPendaftar || '').trim(),
+    sumberPendaftaran: data.sumberPendaftaran || 'Input Langsung',
+  };
+
+  // 1. Simpan langsung ke Cloud Firestore
   const cloudRes = await saveAccessRecordToFirestore(newRecord);
+
+  // 2. Simpan ke local storage
+  const updatedRecords = [newRecord, ...records.filter(r => r.kodeAkses.toUpperCase().trim() !== cleanCode)];
+  saveAllAccessRecords(updatedRecords);
+
   return {
     ...newRecord,
     cloudSynced: Boolean(cloudRes?.success),

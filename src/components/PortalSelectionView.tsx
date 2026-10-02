@@ -6,9 +6,15 @@ import { sounds } from '../utils/audioEffects';
 
 interface PortalSelectionViewProps {
   onSelectPortal: (mode: 'guru' | 'murid') => void;
+  pendingCount?: number;
+  onOpenAdminPanel?: () => void;
 }
 
-export const PortalSelectionView: React.FC<PortalSelectionViewProps> = ({ onSelectPortal }) => {
+export const PortalSelectionView: React.FC<PortalSelectionViewProps> = ({
+  onSelectPortal,
+  pendingCount,
+  onOpenAdminPanel,
+}) => {
   return (
     <div className="fixed inset-0 z-[90] bg-[#070e1c] overflow-y-auto overflow-x-hidden w-full h-full">
       {/* Subtle Ambient Radial Glows */}
@@ -18,6 +24,30 @@ export const PortalSelectionView: React.FC<PortalSelectionViewProps> = ({ onSele
       <div className="min-h-full w-full flex flex-col items-center justify-start sm:justify-center p-4 sm:p-6 md:p-8 py-8 sm:py-12">
         <div className="relative z-10 max-w-3xl w-full mx-auto space-y-5 sm:space-y-6 animate-in fade-in zoom-in duration-500">
           
+          {/* Pending Request Alert for Admin */}
+          {pendingCount !== undefined && pendingCount > 0 && onOpenAdminPanel && (
+            <div className="p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-slate-950 border-2 border-amber-300 shadow-xl flex items-center justify-between gap-3 animate-in slide-in-from-top duration-300">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-xl sm:text-2xl shrink-0 animate-bounce">🔔</span>
+                <div className="text-xs leading-tight">
+                  <span className="font-black text-slate-950 block sm:inline mr-1">
+                    {pendingCount} Permintaan Kode Akses Guru Baru Menunggu Verifikasi!
+                  </span>
+                  <span className="text-[11px] text-amber-950 font-medium">
+                    (Mendaftar dari HP/perangkat lain)
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenAdminPanel}
+                className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-amber-300 hover:bg-slate-900 active:scale-95 text-xs font-black shrink-0 cursor-pointer shadow-md transition-all hover:scale-105 whitespace-nowrap"
+              >
+                Buka Panel Admin
+              </button>
+            </div>
+          )}
+
           <div className="text-center space-y-2.5">
             <div className="flex justify-center mb-1">
               <AppLogo size="lg" className="w-16 h-16 sm:w-20 sm:h-20" />

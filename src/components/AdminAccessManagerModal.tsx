@@ -371,7 +371,7 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
         autoActivate: true,
       });
 
-      await refreshList();
+      setRecords((prev) => [created, ...prev.filter((r) => r.kodeAkses !== created.kodeAkses)]);
       setShowAddModal(false);
       setNewNamaGuru('');
       setNewNipGuru('');
@@ -379,10 +379,19 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
       setNewNomorWA('');
       setNewNamaKS('');
       setNewNipKS('');
-      setNotification({
-        type: 'success',
-        text: `Kode akses baru ${created.kodeAkses} berhasil diterbitkan, diaktifkan, dan tersimpan di Cloud Firestore untuk ${created.namaGuru}!`,
-      });
+
+      if (created.cloudSynced === false && created.cloudError) {
+        setNotification({
+          type: 'error',
+          text: `⚠️ Kode ${created.kodeAkses} tersimpan di memori perangkat ini, namun gagal dikirim ke Cloud: ${created.cloudError}. Periksa aturan Firestore atau klik tombol "Tes Koneksi Cloud".`,
+        });
+      } else {
+        setNotification({
+          type: 'success',
+          text: `✅ Kode ${created.kodeAkses} (${created.namaGuru}) BERHASIL TERSIMPAN DI CLOUD FIRESTORE & DIAKTIFKAN! Pengguna di HP/Laptop mana pun kini dapat langsung masuk menggunakan kode ${created.kodeAkses}.`,
+        });
+      }
+      if (onDataChanged) onDataChanged();
     } catch (err: any) {
       setNotification({
         type: 'error',

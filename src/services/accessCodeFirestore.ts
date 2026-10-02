@@ -61,45 +61,51 @@ function sanitizeFirestorePayload<T extends Record<string, any>>(data: T): Recor
 }
 
 /**
- * Menguji koneksi langsung ke Cloud Firestore
+ * Menguji koneksi langsung ke Cloud Firestore (Cepat & Real-Time)
  */
 export async function testFirestoreConnectionAsync(): Promise<{ success: boolean; message: string }> {
   resetCloudCooldown();
-  await ensureFirebaseAuth().catch(() => null);
   const activeCfg = getActiveFirebaseConfig();
   const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
 
   try {
-    // 1. Tulis ping ke collection settings
-    const pingDocRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'connection_ping');
-    await setDoc(
-      pingDocRef,
-      {
-        pingTime: new Date().toISOString(),
-        testedBy: 'Admin SIPARTAN',
-        projectId: activeProject,
-        status: 'online',
-      },
-      { merge: true }
+    const timeoutPromise = new Promise<{ success: boolean; message: string }>((_, reject) =>
+      setTimeout(() => reject(new Error('Koneksi timeout (5 detik). Pastikan perangkat terhubung internet.')), 5000)
     );
 
-    // 2. Baca koleksi pendaftaran
-    const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
-    const snapshot = await getDocs(colRef);
-    isCloudOnlineState = true;
-    lastCloudErrorMessage = null;
+    const testOperation = async (): Promise<{ success: boolean; message: string }> => {
+      // 1. Tulis ping ke collection settings
+      const pingDocRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'connection_ping');
+      await setDoc(
+        pingDocRef,
+        {
+          pingTime: new Date().toISOString(),
+          testedBy: 'Admin SIPARTAN',
+          projectId: activeProject,
+          status: 'online',
+        },
+        { merge: true }
+      );
 
-    // 3. Pastikan data Master & Demo ada di Cloud Firestore jika koleksi masih kosong
-    if (snapshot.empty) {
-      await saveAccessRecordToFirestore(DEFAULT_PREMIUM_RECORD).catch(() => {});
-      await saveAccessRecordToFirestore(DEFAULT_SIMULASI_RECORD).catch(() => {});
-      await saveAccessRecordToFirestore(DEFAULT_FERIANUS_RECORD).catch(() => {});
-    }
+      // 2. Baca koleksi pendaftaran
+      const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
+      const snapshot = await getDocs(colRef);
+      isCloudOnlineState = true;
+      lastCloudErrorMessage = null;
 
-    return {
-      success: true,
-      message: `KONEKSI CLOUD BERHASIL & ONLINE! Proyek Firebase "${activeProject}" terhubung aktif dan siap menyinkronkan data secara real-time ke seluruh gawai/Netlify.`,
+      // 3. Pastikan data Master & Demo ada di Cloud Firestore jika koleksi masih kosong
+      if (snapshot.empty) {
+        await saveAccessRecordToFirestore(DEFAULT_PREMIUM_RECORD).catch(() => {});
+        await saveAccessRecordToFirestore(DEFAULT_SIMULASI_RECORD).catch(() => {});
+      }
+
+      return {
+        success: true,
+        message: `KONEKSI CLOUD BERHASIL & ONLINE (Real-Time)! Proyek Firebase "${activeProject}" terhubung aktif dan siap menyinkronkan data secara seketika ke seluruh gawai/Netlify.`,
+      };
     };
+
+    return await Promise.race([testOperation(), timeoutPromise]);
   } catch (err: any) {
     isCloudOnlineState = false;
     lastCloudErrorMessage = err?.message || `Gagal tersambung ke Cloud Firestore "${activeProject}".`;

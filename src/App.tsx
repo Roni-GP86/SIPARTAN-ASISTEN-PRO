@@ -2128,7 +2128,13 @@ export default function App() {
           </div>
         </div>
       )}
-      {!showSplash && portalMode === "selection" && <PortalSelectionView onSelectPortal={handleSwitchPortalMode} />}
+      {!showSplash && portalMode === "selection" && (
+        <PortalSelectionView
+          onSelectPortal={handleSwitchPortalMode}
+          pendingCount={pendingAccessCount}
+          onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
+        />
+      )}
       {portalMode !== "selection" && (
         <>
 
@@ -2881,27 +2887,23 @@ export default function App() {
       />
 
       {/* Floating Admin Notification for New Access Requests */}
-      {Boolean(
-        activeAccessRecord &&
-        (activeAccessRecord.isPremiumMaster || isMasterAccessCode(activeAccessRecord.kodeAkses)) &&
-        pendingAccessCount > 0
-      ) && (
-        <div className="fixed bottom-5 right-5 z-40 max-w-sm bg-linear-to-r from-amber-500 via-orange-500 to-amber-500 text-slate-950 p-3.5 rounded-2xl shadow-2xl border-2 border-amber-300 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5">
+      {pendingAccessCount > 0 && (
+        <div className="fixed bottom-5 right-5 z-50 max-w-sm bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-slate-950 p-4 rounded-2xl shadow-2xl border-2 border-amber-300 flex items-center justify-between gap-3 animate-in slide-in-from-bottom-5">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="text-2xl shrink-0 animate-bounce">🔔</span>
             <div className="min-w-0 text-xs leading-tight">
-              <span className="font-black text-slate-950 block">
+              <span className="font-black text-slate-950 block text-xs sm:text-sm">
                 {pendingAccessCount} Permohonan Kode Akses Baru!
               </span>
               <span className="text-[11px] text-amber-950 truncate block font-medium">
-                Ada guru mendaftar dari HP/perangkat mereka.
+                Ada guru mendaftar dari HP/perangkat lain.
               </span>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setIsAdminPanelOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-slate-950 text-amber-300 hover:bg-slate-900 font-black text-xs shrink-0 cursor-pointer shadow-md transition-transform hover:scale-105"
+            className="px-3.5 py-1.5 rounded-xl bg-slate-950 text-amber-300 hover:bg-slate-900 font-black text-xs shrink-0 cursor-pointer shadow-md transition-transform hover:scale-105"
           >
             Buka Panel
           </button>
