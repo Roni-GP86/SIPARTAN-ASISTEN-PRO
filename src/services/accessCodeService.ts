@@ -317,7 +317,7 @@ export function getAllAccessRecords(): AccessRecord[] {
   try {
     const raw = localStorage.getItem(ACCESS_CODES_STORAGE_KEY);
     if (!raw) {
-      const initial = [DEFAULT_PREMIUM_RECORD, DEFAULT_DEMO_RECORD, DEFAULT_FERIANUS_RECORD];
+      const initial = [DEFAULT_PREMIUM_RECORD, DEFAULT_DEMO_RECORD];
       localStorage.setItem(ACCESS_CODES_STORAGE_KEY, JSON.stringify(initial));
       return initial;
     }
@@ -355,7 +355,7 @@ export function getAllAccessRecords(): AccessRecord[] {
     return normalized;
   } catch (e) {
     console.error('Gagal membaca data kode akses:', e);
-    return [DEFAULT_PREMIUM_RECORD, DEFAULT_DEMO_RECORD, DEFAULT_FERIANUS_RECORD];
+    return [DEFAULT_PREMIUM_RECORD, DEFAULT_DEMO_RECORD];
   }
 }
 
@@ -591,8 +591,9 @@ export function createNewAccessRecord(data: {
   const kodeAkses = generateUniqueAccessCode(records);
   const now = new Date().toISOString();
 
+  const cleanCode = kodeAkses.toUpperCase().trim();
   const newRecord: AccessRecord = {
-    id: `acc-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    id: `acc-${cleanCode.replace(/\s+/g, '')}`,
     kodeAkses,
     isActive: data.autoActivate ?? false,
     status: (data.autoActivate ?? false) ? 'active' : 'inactive',

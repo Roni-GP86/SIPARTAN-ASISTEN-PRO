@@ -28,138 +28,29 @@ import {
 export const FIRESTORE_ACCESS_CODES_COLLECTION = 'sipartan_access_codes';
 export const FIRESTORE_SETTINGS_COLLECTION = 'sipartan_settings';
 
-// Circuit breaker adaptif untuk pemulihan cepat
-let isCloudAvailable = true;
-let lastFailureTime = 0;
-const FAILURE_COOLDOWN_MS = 4000; // Jeda singkat 4 detik saja untuk pemulihan cepat
-let lastCloudErrorDetail: string | null = null;
+let isCloudOnlineState = true;
+let lastCloudErrorMessage: string | null = null;
 
 export function getLastCloudErrorDetail(): string | null {
-  return lastCloudErrorDetail;
+  return lastCloudErrorMessage;
 }
 
 export function resetCloudCooldown(): void {
-  isCloudAvailable = true;
-  lastFailureTime = 0;
-  lastCloudErrorDetail = null;
+  isCloudOnlineState = true;
+  lastCloudErrorMessage = null;
 }
 
 export function isFirestoreOnline(): boolean {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return false;
   }
-  return isCloudAvailable;
-}
-
-function canAttemptCloud(): boolean {
-  if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return false;
-  }
-  if (!isCloudAvailable) {
-    if (Date.now() - lastFailureTime > FAILURE_COOLDOWN_MS) {
-      isCloudAvailable = true; // Coba kembali setelah masa cooldown
-      return true;
-    }
-    return false;
-  }
-  return true;
-}
-
-function markCloudFailure(err?: any) {
-  isCloudAvailable = false;
-  lastFailureTime = Date.now();
-  const rawMsg = err?.message || String(err || '');
-  const activeCfg = getActiveFirebaseConfig();
-  const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
-
-  if (
-    rawMsg.includes('NOT_FOUND') ||
-    rawMsg.includes('not-found') ||
-    rawMsg.includes('404') ||
-    rawMsg.includes('does not exist')
-  ) {
-    lastCloudErrorDetail = `Database Cloud Firestore belum dibuat pada proyek Firebase "${activeProject}". Buka Firebase Console (https://console.firebase.google.com/project/${activeProject}/firestore) lalu klik "Create Database" (Pilih "Start in test mode" / Mode Uji Coba: allow read, write: if true). Sebelum database diaktifkan di Firebase Console, aplikasi hanya dapat menyimpan data di perangkat masing-masing (tidak tersinkronisasi lintas gawai/Netlify).`;
-  } else if (
-    rawMsg.includes('PERMISSION_DENIED') ||
-    rawMsg.includes('has not been used in project') ||
-    rawMsg.includes('disabled')
-  ) {
-    lastCloudErrorDetail = `Akses ke database Firestore proyek "${activeProject}" ditolak. Pastikan Security Rules di Firebase Console telah disetel: "allow read, write: if true;".`;
-  } else if (rawMsg.includes('offline') || rawMsg.includes('unavailable') || rawMsg.includes('timeout')) {
-    lastCloudErrorDetail = `Koneksi internet atau backend Firestore proyek "${activeProject}" sedang tidak merespons (timeout). Data pendaftaran tetap tersimpan aman di perangkat lokal.`;
-  } else {
-    lastCloudErrorDetail = rawMsg || 'Koneksi Cloud Firestore tidak merespons.';
-  }
-  console.warn('[Firestore] Info koneksi:', lastCloudErrorDetail);
+  return isCloudOnlineState;
 }
 
 /**
- * Menguji koneksi langsung ke Cloud Firestore dan memberikan umpan balik diagnostik nyata
+ * Pembersih nilai undefined agar tidak ditolak Firestore SDK
  */
-export async function testFirestoreConnectionAsync(): Promise<{ success: boolean; message: string }> {
-  resetCloudCooldown();
-  await ensureFirebaseAuth().catch(() => null);
-  const activeCfg = getActiveFirebaseConfig();
-  const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
-  try {
-    // 1. Uji Tulis Dokumen Uji Ping Nyata
-    const pingDocRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'connection_ping');
-    const pingData = {
-      pingTime: new Date().toISOString(),
-      testedBy: 'Admin SIPARTAN',
-      platform: typeof window !== 'undefined' ? window.navigator.userAgent : 'Browser',
-      projectId: activeProject,
-      status: 'online',
-    };
-    await withTimeout(setDoc(pingDocRef, pingData, { merge: true }), 5000);
-
-    // 2. Uji Baca Koleksi Pendaftaran
-    const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
-    const snapshot = await withTimeout(getDocs(colRef), 5000);
-    isCloudAvailable = true;
-    lastCloudErrorDetail = null;
-
-    // 3. Sinkronkan data pendaftaran lokal ke cloud jika belum ada di database
-    const localRecords = getAllAccessRecords();
-    const existingDocIds = new Set(snapshot.docs.map((d) => d.id));
-    let uploadedCount = 0;
-    for (const rec of localRecords) {
-      const docId = rec.id || `acc-${rec.kodeAkses.replace(/\s+/g, '')}`;
-      if (!existingDocIds.has(docId)) {
-        await saveAccessRecordToFirestore(rec).catch(() => {});
-        uploadedCount++;
-      }
-    }
-
-    return {
-      success: true,
-      message: `KONEKSI CLOUD BERHASIL & ONLINE! Proyek Firebase "${activeProject}" terhubung aktif. Database Cloud Firestore siap menyinkronkan data pendaftaran guru dan pengaturan admin secara real-time ke semua perangkat/Netlify!` + (uploadedCount > 0 ? ` (Tersinkron ${uploadedCount} data lokal ke Cloud).` : ''),
-    };
-  } catch (err: any) {
-    markCloudFailure(err);
-    return {
-      success: false,
-      message: lastCloudErrorDetail || err?.message || `Gagal tersambung ke Cloud Firestore proyek "${activeProject}".`,
-    };
-  }
-}
-
-/**
- * Helper pembatas waktu agar operasi Firestore tidak macet atau hanging jika offline
- */
-function withTimeout<T>(promise: Promise<T>, ms = 6500): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('Firestore timeout: backend tidak merespons')), ms)
-    ),
-  ]);
-}
-
-/**
- * Pembersih nilai undefined agar tidak menyebabkan error pada Firestore SDK
- */
-function cleanFirestoreData<T extends Record<string, any>>(data: T): Record<string, any> {
+function sanitizeFirestorePayload<T extends Record<string, any>>(data: T): Record<string, any> {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(data)) {
     if (value !== undefined) {
@@ -170,22 +61,68 @@ function cleanFirestoreData<T extends Record<string, any>>(data: T): Record<stri
 }
 
 /**
- * Menyimpan atau memperbarui 1 data kode akses guru ke Cloud Firestore
+ * Menguji koneksi langsung ke Cloud Firestore
+ */
+export async function testFirestoreConnectionAsync(): Promise<{ success: boolean; message: string }> {
+  resetCloudCooldown();
+  await ensureFirebaseAuth().catch(() => null);
+  const activeCfg = getActiveFirebaseConfig();
+  const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
+
+  try {
+    // 1. Tulis ping ke collection settings
+    const pingDocRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'connection_ping');
+    await setDoc(
+      pingDocRef,
+      {
+        pingTime: new Date().toISOString(),
+        testedBy: 'Admin SIPARTAN',
+        projectId: activeProject,
+        status: 'online',
+      },
+      { merge: true }
+    );
+
+    // 2. Baca koleksi pendaftaran
+    const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
+    const snapshot = await getDocs(colRef);
+    isCloudOnlineState = true;
+    lastCloudErrorMessage = null;
+
+    // 3. Pastikan data Master & Demo ada di Cloud Firestore jika koleksi masih kosong
+    if (snapshot.empty) {
+      await saveAccessRecordToFirestore(DEFAULT_PREMIUM_RECORD).catch(() => {});
+      await saveAccessRecordToFirestore(DEFAULT_SIMULASI_RECORD).catch(() => {});
+      await saveAccessRecordToFirestore(DEFAULT_FERIANUS_RECORD).catch(() => {});
+    }
+
+    return {
+      success: true,
+      message: `KONEKSI CLOUD BERHASIL & ONLINE! Proyek Firebase "${activeProject}" terhubung aktif dan siap menyinkronkan data secara real-time ke seluruh gawai/Netlify.`,
+    };
+  } catch (err: any) {
+    isCloudOnlineState = false;
+    lastCloudErrorMessage = err?.message || `Gagal tersambung ke Cloud Firestore "${activeProject}".`;
+    console.warn('[Firestore] Test connection error:', lastCloudErrorMessage);
+    return {
+      success: false,
+      message: lastCloudErrorMessage,
+    };
+  }
+}
+
+/**
+ * Menyimpan / memperbarui 1 data kode akses guru ke Cloud Firestore
  */
 export async function saveAccessRecordToFirestore(
   record: AccessRecord
 ): Promise<{ success: boolean; error?: string }> {
-  if (!canAttemptCloud()) {
-    return {
-      success: false,
-      error: lastCloudErrorDetail || 'Jaringan Cloud Firestore sedang offline / tidak terjangkau.',
-    };
-  }
   try {
     await ensureFirebaseAuth().catch(() => null);
     const clean = (record.kodeAkses || '').toUpperCase().trim();
     const docId = clean ? `acc-${clean.replace(/\s+/g, '')}` : (record.id || `acc-${Date.now()}`);
-    const sanitized = cleanFirestoreData({
+    
+    const sanitized = sanitizeFirestorePayload({
       ...record,
       id: docId,
       status: record.isActive ? 'active' : 'inactive',
@@ -193,36 +130,42 @@ export async function saveAccessRecordToFirestore(
     });
 
     const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, docId);
-    await withTimeout(setDoc(docRef, sanitized, { merge: true }), 4000);
-    isCloudAvailable = true;
+    await setDoc(docRef, sanitized, { merge: true });
+    isCloudOnlineState = true;
     return { success: true };
   } catch (error: any) {
-    markCloudFailure(error);
+    console.error('[Firestore] Save record error:', error);
+    lastCloudErrorMessage = error?.message || 'Gagal menyimpan ke Cloud Firestore.';
     return {
       success: false,
-      error: lastCloudErrorDetail || error?.message || 'Gagal menyimpan ke Cloud Firestore.',
+      error: lastCloudErrorMessage,
     };
   }
 }
 
 /**
- * Menghapus data kode akses dari Cloud Firestore
+ * Menghapus data kode akses dari Cloud Firestore secara permanen
  */
-export async function deleteAccessRecordFromFirestore(recordId: string, kodeAkses?: string): Promise<void> {
-  if (!canAttemptCloud()) return;
+export async function deleteAccessRecordFromFirestore(
+  recordId: string,
+  kodeAkses?: string
+): Promise<{ success: boolean; error?: string }> {
   try {
+    await ensureFirebaseAuth().catch(() => null);
     if (recordId) {
       const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, recordId);
-      await withTimeout(deleteDoc(docRef), 3000).catch(() => {});
+      await deleteDoc(docRef);
     }
     if (kodeAkses) {
       const clean = kodeAkses.toUpperCase().trim();
       const altDocRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, `acc-${clean.replace(/\s+/g, '')}`);
-      await withTimeout(deleteDoc(altDocRef), 3000).catch(() => {});
+      await deleteDoc(altDocRef);
     }
-    isCloudAvailable = true;
-  } catch (error) {
-    markCloudFailure(error);
+    isCloudOnlineState = true;
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Firestore] Delete record error:', error);
+    return { success: false, error: error?.message };
   }
 }
 
@@ -233,12 +176,12 @@ export async function updateAccessRecordStatusInFirestore(
   recordId: string,
   isActive: boolean,
   kodeAkses?: string
-): Promise<void> {
-  if (!canAttemptCloud()) return;
+): Promise<{ success: boolean; error?: string }> {
   try {
+    await ensureFirebaseAuth().catch(() => null);
     const clean = (kodeAkses || '').toUpperCase().trim();
     const docId = clean ? `acc-${clean.replace(/\s+/g, '')}` : recordId;
-    if (!docId) return;
+    if (!docId) return { success: false, error: 'ID tidak valid' };
 
     const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, docId);
     const updateData: Record<string, any> = {
@@ -249,15 +192,17 @@ export async function updateAccessRecordStatusInFirestore(
     if (isActive) {
       updateData.tanggalAktivasi = new Date().toISOString();
     }
-    await withTimeout(setDoc(docRef, updateData, { merge: true }), 3000);
-    // Jika recordId berbeda dengan docId, perbarui juga recordId lama untuk konsistensi
+    await setDoc(docRef, updateData, { merge: true });
+
     if (recordId && recordId !== docId) {
       const legacyRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, recordId);
-      await withTimeout(setDoc(legacyRef, updateData, { merge: true }), 2000).catch(() => {});
+      await setDoc(legacyRef, updateData, { merge: true }).catch(() => {});
     }
-    isCloudAvailable = true;
-  } catch (error) {
-    markCloudFailure(error);
+    isCloudOnlineState = true;
+    return { success: true };
+  } catch (error: any) {
+    console.error('[Firestore] Update status error:', error);
+    return { success: false, error: error?.message };
   }
 }
 
@@ -265,10 +210,10 @@ export async function updateAccessRecordStatusInFirestore(
  * Mengaktifkan atau menonaktifkan seluruh kode akses di Cloud Firestore
  */
 export async function batchUpdateAllAccessCodesInFirestore(isActive: boolean): Promise<void> {
-  if (!canAttemptCloud()) return;
   try {
+    await ensureFirebaseAuth().catch(() => null);
     const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
-    const snapshot = await withTimeout(getDocs(colRef), 4000);
+    const snapshot = await getDocs(colRef);
     const now = new Date().toISOString();
 
     const updates = snapshot.docs.map(async (d) => {
@@ -289,29 +234,27 @@ export async function batchUpdateAllAccessCodesInFirestore(isActive: boolean): P
     });
 
     await Promise.all(updates);
-    isCloudAvailable = true;
+    isCloudOnlineState = true;
   } catch (error) {
-    markCloudFailure(error);
+    console.error('[Firestore] Batch update error:', error);
   }
 }
 
 /**
- * Menggabungkan data dari Firestore dengan default system records (Master & Demo)
- * serta memastikan data localStorage lokal juga tersinkronisasi.
+ * Normalisasi data Cloud Firestore dengan akun bawaan sistem
  */
 function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] {
   const mapByCode = new Map<string, AccessRecord>();
 
-  // 1. Masukkan akun Master (GP-1386) dan Demo bawaan (GP-RHB1) selalu ada
+  // 1. Akun Master & Demo bawaan
   mapByCode.set(MASTER_ACCESS_CODE, DEFAULT_PREMIUM_RECORD);
   mapByCode.set(DEMO_ACCESS_CODE, DEFAULT_SIMULASI_RECORD);
 
-  // 2. Masukkan data dari cloud Firestore
+  // 2. Data dari Cloud Firestore
   cloudRecords.forEach((r) => {
     if (!r.kodeAkses) return;
     const cleanCode = r.kodeAkses.toUpperCase().trim();
 
-    // Hapus dokumen GP-86OK lama dari Firestore jika ditemukan
     if (isDeactivatedLegacyCode(cleanCode) || r.id === 'acc-master-gp86ok') {
       deleteAccessRecordFromFirestore(r.id || 'acc-master-gp86ok', cleanCode).catch(() => {});
       return;
@@ -345,7 +288,6 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
   });
 
   const merged = Array.from(mapByCode.values());
-  // Simpan ke localStorage sebagai cache sinkron offline
   saveAllAccessRecords(merged);
   return merged;
 }
@@ -354,13 +296,10 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
  * Mengambil seluruh data kode akses dari Cloud Firestore secara one-time fetch
  */
 export async function fetchAllAccessRecordsFromFirestore(): Promise<AccessRecord[]> {
-  if (!canAttemptCloud()) {
-    return getAllAccessRecords();
-  }
-
   try {
+    await ensureFirebaseAuth().catch(() => null);
     const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
-    const snapshot = await withTimeout(getDocs(colRef), 3500);
+    const snapshot = await getDocs(colRef);
     const cloudRecords: AccessRecord[] = [];
 
     snapshot.forEach((docSnap) => {
@@ -371,37 +310,30 @@ export async function fetchAllAccessRecordsFromFirestore(): Promise<AccessRecord
       });
     });
 
-    isCloudAvailable = true;
-    const merged = mergeAndNormalizeRecords(cloudRecords);
-    return merged;
+    isCloudOnlineState = true;
+    return mergeAndNormalizeRecords(cloudRecords);
   } catch (error) {
-    markCloudFailure(error);
+    console.error('[Firestore] Fetch all error:', error);
     return getAllAccessRecords();
   }
 }
 
 /**
  * Berlangganan (Real-Time Listener) pada koleksi kode akses di Cloud Firestore.
- * Aman dan otomatis fallback jika koneksi cloud offline.
  */
 export function subscribeToAccessRecordsFromFirestore(
   onRecordsUpdated: (records: AccessRecord[]) => void
 ): () => void {
-  if (!canAttemptCloud()) {
-    onRecordsUpdated(getAllAccessRecords());
-    return () => {};
-  }
-
   try {
+    ensureFirebaseAuth().catch(() => null);
     const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
     let active = true;
-    let unsubInternal: (() => void) | null = null;
 
-    unsubInternal = onSnapshot(
+    const unsubscribe = onSnapshot(
       colRef,
       (snapshot) => {
         if (!active) return;
-        isCloudAvailable = true;
+        isCloudOnlineState = true;
         const cloudRecords: AccessRecord[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data() as AccessRecord;
@@ -421,28 +353,17 @@ export function subscribeToAccessRecordsFromFirestore(
         }
       },
       (error) => {
-        markCloudFailure(error);
+        console.warn('[Firestore] Subscription listener error:', error);
         onRecordsUpdated(getAllAccessRecords());
-        // Hentikan listener yang gagal agar tidak terus mengulang error koneksi
-        if (unsubInternal) {
-          try {
-            unsubInternal();
-          } catch {}
-          unsubInternal = null;
-        }
       }
     );
 
     return () => {
       active = false;
-      if (unsubInternal) {
-        try {
-          unsubInternal();
-        } catch {}
-      }
+      unsubscribe();
     };
   } catch (error) {
-    markCloudFailure(error);
+    console.error('[Firestore] Failed to subscribe:', error);
     onRecordsUpdated(getAllAccessRecords());
     return () => {};
   }
@@ -450,8 +371,6 @@ export function subscribeToAccessRecordsFromFirestore(
 
 /**
  * Berlangganan (Real-time Listener) pada 1 kode akses spesifik.
- * Digunakan pada perangkat pendaftar/guru sehingga ketika Admin menekan tombol Aktifkan di gawai Admin,
- * gawai pendaftar akan langsung terdeteksi aktif dan membuka aplikasi secara real-time.
  */
 export function subscribeToSingleAccessCode(
   code: string,
@@ -471,22 +390,17 @@ export function subscribeToSingleAccessCode(
     return () => {};
   }
 
-  if (!canAttemptCloud()) {
-    onRecordUpdated(findAccessRecord(clean));
-    return () => {};
-  }
-
   try {
+    ensureFirebaseAuth().catch(() => null);
     const docId = `acc-${clean.replace(/\s+/g, '')}`;
     const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, docId);
     let active = true;
-    let unsubInternal: (() => void) | null = null;
 
-    unsubInternal = onSnapshot(
+    const unsubscribe = onSnapshot(
       docRef,
       (docSnap) => {
         if (!active) return;
-        isCloudAvailable = true;
+        isCloudOnlineState = true;
         if (docSnap.exists()) {
           const data = docSnap.data() as AccessRecord;
           const rec: AccessRecord = {
@@ -494,42 +408,28 @@ export function subscribeToSingleAccessCode(
             id: docSnap.id,
             status: data.isActive ? 'active' : 'inactive',
           };
-          // Update juga di localStorage
-          const local = getAllAccessRecords();
-          const idx = local.findIndex((r) => r.kodeAkses.toUpperCase().trim() === clean);
-          if (idx >= 0) local[idx] = rec;
-          else local.unshift(rec);
-          saveAllAccessRecords(local);
-
           onRecordUpdated(rec);
         } else {
-          onRecordUpdated(findAccessRecord(clean));
+          onRecordUpdated(findAccessRecordInFirestore(clean) as any);
         }
       },
       (err) => {
-        markCloudFailure(err);
-        onRecordUpdated(findAccessRecord(clean));
+        console.warn('[Firestore] Single code listener error:', err);
       }
     );
 
     return () => {
       active = false;
-      if (unsubInternal) {
-        try {
-          unsubInternal();
-        } catch {}
-      }
+      unsubscribe();
     };
   } catch (err) {
-    markCloudFailure(err);
-    onRecordUpdated(findAccessRecord(clean));
+    console.error('[Firestore] Single code subscribe error:', err);
     return () => {};
   }
 }
 
 /**
- * Mencari satu kode akses langsung dari Firestore untuk memastikan status terbarunya.
- * Menggunakan direct document lookup O(1) dan targeted query untuk respon secepat kilat.
+ * Mencari satu kode akses langsung dari Firestore
  */
 export async function findAccessRecordInFirestore(code: string): Promise<AccessRecord | null> {
   if (!code) return null;
@@ -538,56 +438,44 @@ export async function findAccessRecordInFirestore(code: string): Promise<AccessR
   if (isMasterAccessCode(clean)) return DEFAULT_PREMIUM_RECORD;
   if (isSimulationAccessCode(clean)) return DEFAULT_SIMULASI_RECORD;
 
-  if (canAttemptCloud()) {
-    try {
-      const standardDocId = `acc-${clean.replace(/\s+/g, '')}`;
-      const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, standardDocId);
-      
-      // 1. Coba baca langsung dokumen spesifik (sangat cepat, O(1))
-      const docSnap = await withTimeout(getDoc(docRef), 2000).catch(() => null);
-      if (docSnap && docSnap.exists()) {
-        const data = docSnap.data() as AccessRecord;
-        const matched: AccessRecord = {
-          ...data,
-          id: docSnap.id,
-          status: data.isActive ? 'active' : 'inactive',
-        };
-        isCloudAvailable = true;
-        // Sinkronkan ke cache lokal
-        const local = getAllAccessRecords();
-        const idx = local.findIndex((r) => r.kodeAkses.toUpperCase().trim() === clean);
-        if (idx >= 0) local[idx] = matched;
-        else local.unshift(matched);
-        saveAllAccessRecords(local);
-        return matched;
-      }
-
-      // 2. Jika tidak ditemukan via docId standar, gunakan query terindeks berlimit 1
-      const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
-      const q = query(colRef, where('kodeAkses', '==', clean), limit(1));
-      const qSnap = await withTimeout(getDocs(q), 2000).catch(() => null);
-      if (qSnap && !qSnap.empty) {
-        const firstDoc = qSnap.docs[0];
-        const data = firstDoc.data() as AccessRecord;
-        const matched: AccessRecord = {
-          ...data,
-          id: firstDoc.id,
-          status: data.isActive ? 'active' : 'inactive',
-        };
-        isCloudAvailable = true;
-        const local = getAllAccessRecords();
-        const idx = local.findIndex((r) => r.kodeAkses.toUpperCase().trim() === clean);
-        if (idx >= 0) local[idx] = matched;
-        else local.unshift(matched);
-        saveAllAccessRecords(local);
-        return matched;
-      }
-    } catch (error) {
-      markCloudFailure(error);
+  try {
+    await ensureFirebaseAuth().catch(() => null);
+    const standardDocId = `acc-${clean.replace(/\s+/g, '')}`;
+    const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, standardDocId);
+    
+    // 1. Baca langsung by ID
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data() as AccessRecord;
+      const matched: AccessRecord = {
+        ...data,
+        id: docSnap.id,
+        status: data.isActive ? 'active' : 'inactive',
+      };
+      isCloudOnlineState = true;
+      return matched;
     }
+
+    // 2. Query fallback jika doc ID berbeda
+    const colRef = collection(db, FIRESTORE_ACCESS_CODES_COLLECTION);
+    const q = query(colRef, where('kodeAkses', '==', clean), limit(1));
+    const qSnap = await getDocs(q);
+    if (!qSnap.empty) {
+      const firstDoc = qSnap.docs[0];
+      const data = firstDoc.data() as AccessRecord;
+      const matched: AccessRecord = {
+        ...data,
+        id: firstDoc.id,
+        status: data.isActive ? 'active' : 'inactive',
+      };
+      isCloudOnlineState = true;
+      return matched;
+    }
+  } catch (error) {
+    console.error('[Firestore] Find code error:', error);
   }
 
-  // Fallback ke pencarian local storage
+  // Fallback ke cache lokal
   const localList = getAllAccessRecords();
   return localList.find((r) => r.kodeAkses.toUpperCase().trim() === clean) || null;
 }
@@ -598,94 +486,57 @@ export async function findAccessRecordInFirestore(code: string): Promise<AccessR
 export async function saveWordExportDisabledToFirestore(
   disabled: boolean
 ): Promise<{ success: boolean; error?: string }> {
-  if (!canAttemptCloud()) {
-    return {
-      success: false,
-      error: lastCloudErrorDetail || 'Jaringan Cloud Firestore offline.',
-    };
-  }
   try {
+    await ensureFirebaseAuth().catch(() => null);
     const docRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'word_export_policy');
-    await withTimeout(
-      setDoc(docRef, { disabled, updatedAt: new Date().toISOString() }, { merge: true }),
-      3500
-    );
-    isCloudAvailable = true;
+    await setDoc(docRef, { disabled, updatedAt: new Date().toISOString() }, { merge: true });
+    isCloudOnlineState = true;
     return { success: true };
   } catch (e: any) {
-    markCloudFailure(e);
-    return {
-      success: false,
-      error: lastCloudErrorDetail || e?.message || 'Gagal menyimpan ke Cloud Firestore',
-    };
+    return { success: false, error: e?.message };
   }
 }
 
 export async function fetchWordExportDisabledFromFirestore(): Promise<boolean | null> {
-  if (!canAttemptCloud()) return null;
   try {
+    await ensureFirebaseAuth().catch(() => null);
     const docRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'word_export_policy');
-    const snap = await withTimeout(getDoc(docRef), 2500);
+    const snap = await getDoc(docRef);
     if (snap.exists()) {
-      isCloudAvailable = true;
-      const data = snap.data();
-      return Boolean(data.disabled);
+      isCloudOnlineState = true;
+      return Boolean(snap.data()?.disabled);
     }
   } catch (e) {
-    markCloudFailure(e);
+    console.warn('[Firestore] Fetch word policy error:', e);
   }
   return null;
 }
 
-/**
- * Berlangganan (Real-time Listener) kebijakan unduhan Microsoft Word dari Cloud Firestore.
- * Ketika Admin mengubah toggle Proteksi Unduhan Word, semua perangkat & user yang membuka aplikasi
- * akan langsung menerima status kebijakan baru secara real-time tanpa perlu me-refresh browser.
- */
 export function subscribeToWordExportDisabledFromFirestore(
   onPolicyChanged: (disabled: boolean) => void
 ): () => void {
-  if (!canAttemptCloud()) {
-    return () => {};
-  }
-
   try {
+    ensureFirebaseAuth().catch(() => null);
     const docRef = doc(db, FIRESTORE_SETTINGS_COLLECTION, 'word_export_policy');
     let active = true;
-    let unsubInternal: (() => void) | null = null;
 
-    unsubInternal = onSnapshot(
+    const unsubscribe = onSnapshot(
       docRef,
       (docSnap) => {
         if (!active) return;
-        isCloudAvailable = true;
         if (docSnap.exists()) {
           const data = docSnap.data();
-          const disabled = Boolean(data?.disabled);
-          onPolicyChanged(disabled);
+          onPolicyChanged(Boolean(data?.disabled));
         }
       },
-      (err) => {
-        markCloudFailure(err);
-        if (unsubInternal) {
-          try {
-            unsubInternal();
-          } catch {}
-          unsubInternal = null;
-        }
-      }
+      () => {}
     );
 
     return () => {
       active = false;
-      if (unsubInternal) {
-        try {
-          unsubInternal();
-        } catch {}
-      }
+      unsubscribe();
     };
   } catch (e) {
     return () => {};
   }
 }
-

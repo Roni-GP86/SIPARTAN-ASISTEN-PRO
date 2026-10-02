@@ -11,7 +11,6 @@ import {
   ArrowRight,
   ClipboardCheck,
   HelpCircle,
-  FileSpreadsheet,
   MessageCircle,
   Clock,
   Copy,
@@ -28,7 +27,6 @@ import {
   createNewAccessRecord,
   createNewAccessRecordAsync,
   getAllAccessRecords,
-  getSavedGoogleFormConfig,
   isMasterAccessCode,
   isDeactivatedLegacyCode,
   ADMIN_WA_DISPLAY,
@@ -107,8 +105,6 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
   }, [newlyCreatedCode?.kodeAkses, onSuccessUnlock, onSuccess, onClose]);
 
   if (!isOpen) return null;
-
-  const formConfig = getSavedGoogleFormConfig();
 
   const handleVerifyCode = async (codeToVerify?: string) => {
     setErrorMessage(null);
@@ -451,28 +447,6 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
                 Aplikasi SIPARTAN dilengkapi sistem penguncian identitas. Kode akses resmi diterbitkan setelah pengisian formulir pendaftaran guru dan disetujui oleh pemilik/administrator sistem.
               </p>
             </div>
-
-            {/* Google Forms Direct Link if exists */}
-            {formConfig?.responderUrl && (
-              <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-between gap-3 text-xs">
-                <div className="flex items-center gap-2 text-blue-950">
-                  <FileSpreadsheet className="w-4 h-4 text-blue-600 shrink-0" />
-                  <div>
-                    <span className="font-bold">Google Form Resmi Aktif: </span>
-                    <span className="text-slate-700">Pendaftaran guru tersedia via Google Form terhubung.</span>
-                  </div>
-                </div>
-                <a
-                  href={formConfig.responderUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shrink-0 inline-flex items-center gap-1"
-                >
-                  Buka Form
-                  <ArrowRight className="w-3 h-3" />
-                </a>
-              </div>
-            )}
 
             {/* Footer options */}
             <div className="pt-2 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-700">

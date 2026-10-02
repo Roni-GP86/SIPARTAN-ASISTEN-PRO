@@ -11,15 +11,12 @@ import {
   Copy,
   ExternalLink,
   Trash2,
-  FileSpreadsheet,
   Users,
   Search,
   Check,
   Share2,
   Sparkles,
   Lock,
-  LogIn,
-  LogOut,
   AlertCircle,
   Crown,
   MessageCircle,
@@ -49,7 +46,6 @@ import {
   MASTER_ACCESS_CODE,
   isMasterAccessCode,
   isDeactivatedLegacyCode,
-  getSavedGoogleFormConfig,
   getActiveSessionCode,
   setActiveSessionCode,
   ADMIN_WA_DISPLAY,
@@ -69,21 +65,12 @@ import {
   resetCloudCooldown,
 } from '../services/accessCodeService';
 import {
-  createSipartanRegistrationForm,
-  syncGoogleFormResponses,
-} from '../services/googleFormsService';
-import {
-  initAuth,
-  googleSignIn,
-  logoutGoogle,
-  getAccessToken,
   getActiveFirebaseConfig,
   saveCustomFirebaseConfig,
   clearCustomFirebaseConfig,
   FirebaseClientConfig,
 } from '../services/firebaseAuth';
-import { AccessRecord, GoogleFormConfig } from '../types';
-import { User } from 'firebase/auth';
+import { AccessRecord } from '../types';
 import {
   isRuangMuridEnabled,
   setRuangMuridEnabled,
@@ -115,16 +102,6 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   const [customConfigInput, setCustomConfigInput] = useState('');
   const [showWaPasteInput, setShowWaPasteInput] = useState(false);
   const [waPasteInput, setWaPasteInput] = useState('');
-
-  // Google Auth & Forms
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [isSigningInGoogle, setIsSigningInGoogle] = useState(false);
-  const [formConfig, setFormConfig] = useState<GoogleFormConfig | null>(null);
-  const [isCreatingForm, setIsCreatingForm] = useState(false);
-  const [isSyncingResponses, setIsSyncingResponses] = useState(false);
-  const [manualFormId, setManualFormId] = useState('');
-  const [showManualFormInput, setShowManualFormInput] = useState(false);
 
   // Modal Terbitkan Kode Manual
   const [showAddModal, setShowAddModal] = useState(false);
@@ -160,6 +137,7 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   const [adminCodeInput, setAdminCodeInput] = useState<string>('');
   const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<AccessRecord | null>(null);
+  const [isDeletingCode, setIsDeletingCode] = useState<boolean>(false);
 
   // Proteksi Keaslian Dokumen: Status Unduhan Word
   const [isWordDisabled, setIsWordDisabled] = useState<boolean>(() => isWordExportDisabled());
@@ -170,7 +148,6 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
     resetCloudCooldown();
     const list = getAllAccessRecords();
     setRecords(list);
-    setFormConfig(getSavedGoogleFormConfig());
     setIsWordDisabled(isWordExportDisabled());
     setIsRuangMuridActive(isRuangMuridEnabled());
     if (onDataChanged) onDataChanged();
@@ -198,16 +175,6 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
       } else {
         setIsAdminUnlocked(false);
       }
-      initAuth(
-        (user, token) => {
-          setCurrentUser(user);
-          setAccessToken(token);
-        },
-        () => {
-          setCurrentUser(null);
-          setAccessToken(null);
-        }
-      );
 
       // Uji status konektivitas Firestore di latar belakang
       testFirestoreConnectionAsync()
@@ -256,83 +223,6 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   };
 
   if (!isOpen) return null;
-
-  const handleGoogleLogin = async () => {
-    setIsSigningInGoogle(true);
-    setNotification(null);
-    try {
-      const res = await googleSignIn();
-      if (res) {
-        setCurrentUser(res.user);
-        setAccessToken(res.accessToken);
-        setNotification({ type: 'success', text: `Berhasil terhubung dengan akun Google: ${res.user.email}` });
-      }
-    } catch (err: any) {
-      console.error(err);
-      setNotification({ type: 'error', text: err.message || 'Gagal login dengan akun Google.' });
-    } finally {
-      setIsSigningInGoogle(false);
-    }
-  };
-
-  const handleGoogleLogout = async () => {
-    await logoutGoogle();
-    setCurrentUser(null);
-    setAccessToken(null);
-    setNotification({ type: 'success', text: 'Telah keluar dari akun Google.' });
-  };
-
-  const handleCreateGoogleForm = async () => {
-    if (!accessToken) {
-      setNotification({ type: 'error', text: 'Silakan "Sign in with Google" terlebih dahulu untuk membuat Google Form di akun Anda.' });
-      return;
-    }
-
-    setIsCreatingForm(true);
-    setNotification(null);
-    try {
-      const newConfig = await createSipartanRegistrationForm(accessToken);
-      setFormConfig(newConfig);
-      setNotification({
-        type: 'success',
-        text: 'Google Form Pendaftaran SIPARTAN berhasil dibuat di Google Drive Anda!',
-      });
-    } catch (err: any) {
-      console.error(err);
-      setNotification({ type: 'error', text: err.message || 'Gagal membuat Google Form.' });
-    } finally {
-      setIsCreatingForm(false);
-    }
-  };
-
-  const handleSyncResponses = async () => {
-    const targetFormId = formConfig?.formId || manualFormId.trim();
-    if (!targetFormId) {
-      setNotification({ type: 'error', text: 'Google Form belum terhubung. Silakan buat form baru atau masukkan Form ID.' });
-      return;
-    }
-
-    if (!accessToken) {
-      setNotification({ type: 'error', text: 'Silakan login Google untuk menyinkronkan respon dari Google Forms API.' });
-      return;
-    }
-
-    setIsSyncingResponses(true);
-    setNotification(null);
-    try {
-      const result = await syncGoogleFormResponses(accessToken, targetFormId);
-      refreshList();
-      setNotification({
-        type: 'success',
-        text: `Sinkronisasi berhasil! ${result.added} pendaftar baru ditambahkan dan diterbitkan kode akses GP-. Total respon: ${result.total}.`,
-      });
-    } catch (err: any) {
-      console.error(err);
-      setNotification({ type: 'error', text: err.message || 'Gagal menyinkronkan respon Google Form.' });
-    } finally {
-      setIsSyncingResponses(false);
-    }
-  };
 
   const handleToggleStatus = async (code: string) => {
     if (isMasterAccessCode(code)) {
@@ -415,24 +305,48 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
   };
 
   const executeDelete = async () => {
-    if (!deleteConfirmTarget) return;
-    const code = deleteConfirmTarget.kodeAkses;
-    const teacherName = deleteConfirmTarget.namaGuru;
-    const success = await deleteAccessCodeAsync(code);
-    if (success) {
-      await refreshList();
-      if (onDataChanged) onDataChanged();
-      setNotification({
-        type: 'success',
-        text: `Kode akses ${code} (${teacherName}) berhasil dihapus permanen dari Cloud Firestore dan perangkat.`,
-      });
-    } else {
+    if (!deleteConfirmTarget || isDeletingCode) return;
+    const target = deleteConfirmTarget;
+    const code = target.kodeAkses;
+    const teacherName = target.namaGuru;
+    setIsDeletingCode(true);
+
+    try {
+      // 1. Optimistic removal from UI list
+      setRecords((prev) =>
+        prev.filter(
+          (r) =>
+            r.kodeAkses.toUpperCase().trim() !== code.toUpperCase().trim() &&
+            r.id !== target.id
+        )
+      );
+
+      // 2. Direct Firestore and local deletion
+      const success = await deleteAccessCodeAsync(code);
+      if (success) {
+        setNotification({
+          type: 'success',
+          text: `Kode akses ${code} (${teacherName}) berhasil dihapus permanen dari Cloud Firestore dan seluruh perangkat.`,
+        });
+        if (onDataChanged) onDataChanged();
+      } else {
+        setNotification({
+          type: 'error',
+          text: `Gagal menghapus kode akses ${code} dari Cloud Firestore.`,
+        });
+        refreshList();
+      }
+    } catch (err: any) {
+      console.error('[Firestore] Gagal menghapus kode akses:', err);
       setNotification({
         type: 'error',
-        text: `Gagal menghapus kode akses ${code}.`,
+        text: `Terjadi kendala saat menghapus kode ${code}: ${err?.message || 'Error'}`,
       });
+      refreshList();
+    } finally {
+      setDeleteConfirmTarget(null);
+      setIsDeletingCode(false);
     }
-    setDeleteConfirmTarget(null);
   };
 
   const handleCreateManualCode = async (e: React.FormEvent) => {
@@ -824,13 +738,13 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-white tracking-tight">Panel Pemilik Formulir & Keamanan SIPARTAN</h2>
+                <h2 className="text-lg font-bold text-white tracking-tight">Panel Kontrol Admin &amp; Keamanan SIPARTAN</h2>
                 <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500 text-white uppercase tracking-wider">
                   Admin Control
                 </span>
               </div>
               <p className="text-xs text-blue-200/80">
-                Manajemen Integrasi Google Forms, Penerbitan & Aktivasi Kode Akses Guru
+                Pusat Manajemen Cloud Firestore, Penerbitan, Aktivasi &amp; Pengendalian Akses Multi-Perangkat
               </p>
             </div>
           </div>
@@ -857,7 +771,7 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
                   Otorisasi Administrator &amp; Pengembang
                 </h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Panel manajemen kode akses, aktivasi/deaktivasi, dan integrasi Google Forms ini dilindungi khusus untuk <strong>Admin &amp; Pengembang Aplikasi</strong> (Bapak Roni Hariyanto Bhidju, S. Pd).
+                  Panel manajemen kode akses, aktivasi/deaktivasi, dan sinkronisasi Cloud Firestore ini dilindungi khusus untuk <strong>Admin &amp; Pengembang Aplikasi</strong> (Bapak Roni Hariyanto Bhidju, S. Pd).
                 </p>
               </div>
 
@@ -917,7 +831,7 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
                     </span>
                   </div>
                   <div className="text-slate-600 text-[11px] mt-0.5">
-                    Selamat bertugas, Bapak Roni Hariyanto Bhidju, S. Pd. Anda memiliki hak kendali penuh untuk mengaktifkan/menonaktifkan akun guru serta mengelola Google Forms.
+                    Selamat bertugas, Bapak Roni Hariyanto Bhidju, S. Pd. Anda memiliki hak kendali penuh untuk mengaktifkan/menonaktifkan akun guru serta sinkronisasi Cloud Firestore.
                   </div>
                 </div>
               </div>
@@ -1096,167 +1010,70 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
             </div>
           )}
 
-          {/* Section 1: Google Forms Integration Card */}
-          <div className="p-5 rounded-2xl bg-linear-to-br from-slate-50 to-blue-50/40 border border-slate-200 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
-                  <FileSpreadsheet className="w-4 h-4" />
+          {/* Section 1: Pusat Sinkronisasi Cloud Firestore & Tindakan Cepat */}
+          <div className="p-5 rounded-2xl bg-linear-to-br from-slate-900 via-blue-950 to-slate-900 text-white border border-blue-800/60 shadow-md space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-800/40 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-600/40 border border-blue-400/50 flex items-center justify-center text-blue-300 shadow-inner">
+                  <Database className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900">Integrasi Google Forms Pendaftaran Guru</h3>
-                  <p className="text-[11px] text-slate-700">
-                    Koneksikan Google Forms untuk menerima pendaftaran guru dan auto-generate kode akses
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-white tracking-wide">Pusat Cloud Firestore Real-Time</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-slate-950 uppercase">
+                      Online Multi-User
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-blue-200/80">
+                    Semua pendaftaran dan status kode akses tersimpan online di project <strong className="font-mono text-amber-300">{getActiveFirebaseConfig().projectId}</strong>
                   </p>
                 </div>
               </div>
 
-              {/* Google Sign-in state */}
-              <div>
-                {currentUser ? (
-                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
-                    {currentUser.photoURL ? (
-                      <img src={currentUser.photoURL} alt="Avatar" className="w-5 h-5 rounded-full" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
-                        G
-                      </div>
-                    )}
-                    <span className="text-xs font-semibold text-slate-700 truncate max-w-[150px]">
-                      {currentUser.email}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={handleGoogleLogout}
-                      title="Keluar Akun Google"
-                      className="text-slate-400 hover:text-red-600 ml-1"
-                    >
-                      <LogOut className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleGoogleLogin}
-                    disabled={isSigningInGoogle}
-                    className="gsi-material-button text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 flex items-center gap-2 shadow-2xs transition-all disabled:opacity-60"
-                  >
-                    <svg className="w-4 h-4" viewBox="0 0 48 48">
-                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
-                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
-                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
-                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
-                    </svg>
-                    {isSigningInGoogle ? 'Menghubungkan...' : 'Sign in with Google'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Google Forms Action Row */}
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
-                  onClick={handleCreateGoogleForm}
-                  disabled={isCreatingForm}
-                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-60"
+                  onClick={handleTestCloudConnection}
+                  disabled={isTestingCloud}
+                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs inline-flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  {isCreatingForm ? 'Membuat di Drive...' : 'Buat Google Form SIPARTAN Otomatis'}
+                  <RefreshCw className={`w-3.5 h-3.5 ${isTestingCloud ? 'animate-spin' : ''}`} />
+                  <span>{isTestingCloud ? 'Menguji...' : 'Tes Koneksi Cloud'}</span>
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleSyncResponses}
-                  disabled={isSyncingResponses}
-                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-60"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingResponses ? 'animate-spin' : ''}`} />
-                  {isSyncingResponses ? 'Menyinkronkan...' : '⚡ Sinkronisasi Respon Google Form'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowManualFormInput(!showManualFormInput)}
-                  className="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs transition-colors"
-                >
-                  {showManualFormInput ? 'Tutup Input Form ID' : 'Tautkan Form ID Manual'}
-                </button>
-              </div>
-
-              {formConfig && (
-                <div className="flex items-center gap-2">
-                  <a
-                    href={formConfig.responderUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1 shadow-2xs"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Buka Form Pendaftaran
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (formConfig.responderUrl) {
-                        navigator.clipboard.writeText(formConfig.responderUrl);
-                        setNotification({ type: 'success', text: 'Tautan Google Form berhasil disalin ke clipboard.' });
-                      }
-                    }}
-                    className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-600"
-                    title="Salin Link Google Form"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Manual Form ID input box if toggled */}
-            {showManualFormInput && (
-              <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center gap-2 text-xs">
-                <span className="font-bold text-slate-700 shrink-0">Google Form ID:</span>
-                <input
-                  type="text"
-                  value={manualFormId}
-                  onChange={(e) => setManualFormId(e.target.value)}
-                  placeholder="Masukkan Form ID dari URL docs.google.com/forms/d/{FormID}/edit"
-                  className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-mono focus:border-blue-600 focus:outline-none"
-                />
                 <button
                   type="button"
                   onClick={() => {
-                    if (!manualFormId.trim()) return;
-                    const cfg: GoogleFormConfig = {
-                      formId: manualFormId.trim(),
-                      formUrl: `https://docs.google.com/forms/d/${manualFormId.trim()}/edit`,
-                      responderUrl: `https://docs.google.com/forms/d/e/${manualFormId.trim()}/viewform`,
-                      title: 'Formulir Pendaftaran SIPARTAN (Manual)',
-                      lastSyncedAt: new Date().toISOString(),
-                    };
-                    setFormConfig(cfg);
-                    setNotification({ type: 'success', text: 'Form ID berhasil ditautkan!' });
-                    setShowManualFormInput(false);
+                    setCustomConfigInput(JSON.stringify(getActiveFirebaseConfig(), null, 2));
+                    setShowConfigModal(true);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs"
+                  className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-blue-100 font-bold text-xs border border-blue-400/30 inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  Simpan Form ID
+                  <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Pengaturan Firebase</span>
                 </button>
               </div>
-            )}
+            </div>
 
-            {/* Current Form Status info */}
-            {formConfig && (
-              <div className="pt-2 flex flex-wrap items-center justify-between text-[11px] text-slate-700 gap-2 border-t border-slate-200">
-                <span className="font-semibold text-slate-700">
-                  Form Terhubung: <span className="font-mono text-indigo-700 font-bold">{formConfig.formId}</span> ({formConfig.title})
-                </span>
-                <span>
-                  Sinkronisasi Terakhir: {formConfig.lastSyncedAt ? new Date(formConfig.lastSyncedAt).toLocaleString('id-ID') : '-'}
-                </span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl space-y-1">
+                <div className="text-[10px] uppercase font-bold text-blue-300">Pendaftaran Otomatis</div>
+                <div className="text-white text-[11px] leading-relaxed">
+                  Guru mendaftar langsung di formulir aplikasi di perangkat masing-masing tanpa perlu Google Form.
+                </div>
               </div>
-            )}
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl space-y-1">
+                <div className="text-[10px] uppercase font-bold text-emerald-300">Notifikasi Masuk Admin</div>
+                <div className="text-white text-[11px] leading-relaxed">
+                  Notifikasi bunyi bel &amp; badge permohonan baru otomatis muncul di panel Admin saat ada guru mendaftar.
+                </div>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl space-y-1">
+                <div className="text-[10px] uppercase font-bold text-amber-300">Aktivasi Real-Time</div>
+                <div className="text-white text-[11px] leading-relaxed">
+                  Sekali Admin klik &quot;Aktifkan&quot;, akun guru di perangkat manapun langsung otomatis terbuka.
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Section: Proteksi Unduhan Word (Pencegahan Pengeditan Data via Word) */}
@@ -2067,18 +1884,29 @@ Kepala Sekolah: Gusmardi, S.Pd."
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
+                  disabled={isDeletingCode}
                   onClick={() => setDeleteConfirmTarget(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
+                  disabled={isDeletingCode}
                   onClick={executeDelete}
-                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                 >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  Ya, Hapus Sekarang
+                  {isDeletingCode ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menghapus...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Ya, Hapus Sekarang</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
