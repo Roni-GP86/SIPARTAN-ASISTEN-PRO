@@ -23,7 +23,7 @@ function formatTPWithCode(kodeTP?: string, rumusanTP?: string): string {
  * namun telah dinonaktifkan oleh Administrator sekolah.
  */
 export function notifyWordExportBlocked(): void {
-  const message = 'unduhan word di nonaktifkan oleh admin! (hal ini mencegah pengeditan data via word!)';
+  const message = 'Mohon maaf, untuk keamanan dokumen terhadap hal pencurian data dan pengeditan identitas, fitur ini ditutup oleh Admin!';
   if (typeof window !== 'undefined') {
     window.dispatchEvent(
       new CustomEvent('sipartan_word_export_blocked', {
