@@ -1,0 +1,2220 @@
+import React, { useState, useEffect } from 'react';
+import {
+  ShieldAlert,
+  KeyRound,
+  CheckCircle2,
+  XCircle,
+  ToggleLeft,
+  ToggleRight,
+  Plus,
+  RefreshCw,
+  Copy,
+  ExternalLink,
+  Trash2,
+  FileSpreadsheet,
+  Users,
+  Search,
+  Check,
+  Share2,
+  Sparkles,
+  Lock,
+  LogIn,
+  LogOut,
+  AlertCircle,
+  Crown,
+  MessageCircle,
+  Phone,
+  Bell,
+  Download,
+  Upload,
+  Database,
+  HelpCircle,
+  CheckSquare,
+  Edit2,
+  Pencil,
+  Save,
+} from 'lucide-react';
+import {
+  getAllAccessRecords,
+  saveAllAccessRecords,
+  toggleAccessCodeStatus,
+  activateAllAccessCodes,
+  deactivateAllAccessCodes,
+  deleteAccessCode,
+  createNewAccessRecord,
+  updateAccessRecord,
+  updateAccessRecordAsync,
+  MASTER_ACCESS_CODE,
+  isMasterAccessCode,
+  isDeactivatedLegacyCode,
+  getSavedGoogleFormConfig,
+  getActiveSessionCode,
+  setActiveSessionCode,
+  ADMIN_WA_DISPLAY,
+  ADMIN_WA_INTL,
+  createAdminWhatsAppLink,
+  createTeacherWhatsAppLink,
+  isWordExportDisabled,
+  setWordExportDisabled,
+  setWordExportDisabledAsync,
+  subscribeToAccessRecordsFromFirestore,
+  fetchAllAccessRecordsFromFirestore,
+  updateAccessRecordStatusInFirestore,
+  saveAccessRecordToFirestore,
+  isFirestoreOnline,
+  getLastCloudErrorDetail,
+  testFirestoreConnectionAsync,
+  resetCloudCooldown,
+} from '../services/accessCodeService';
+import {
+  createSipartanRegistrationForm,
+  syncGoogleFormResponses,
+} from '../services/googleFormsService';
+import {
+  initAuth,
+  googleSignIn,
+  logoutGoogle,
+  getAccessToken,
+  getActiveFirebaseConfig,
+  saveCustomFirebaseConfig,
+  clearCustomFirebaseConfig,
+  FirebaseClientConfig,
+} from '../services/firebaseAuth';
+import { AccessRecord, GoogleFormConfig } from '../types';
+import { User } from 'firebase/auth';
+import {
+  isRuangMuridEnabled,
+  setRuangMuridEnabled,
+  RUANG_MURID_STUDENT_PASSCODE,
+  subscribeToRuangMuridPolicy,
+} from '../services/ruangMuridPolicyService';
+
+interface AdminAccessManagerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onDataChanged?: () => void;
+  onCodeUpdated?: () => void;
+}
+
+export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = ({
+  isOpen,
+  onClose,
+  onDataChanged,
+}) => {
+  const [records, setRecords] = useState<AccessRecord[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'INACTIVE' | 'PENDING'>('ALL');
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isTestingCloud, setIsTestingCloud] = useState(false);
+  const [cloudDiagnosticMessage, setCloudDiagnosticMessage] = useState<string | null>(null);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'checking' | 'online' | 'offline'>('checking');
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [customConfigInput, setCustomConfigInput] = useState('');
+  const [showWaPasteInput, setShowWaPasteInput] = useState(false);
+  const [waPasteInput, setWaPasteInput] = useState('');
+
+  // Google Auth & Forms
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isSigningInGoogle, setIsSigningInGoogle] = useState(false);
+  const [formConfig, setFormConfig] = useState<GoogleFormConfig | null>(null);
+  const [isCreatingForm, setIsCreatingForm] = useState(false);
+  const [isSyncingResponses, setIsSyncingResponses] = useState(false);
+  const [manualFormId, setManualFormId] = useState('');
+  const [showManualFormInput, setShowManualFormInput] = useState(false);
+
+  // Modal Terbitkan Kode Manual
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newNamaGuru, setNewNamaGuru] = useState('');
+  const [newNipGuru, setNewNipGuru] = useState('');
+  const [newJabatan, setNewJabatan] = useState<'Guru Kelas' | 'Guru Mata Pelajaran'>('Guru Kelas');
+  const [newNamaSekolah, setNewNamaSekolah] = useState('');
+  const [newNomorWA, setNewNomorWA] = useState('');
+  const [newFase, setNewFase] = useState<'Fase A' | 'Fase B' | 'Fase C'>('Fase C');
+  const [newKelas, setNewKelas] = useState('5 & 6');
+  const [newNamaKS, setNewNamaKS] = useState('');
+  const [newNipKS, setNewNipKS] = useState('');
+
+  // Modal Edit Identitas Pengguna (Admin)
+  const [editingRecord, setEditingRecord] = useState<AccessRecord | null>(null);
+  const [editNamaGuru, setEditNamaGuru] = useState('');
+  const [editNipGuru, setEditNipGuru] = useState('');
+  const [editNamaSekolah, setEditNamaSekolah] = useState('');
+  const [editJabatan, setEditJabatan] = useState<'Guru Kelas' | 'Guru Mata Pelajaran'>('Guru Kelas');
+  const [editFase, setEditFase] = useState<'Fase A' | 'Fase B' | 'Fase C'>('Fase C');
+  const [editKelas, setEditKelas] = useState('5');
+  const [editMataPelajaran, setEditMataPelajaran] = useState('Matematika');
+  const [editNamaKS, setEditNamaKS] = useState('');
+  const [editNipKS, setEditNipKS] = useState('');
+  const [editNomorWA, setEditNomorWA] = useState('');
+  const [editIsActive, setEditIsActive] = useState(true);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
+  const [editErrorMsg, setEditErrorMsg] = useState<string | null>(null);
+
+  // Admin Master Authorization Gate
+  const [isAdminUnlocked, setIsAdminUnlocked] = useState<boolean>(false);
+  const [adminCodeInput, setAdminCodeInput] = useState<string>('');
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<AccessRecord | null>(null);
+
+  // Proteksi Keaslian Dokumen: Status Unduhan Word
+  const [isWordDisabled, setIsWordDisabled] = useState<boolean>(() => isWordExportDisabled());
+  const [isSyncingFirestore, setIsSyncingFirestore] = useState(false);
+  const [isRuangMuridActive, setIsRuangMuridActive] = useState<boolean>(() => isRuangMuridEnabled());
+
+  const refreshList = async () => {
+    resetCloudCooldown();
+    const list = getAllAccessRecords();
+    setRecords(list);
+    setFormConfig(getSavedGoogleFormConfig());
+    setIsWordDisabled(isWordExportDisabled());
+    setIsRuangMuridActive(isRuangMuridEnabled());
+    if (onDataChanged) onDataChanged();
+
+    // Ambil data terbaru dari Cloud Firestore
+    try {
+      setIsSyncingFirestore(true);
+      const cloudList = await fetchAllAccessRecordsFromFirestore();
+      if (cloudList && cloudList.length > 0) {
+        setRecords(cloudList);
+      }
+    } catch (err) {
+      console.warn('[Firestore] Info sinkronisasi data cloud:', err);
+    } finally {
+      setIsSyncingFirestore(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      refreshList();
+      const currentSession = getActiveSessionCode();
+      if (isMasterAccessCode(currentSession)) {
+        setIsAdminUnlocked(true);
+      } else {
+        setIsAdminUnlocked(false);
+      }
+      initAuth(
+        (user, token) => {
+          setCurrentUser(user);
+          setAccessToken(token);
+        },
+        () => {
+          setCurrentUser(null);
+          setAccessToken(null);
+        }
+      );
+
+      // Uji status konektivitas Firestore di latar belakang
+      testFirestoreConnectionAsync()
+        .then((res) => {
+          setCloudSyncStatus(res.success ? 'online' : 'offline');
+          setCloudDiagnosticMessage(res.message);
+        })
+        .catch(() => {
+          setCloudSyncStatus('offline');
+        });
+
+      // Realtime listener dari Cloud Firestore
+      const unsubscribe = subscribeToAccessRecordsFromFirestore((cloudRecords) => {
+        setRecords(cloudRecords);
+      });
+
+      const unsubRuangMurid = subscribeToRuangMuridPolicy((enabled) => {
+        setIsRuangMuridActive(enabled);
+      });
+
+      return () => {
+        unsubscribe();
+        unsubRuangMurid();
+      };
+    } else {
+      setAdminCodeInput('');
+      setAdminAuthError(null);
+      setDeleteConfirmTarget(null);
+    }
+  }, [isOpen]);
+
+  const handleUnlockAdmin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (isDeactivatedLegacyCode(adminCodeInput)) {
+      setAdminAuthError('Kode "GP-86OK" telah dinonaktifkan/kadaluarsa secara permanen. Silakan masukkan Kode Master Admin resmi yang baru (GP-1386).');
+      return;
+    }
+    if (isMasterAccessCode(adminCodeInput)) {
+      setIsAdminUnlocked(true);
+      setActiveSessionCode(MASTER_ACCESS_CODE);
+      setAdminAuthError(null);
+      refreshList();
+    } else {
+      setAdminAuthError('Kode Akses Master tidak valid. Akses administrator ditolak.');
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const handleGoogleLogin = async () => {
+    setIsSigningInGoogle(true);
+    setNotification(null);
+    try {
+      const res = await googleSignIn();
+      if (res) {
+        setCurrentUser(res.user);
+        setAccessToken(res.accessToken);
+        setNotification({ type: 'success', text: `Berhasil terhubung dengan akun Google: ${res.user.email}` });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setNotification({ type: 'error', text: err.message || 'Gagal login dengan akun Google.' });
+    } finally {
+      setIsSigningInGoogle(false);
+    }
+  };
+
+  const handleGoogleLogout = async () => {
+    await logoutGoogle();
+    setCurrentUser(null);
+    setAccessToken(null);
+    setNotification({ type: 'success', text: 'Telah keluar dari akun Google.' });
+  };
+
+  const handleCreateGoogleForm = async () => {
+    if (!accessToken) {
+      setNotification({ type: 'error', text: 'Silakan "Sign in with Google" terlebih dahulu untuk membuat Google Form di akun Anda.' });
+      return;
+    }
+
+    setIsCreatingForm(true);
+    setNotification(null);
+    try {
+      const newConfig = await createSipartanRegistrationForm(accessToken);
+      setFormConfig(newConfig);
+      setNotification({
+        type: 'success',
+        text: 'Google Form Pendaftaran SIPARTAN berhasil dibuat di Google Drive Anda!',
+      });
+    } catch (err: any) {
+      console.error(err);
+      setNotification({ type: 'error', text: err.message || 'Gagal membuat Google Form.' });
+    } finally {
+      setIsCreatingForm(false);
+    }
+  };
+
+  const handleSyncResponses = async () => {
+    const targetFormId = formConfig?.formId || manualFormId.trim();
+    if (!targetFormId) {
+      setNotification({ type: 'error', text: 'Google Form belum terhubung. Silakan buat form baru atau masukkan Form ID.' });
+      return;
+    }
+
+    if (!accessToken) {
+      setNotification({ type: 'error', text: 'Silakan login Google untuk menyinkronkan respon dari Google Forms API.' });
+      return;
+    }
+
+    setIsSyncingResponses(true);
+    setNotification(null);
+    try {
+      const result = await syncGoogleFormResponses(accessToken, targetFormId);
+      refreshList();
+      setNotification({
+        type: 'success',
+        text: `Sinkronisasi berhasil! ${result.added} pendaftar baru ditambahkan dan diterbitkan kode akses GP-. Total respon: ${result.total}.`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      setNotification({ type: 'error', text: err.message || 'Gagal menyinkronkan respon Google Form.' });
+    } finally {
+      setIsSyncingResponses(false);
+    }
+  };
+
+  const handleToggleStatus = (code: string) => {
+    if (isMasterAccessCode(code)) {
+      setNotification({ type: 'error', text: 'Kode Master Admin & Pengembang selalu aktif dan tidak dapat dinonaktifkan.' });
+      return;
+    }
+    const updated = toggleAccessCodeStatus(code);
+    refreshList();
+    if (onDataChanged) onDataChanged();
+
+    if (updated?.isActive) {
+      setNotification({
+        type: 'success',
+        text: `Kode akses ${code} (${updated.namaGuru}) BERHASIL DIAKTIFKAN! Anda dapat langsung mengirim kode ke WA Guru atau WA Admin (${ADMIN_WA_DISPLAY}).`,
+      });
+    } else {
+      setNotification({
+        type: 'success',
+        text: `Kode akses ${code} berhasil DINONAKTIFKAN.`,
+      });
+    }
+  };
+
+  const handleActivateAll = () => {
+    activateAllAccessCodes();
+    refreshList();
+    if (onDataChanged) onDataChanged();
+    setNotification({ type: 'success', text: 'Seluruh kode akses berhasil DIAKTIFKAN.' });
+  };
+
+  const handleDeactivateAll = () => {
+    deactivateAllAccessCodes(false); // keep master code safe
+    refreshList();
+    if (onDataChanged) onDataChanged();
+    setNotification({ type: 'success', text: 'Seluruh kode akses guru berhasil DINONAKTIFKAN (Kode Master Administrator tetap aktif).' });
+  };
+
+  const handleToggleWordExport = async () => {
+    const nextState = !isWordDisabled;
+    setIsWordDisabled(nextState);
+    const res = await setWordExportDisabledAsync(nextState);
+    if (onDataChanged) onDataChanged();
+
+    setNotification({
+      type: res.cloudSynced ? 'success' : 'error',
+      text: res.message,
+    });
+    if (res.cloudSynced) {
+      setCloudSyncStatus('online');
+    }
+  };
+
+  const handleToggleRuangMurid = async () => {
+    const nextState = !isRuangMuridActive;
+    setIsRuangMuridActive(nextState);
+    const res = await setRuangMuridEnabled(nextState, MASTER_ACCESS_CODE);
+    if (onDataChanged) onDataChanged();
+
+    setNotification({
+      type: res.cloudSynced ? 'success' : 'error',
+      text: res.message,
+    });
+    if (res.cloudSynced) {
+      setCloudSyncStatus('online');
+    }
+  };
+
+  const handleDelete = (code: string) => {
+    if (isMasterAccessCode(code)) {
+      setNotification({ type: 'error', text: 'Kode Master Administrator tidak dapat dihapus.' });
+      return;
+    }
+    const target = records.find((r) => r.kodeAkses.toUpperCase().trim() === code.toUpperCase().trim());
+    if (target) {
+      setDeleteConfirmTarget(target);
+    }
+  };
+
+  const executeDelete = () => {
+    if (!deleteConfirmTarget) return;
+    const code = deleteConfirmTarget.kodeAkses;
+    const teacherName = deleteConfirmTarget.namaGuru;
+    const success = deleteAccessCode(code);
+    if (success) {
+      refreshList();
+      if (onDataChanged) onDataChanged();
+      setNotification({
+        type: 'success',
+        text: `Kode akses ${code} (${teacherName}) berhasil dihapus permanen.`,
+      });
+    } else {
+      setNotification({
+        type: 'error',
+        text: `Gagal menghapus kode akses ${code}.`,
+      });
+    }
+    setDeleteConfirmTarget(null);
+  };
+
+  const handleCreateManualCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNamaGuru.trim() || !newNamaSekolah.trim()) {
+      setNotification({ type: 'error', text: 'Nama Guru dan Nama Sekolah wajib diisi.' });
+      return;
+    }
+
+    const created = createNewAccessRecord({
+      namaGuru: newNamaGuru.trim(),
+      nipGuru: newNipGuru.trim() || '-',
+      jabatan: newJabatan,
+      namaSekolah: newNamaSekolah.trim(),
+      fase: newFase,
+      kelas: newKelas,
+      namaKepalaSekolah: newNamaKS.trim() || '-',
+      nipKepalaSekolah: newNipKS.trim() || '-',
+      nomorHpPendaftar: newNomorWA.trim(),
+      sumberPendaftaran: 'Input Langsung',
+      autoActivate: true,
+    });
+
+    refreshList();
+    setShowAddModal(false);
+    setNewNamaGuru('');
+    setNewNipGuru('');
+    setNewNamaSekolah('');
+    setNewNomorWA('');
+    setNewNamaKS('');
+    setNewNipKS('');
+    setNotification({
+      type: 'success',
+      text: `Kode akses baru ${created.kodeAkses} berhasil diterbitkan dan diaktifkan untuk ${created.namaGuru}!`,
+    });
+  };
+
+  const handleOpenEdit = (r: AccessRecord) => {
+    setEditingRecord(r);
+    setEditNamaGuru(r.namaGuru || '');
+    setEditNipGuru(r.nipGuru && r.nipGuru !== '-' ? r.nipGuru : '');
+    setEditNamaSekolah(r.namaSekolah || r.namaSatuanPendidikan || '');
+    setEditJabatan(r.jabatan || 'Guru Kelas');
+    setEditFase(r.fase || 'Fase C');
+    setEditKelas(r.kelas || (r.fase === 'Fase A' ? '1' : r.fase === 'Fase B' ? '3' : '5'));
+    setEditMataPelajaran(r.mataPelajaran || 'Matematika');
+    setEditNamaKS(r.namaKepalaSekolah && r.namaKepalaSekolah !== '-' ? r.namaKepalaSekolah : '');
+    setEditNipKS(r.nipKepalaSekolah && r.nipKepalaSekolah !== '-' ? r.nipKepalaSekolah : '');
+    setEditNomorWA(r.nomorHpPendaftar || '');
+    setEditIsActive(Boolean(r.isActive));
+    setEditSuccessMsg(null);
+    setEditErrorMsg(null);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingRecord) return;
+    if (!editNamaGuru.trim() || !editNamaSekolah.trim()) {
+      setEditErrorMsg('Nama Guru dan Nama Satuan Pendidikan wajib diisi.');
+      return;
+    }
+
+    setIsSavingEdit(true);
+    setEditErrorMsg(null);
+    setEditSuccessMsg(null);
+
+    try {
+      const res = await updateAccessRecordAsync(editingRecord.kodeAkses, {
+        namaGuru: editNamaGuru.trim(),
+        nipGuru: editNipGuru.trim() || '-',
+        namaSekolah: editNamaSekolah.trim(),
+        namaSatuanPendidikan: editNamaSekolah.trim(),
+        jabatan: editJabatan,
+        fase: editFase,
+        kelas: editKelas.trim() || (editFase === 'Fase A' ? '1' : editFase === 'Fase B' ? '3' : '5'),
+        mataPelajaran: editMataPelajaran.trim() || 'Matematika',
+        namaKepalaSekolah: editNamaKS.trim() || '-',
+        nipKepalaSekolah: editNipKS.trim() || '-',
+        nomorHpPendaftar: editNomorWA.trim(),
+        isActive: editIsActive,
+        status: editIsActive ? 'active' : 'inactive',
+        isLockedByAdmin: true,
+        adminLastEditedAt: new Date().toISOString(),
+      });
+
+      if (res.success && res.record) {
+        setRecords((prev) =>
+          prev.map((item) => (item.id === res.record!.id || item.kodeAkses === res.record!.kodeAkses ? res.record! : item))
+        );
+        setEditSuccessMsg(
+          `✅ Identitas ${res.record.namaGuru} (${res.record.kodeAkses}) berhasil diperbarui dan dikunci permanen di akun pengguna!`
+        );
+        setNotification({
+          type: 'success',
+          text: `Identitas ${res.record.namaGuru} (${res.record.kodeAkses}) berhasil diperbarui dan tersimpan permanen di Cloud Firestore. Pengguna kini terkunci dengan data baru ini.`,
+        });
+        if (onDataChanged) onDataChanged();
+        setTimeout(() => {
+          setEditingRecord(null);
+        }, 1200);
+      } else {
+        setEditErrorMsg(res.error || 'Gagal menyimpan perubahan ke Cloud Firestore.');
+      }
+    } catch (err: any) {
+      setEditErrorMsg(err?.message || 'Terjadi kesalahan sistem saat menyimpan data.');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const getTeacherActivationWAMessage = (record: AccessRecord) => {
+    return `Halo Bapak/Ibu ${record.namaGuru},\n\nKabar baik! Permohonan Kode Akses SIPARTAN Anda telah DIVERIFIKASI & DIAKTIFKAN oleh Administrator (${ADMIN_WA_DISPLAY}):\n\n🔑 KODE AKSES: *${record.kodeAkses}*\n🏫 Satuan Pendidikan: ${record.namaSekolah}\n📚 Penugasan: ${record.jabatan} (${record.fase} - Kelas ${record.kelas})\n👤 Kepala Sekolah: ${record.namaKepalaSekolah}\n📱 Nomor WA: ${record.nomorHpPendaftar || '-'}\nStatus: *AKTIF*\n\nSilakan buka aplikasi SIPARTAN, klik menu *"Masuk ke SIPARTAN"*, lalu masukkan kode: *${record.kodeAkses}*.\nIdentitas resmi Anda otomatis terkunci permanen pada cover dan seluruh dokumen.\n\nSelamat menyusun perangkat pembelajaran!`;
+  };
+
+  const handleCopyWAMessage = (record: AccessRecord) => {
+    const text = getTeacherActivationWAMessage(record);
+    navigator.clipboard.writeText(text);
+    setCopiedCode(record.kodeAkses + '-wa');
+    setTimeout(() => setCopiedCode(null), 2500);
+  };
+
+  // Permintaan baru yang menunggu aktivasi (bukan akun master dan belum aktif)
+  const pendingRequests = records.filter(
+    (r) => !r.isActive && !r.isPremiumMaster && !isMasterAccessCode(r.kodeAkses)
+  );
+
+  const handleActivateAllPending = () => {
+    if (pendingRequests.length === 0) return;
+    const now = new Date().toISOString();
+    const next = records.map((r) => {
+      if (!r.isActive && !r.isPremiumMaster && !isMasterAccessCode(r.kodeAkses)) {
+        return {
+          ...r,
+          isActive: true,
+          status: 'active' as const,
+          tanggalAktivasi: r.tanggalAktivasi || now,
+        };
+      }
+      return r;
+    });
+    setRecords(next);
+    saveAllAccessRecords(next);
+    // Sinkronkan ke Cloud Firestore
+    pendingRequests.forEach((rec) => {
+      updateAccessRecordStatusInFirestore(rec.id, true, rec.kodeAkses).catch(() => {});
+    });
+    setNotification({
+      type: 'success',
+      text: `Berhasil mengaktifkan ${pendingRequests.length} permohonan kode akses guru baru! Data tersimpan permanen.`,
+    });
+    if (onDataChanged) onDataChanged();
+  };
+
+  const handleTestCloudConnection = async () => {
+    setIsTestingCloud(true);
+    setCloudDiagnosticMessage(null);
+    setCloudSyncStatus('checking');
+    try {
+      const res = await testFirestoreConnectionAsync();
+      setCloudDiagnosticMessage(res.message);
+      setCloudSyncStatus(res.success ? 'online' : 'offline');
+      setNotification({
+        type: res.success ? 'success' : 'error',
+        text: res.message,
+      });
+      if (res.success) {
+        refreshList();
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Gagal tersambung ke Cloud Firestore.';
+      setCloudDiagnosticMessage(msg);
+      setCloudSyncStatus('offline');
+      setNotification({ type: 'error', text: msg });
+    } finally {
+      setIsTestingCloud(false);
+    }
+  };
+
+  const handleSaveCustomConfig = async () => {
+    if (!customConfigInput.trim()) {
+      setNotification({ type: 'error', text: 'Silakan masukkan objek konfigurasi Firebase Anda.' });
+      return;
+    }
+    try {
+      let parsed: any;
+      let text = customConfigInput.trim();
+      // Bersihkan jika user mem-paste "const firebaseConfig = { ... };"
+      if (text.includes('=')) {
+        text = text.substring(text.indexOf('=') + 1).trim();
+      }
+      if (text.endsWith(';')) {
+        text = text.slice(0, -1).trim();
+      }
+      // Mendukung format JSON ataupun JS object
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // Coba evaluasi safe object
+        const fn = new Function(`return (${text})`);
+        parsed = fn();
+      }
+
+      if (!parsed?.projectId || !parsed?.apiKey) {
+        throw new Error('Konfigurasi harus menyertakan "projectId" dan "apiKey".');
+      }
+
+      saveCustomFirebaseConfig(parsed);
+      setShowConfigModal(false);
+      setNotification({
+        type: 'success',
+        text: `Konfigurasi Firebase untuk project "${parsed.projectId}" berhasil disimpan! Menguji koneksi...`,
+      });
+      setTimeout(() => {
+        handleTestCloudConnection();
+      }, 500);
+    } catch (e: any) {
+      setNotification({
+        type: 'error',
+        text: `Format konfigurasi tidak valid: ${e.message}`,
+      });
+    }
+  };
+
+  const handleResetConfig = () => {
+    clearCustomFirebaseConfig();
+    setShowConfigModal(false);
+    setNotification({
+      type: 'success',
+      text: 'Konfigurasi Firebase dikembalikan ke konfigurasi bawaan aplikasi. Menguji koneksi...',
+    });
+    setTimeout(() => {
+      handleTestCloudConnection();
+    }, 500);
+  };
+
+  const handleDownloadConfigJson = () => {
+    const config = getActiveFirebaseConfig();
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(config, null, 2));
+    const a = document.createElement('a');
+    a.setAttribute('href', dataStr);
+    a.setAttribute('download', 'firebase-applet-config.json');
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setNotification({
+      type: 'success',
+      text: 'File "firebase-applet-config.json" berhasil diunduh! Anda dapat menyertakannya di folder root proyek sebelum deploy ke Netlify.',
+    });
+  };
+
+  const handleParseWaPaste = () => {
+    if (!waPasteInput.trim()) return;
+    const text = waPasteInput;
+
+    const findMatch = (pattern: RegExp) => {
+      const match = text.match(pattern);
+      return match && match[1] ? match[1].trim() : '';
+    };
+
+    const nama = findMatch(/(?:Nama\s+Guru|Nama\s+Lengkap)[\s:]+([^\n\r]+)/i);
+    const nip = findMatch(/(?:NIP\s+Guru|NIP)[\s:]+([^\n\r]+)/i);
+    const sekolah = findMatch(/(?:Satuan\s+Pendidikan|Nama\s+Sekolah|Sekolah)[\s:]+([^\n\r]+)/i);
+    const wa = findMatch(/(?:Nomor\s+WA|WhatsApp|No\s+WA|HP)[\s:]+([0-9\+\-\s]+)/i);
+    const ks = findMatch(/(?:Kepala\s+Sekolah|Nama\s+KS)[\s:]+([^\n\r\(]+)/i);
+    const nipKs = findMatch(/(?:NIP\s+Kepala\s+Sekolah|NIP\s+KS|NIP:\s*)([0-9\-\s]+)/i);
+
+    if (nama) setNewNamaGuru(nama);
+    if (nip) setNewNipGuru(nip);
+    if (sekolah) setNewNamaSekolah(sekolah);
+    if (wa) setNewNomorWA(wa.replace(/[^0-9]/g, ''));
+    if (ks) setNewNamaKS(ks);
+    if (nipKs) setNewNipKS(nipKs);
+
+    if (text.includes('Fase A')) {
+      setNewFase('Fase A');
+      setNewKelas(text.includes('Kelas 1') ? '1' : '2');
+    } else if (text.includes('Fase B')) {
+      setNewFase('Fase B');
+      setNewKelas(text.includes('Kelas 4') ? '4' : '3');
+    } else if (text.includes('Fase C')) {
+      setNewFase('Fase C');
+      setNewKelas(text.includes('Kelas 6') ? '6' : '5');
+    }
+
+    if (text.includes('Guru Mata Pelajaran')) {
+      setNewJabatan('Guru Mata Pelajaran');
+    } else {
+      setNewJabatan('Guru Kelas');
+    }
+
+    setShowWaPasteInput(false);
+    setWaPasteInput('');
+    setNotification({
+      type: 'success',
+      text: 'Format teks pesan WhatsApp berhasil diekstrak otomatis ke formulir pendaftaran guru!',
+    });
+  };
+
+  const handleExportBackup = () => {
+    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(records, null, 2));
+    const a = document.createElement('a');
+    a.setAttribute('href', dataStr);
+    a.setAttribute('download', `sipartan_cadangan_kode_guru_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setNotification({ type: 'success', text: 'Cadangan data kode akses guru berhasil diunduh dalam format JSON.' });
+  };
+
+  const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (Array.isArray(parsed)) {
+          const map = new Map<string, AccessRecord>();
+          records.forEach((r) => {
+            if (r.kodeAkses) map.set(r.kodeAkses.toUpperCase().trim(), r);
+          });
+          parsed.forEach((r: AccessRecord) => {
+            if (r.kodeAkses) {
+              const clean = r.kodeAkses.toUpperCase().trim();
+              map.set(clean, { ...r, status: r.isActive ? 'active' : 'inactive' });
+              saveAccessRecordToFirestore(r).catch(() => {});
+            }
+          });
+          const merged = Array.from(map.values());
+          setRecords(merged);
+          saveAllAccessRecords(merged);
+          setNotification({
+            type: 'success',
+            text: `Berhasil mengimpor ${parsed.length} kode akses guru! Data tersimpan permanen.`,
+          });
+          if (onDataChanged) onDataChanged();
+        } else {
+          setNotification({ type: 'error', text: 'Format file cadangan tidak valid (harus array JSON).' });
+        }
+      } catch {
+        setNotification({ type: 'error', text: 'Gagal membaca file cadangan. Pastikan file JSON valid.' });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  // Filtered records
+  const filtered = records.filter((r) => {
+    const q = (searchQuery || '').toLowerCase().trim();
+    const matchesSearch =
+      q === '' ||
+      (r.kodeAkses || '').toLowerCase().includes(q) ||
+      (r.namaGuru || '').toLowerCase().includes(q) ||
+      (r.namaSekolah || '').toLowerCase().includes(q) ||
+      (r.nipGuru && r.nipGuru.includes(searchQuery));
+
+    if (!matchesSearch) return false;
+    if (filterStatus === 'ACTIVE') return r.isActive;
+    if (filterStatus === 'INACTIVE') return !r.isActive;
+    if (filterStatus === 'PENDING') return !r.isActive && !r.isPremiumMaster && !isMasterAccessCode(r.kodeAkses);
+    return true;
+  });
+
+  const totalActive = records.filter((r) => r.isActive).length;
+  const totalInactive = records.length - totalActive;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+      <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="bg-linear-to-r from-slate-900 via-blue-950 to-slate-900 px-6 py-4 text-white flex items-center justify-between border-b border-blue-900/50 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 shadow-inner">
+              <ShieldAlert className="w-6 h-6 text-blue-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-white tracking-tight">Panel Pemilik Formulir & Keamanan SIPARTAN</h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-blue-500 text-white uppercase tracking-wider">
+                  Admin Control
+                </span>
+              </div>
+              <p className="text-xs text-blue-200/80">
+                Manajemen Integrasi Google Forms, Penerbitan & Aktivasi Kode Akses Guru
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white/10 hover:bg-white/20 text-white transition-colors"
+          >
+            Tutup Panel
+          </button>
+        </div>
+
+        {/* Body Content */}
+        {!isAdminUnlocked ? (
+          <div className="flex-1 overflow-y-auto p-8 flex items-center justify-center">
+            <div className="max-w-md w-full bg-slate-50 border-2 border-slate-200 rounded-2xl p-6 sm:p-8 text-center space-y-5 shadow-lg my-auto">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-amber-400 flex items-center justify-center mx-auto shadow-md ring-4 ring-amber-400/20 border border-amber-400/40">
+                <Crown className="w-8 h-8 text-amber-400" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-base sm:text-lg font-black text-slate-900">
+                  Otorisasi Administrator &amp; Pengembang
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Panel manajemen kode akses, aktivasi/deaktivasi, dan integrasi Google Forms ini dilindungi khusus untuk <strong>Admin &amp; Pengembang Aplikasi</strong> (Bapak Roni Hariyanto Bhidju, S. Pd).
+                </p>
+              </div>
+
+              {adminAuthError && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 font-semibold flex items-center gap-2 text-left animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{adminAuthError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUnlockAdmin} className="space-y-3 pt-1">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1.5 text-left">
+                    Masukkan Kode Akses Master Admin:
+                  </label>
+                  <input
+                    type="password"
+                    value={adminCodeInput}
+                    onChange={(e) => {
+                      setAdminCodeInput(e.target.value.toUpperCase());
+                      setAdminAuthError(null);
+                    }}
+                    placeholder="Masukkan Kode Master Rahasia"
+                    className="w-full px-4 py-3 text-sm font-mono font-bold tracking-widest text-center bg-white text-slate-950 border-2 border-slate-300 rounded-xl focus:border-blue-600 focus:outline-none transition-all placeholder:font-normal placeholder:tracking-normal placeholder:text-slate-400 shadow-xs"
+                    autoFocus
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 hover:brightness-110 text-white font-bold text-xs tracking-wider uppercase shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-98"
+                >
+                  <KeyRound className="w-4 h-4 text-amber-300" />
+                  <span>Buka Panel Administrator</span>
+                </button>
+              </form>
+
+              <div className="pt-2 border-t border-slate-200 text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>Kode master bersifat rahasia dan wajib dijaga kerahasiaannya.</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {/* Master Admin Status Banner */}
+            <div className="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-400/50 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow-xs shrink-0">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
+                    <span>Otorisasi Administrator Master Aktif</span>
+                    <span className="px-2 py-0.5 rounded bg-amber-400 text-slate-950 text-[10px] font-mono font-black">
+                      {MASTER_ACCESS_CODE}
+                    </span>
+                  </div>
+                  <div className="text-slate-600 text-[11px] mt-0.5">
+                    Selamat bertugas, Bapak Roni Hariyanto Bhidju, S. Pd. Anda memiliki hak kendali penuh untuk mengaktifkan/menonaktifkan akun guru serta mengelola Google Forms.
+                  </div>
+                </div>
+              </div>
+
+              {/* Firestore Cloud Status Pill */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-[11px] font-bold shadow-2xs shrink-0">
+                <span className={`w-2 h-2 rounded-full ${isFirestoreOnline() ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`}></span>
+                <span>{isFirestoreOnline() ? 'Firestore Cloud Aktif (Sinkron)' : 'Penyimpanan Lokal Aktif (Offline Ready)'}</span>
+              </div>
+            </div>
+
+            {/* Permintaan Baru Menunggu Persetujuan Admin */}
+            {pendingRequests.length > 0 && (
+              <div className="p-4 rounded-2xl bg-linear-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-2 border-amber-500 text-amber-950 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shrink-0 shadow-xs animate-bounce">
+                    <Bell className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="font-extrabold text-slate-950 text-sm flex items-center gap-2">
+                      <span>{pendingRequests.length} Permintaan Kode Akses Guru Baru Menunggu Verifikasi!</span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-600 text-white animate-pulse">
+                        Perlu Tindakan
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-900 mt-0.5 font-medium">
+                      Guru telah mendaftar melalui perangkat mereka. Klik tombol di samping untuk langsung mengaktifkan semua permohonan baru dan simpan permanen.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleActivateAllPending}
+                    className="px-4 py-2.5 rounded-xl bg-linear-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white font-black text-xs flex items-center gap-2 shadow-md cursor-pointer transition-all hover:scale-105 active:scale-95"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Aktifkan Semua ({pendingRequests.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilterStatus('PENDING')}
+                    className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs border border-amber-300 shadow-xs cursor-pointer"
+                  >
+                    Lihat Antrean
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Status & Panduan Cloud Firestore Multi-Device Hub */}
+            <div className={`p-4 rounded-2xl border text-xs space-y-3 shadow-2xs transition-all ${
+              cloudSyncStatus === 'online'
+                ? 'bg-emerald-50/70 border-emerald-300'
+                : cloudSyncStatus === 'offline'
+                ? 'bg-amber-50/90 border-amber-300'
+                : 'bg-blue-50/70 border-blue-200'
+            }`}>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-white shadow-2xs shrink-0 mt-0.5 ${
+                    cloudSyncStatus === 'online'
+                      ? 'bg-emerald-600'
+                      : cloudSyncStatus === 'offline'
+                      ? 'bg-amber-600'
+                      : 'bg-blue-600'
+                  }`}>
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-slate-900 text-xs sm:text-sm">
+                        Sinkronisasi Online Multi-Perangkat (Firebase Firestore)
+                      </span>
+                      <span className={`px-2 py-0.5 rounded-full text-[10.5px] font-black uppercase tracking-wider ${
+                        cloudSyncStatus === 'online'
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                          : cloudSyncStatus === 'offline'
+                          ? 'bg-red-100 text-red-800 border border-red-300'
+                          : 'bg-blue-100 text-blue-800 border border-blue-300'
+                      }`}>
+                        {cloudSyncStatus === 'online'
+                          ? '● ONLINE & TERHUBUNG'
+                          : cloudSyncStatus === 'offline'
+                          ? '● OFFLINE / PERLU PERHATIAN'
+                          : '○ MEMERIKSA STATUS...'}
+                      </span>
+                    </div>
+
+                    <div className="text-[11px] leading-relaxed text-slate-600">
+                      {cloudSyncStatus === 'online' ? (
+                        <span className="text-emerald-900 font-medium">
+                          Database aktif pada project <strong className="font-mono">{getActiveFirebaseConfig().projectId}</strong>. Seluruh perubahan status (unduh Word, Ruang Murid) dan pendaftaran guru otomatis tersinkronisasi langsung ke link Netlify dan HP/Laptop teman.
+                        </span>
+                      ) : cloudSyncStatus === 'offline' ? (
+                        <span className="text-amber-950 font-medium">
+                          Aplikasi saat ini hanya menyimpan data di perangkat ini. Database Firestore di project <strong className="font-mono">{getActiveFirebaseConfig().projectId}</strong> belum aktif atau tidak dapat diakses, sehingga gawai teman belum menerima perubahan.
+                        </span>
+                      ) : (
+                        <span>Sedang menguji konektivitas real-time ke Cloud Firestore...</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleTestCloudConnection}
+                    disabled={isTestingCloud}
+                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${isTestingCloud ? 'animate-spin' : ''}`} />
+                    <span>{isTestingCloud ? 'Menguji...' : 'Tes Koneksi Cloud'}</span>
+                  </button>
+                  <a
+                    href={`https://console.firebase.google.com/project/${getActiveFirebaseConfig().projectId}/firestore`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 font-bold text-[11px] border border-slate-300 inline-flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <span>Buka Firebase Console</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-blue-600" />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomConfigInput(JSON.stringify(getActiveFirebaseConfig(), null, 2));
+                      setShowConfigModal(true);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold text-[11px] border border-amber-300 inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <Crown className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Konfigurasi Firebase &amp; Netlify</span>
+                  </button>
+                </div>
+              </div>
+
+              {(getLastCloudErrorDetail() || cloudDiagnosticMessage) && (
+                <div className={`p-3 rounded-xl border text-[11px] leading-relaxed space-y-1 ${
+                  cloudSyncStatus === 'online'
+                    ? 'bg-emerald-100/70 border-emerald-300 text-emerald-950'
+                    : 'bg-amber-100/80 border-amber-300 text-amber-950'
+                }`}>
+                  <div className="font-bold flex items-center gap-1 text-slate-900">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-amber-700" />
+                    <span>Diagnostik Konektivitas Cloud:</span>
+                  </div>
+                  <p className="font-mono text-[10.5px] whitespace-pre-wrap">{cloudDiagnosticMessage || getLastCloudErrorDetail()}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Notification Banner */}
+          {notification && (
+            <div
+              className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 transition-all ${
+                notification.type === 'success'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                  : 'bg-red-50 border-red-200 text-red-900'
+              }`}
+            >
+              {notification.type === 'success' ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+              )}
+              <div className="font-semibold flex-1">{notification.text}</div>
+              <button
+                type="button"
+                onClick={() => setNotification(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Section 1: Google Forms Integration Card */}
+          <div className="p-5 rounded-2xl bg-linear-to-br from-slate-50 to-blue-50/40 border border-slate-200 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                  <FileSpreadsheet className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Integrasi Google Forms Pendaftaran Guru</h3>
+                  <p className="text-[11px] text-slate-700">
+                    Koneksikan Google Forms untuk menerima pendaftaran guru dan auto-generate kode akses
+                  </p>
+                </div>
+              </div>
+
+              {/* Google Sign-in state */}
+              <div>
+                {currentUser ? (
+                  <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs">
+                    {currentUser.photoURL ? (
+                      <img src={currentUser.photoURL} alt="Avatar" className="w-5 h-5 rounded-full" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] flex items-center justify-center font-bold">
+                        G
+                      </div>
+                    )}
+                    <span className="text-xs font-semibold text-slate-700 truncate max-w-[150px]">
+                      {currentUser.email}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleGoogleLogout}
+                      title="Keluar Akun Google"
+                      className="text-slate-400 hover:text-red-600 ml-1"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={isSigningInGoogle}
+                    className="gsi-material-button text-xs font-semibold px-3 py-1.5 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-800 flex items-center gap-2 shadow-2xs transition-all disabled:opacity-60"
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 48 48">
+                      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+                      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+                      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+                      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+                    </svg>
+                    {isSigningInGoogle ? 'Menghubungkan...' : 'Sign in with Google'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Google Forms Action Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCreateGoogleForm}
+                  disabled={isCreatingForm}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-60"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  {isCreatingForm ? 'Membuat di Drive...' : 'Buat Google Form SIPARTAN Otomatis'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSyncResponses}
+                  disabled={isSyncingResponses}
+                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-all disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isSyncingResponses ? 'animate-spin' : ''}`} />
+                  {isSyncingResponses ? 'Menyinkronkan...' : '⚡ Sinkronisasi Respon Google Form'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowManualFormInput(!showManualFormInput)}
+                  className="px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-medium text-xs transition-colors"
+                >
+                  {showManualFormInput ? 'Tutup Input Form ID' : 'Tautkan Form ID Manual'}
+                </button>
+              </div>
+
+              {formConfig && (
+                <div className="flex items-center gap-2">
+                  <a
+                    href={formConfig.responderUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs inline-flex items-center gap-1 shadow-2xs"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    Buka Form Pendaftaran
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (formConfig.responderUrl) {
+                        navigator.clipboard.writeText(formConfig.responderUrl);
+                        setNotification({ type: 'success', text: 'Tautan Google Form berhasil disalin ke clipboard.' });
+                      }
+                    }}
+                    className="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-600"
+                    title="Salin Link Google Form"
+                  >
+                    <Copy className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Manual Form ID input box if toggled */}
+            {showManualFormInput && (
+              <div className="p-3 bg-white rounded-xl border border-slate-200 flex items-center gap-2 text-xs">
+                <span className="font-bold text-slate-700 shrink-0">Google Form ID:</span>
+                <input
+                  type="text"
+                  value={manualFormId}
+                  onChange={(e) => setManualFormId(e.target.value)}
+                  placeholder="Masukkan Form ID dari URL docs.google.com/forms/d/{FormID}/edit"
+                  className="flex-1 px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-mono focus:border-blue-600 focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!manualFormId.trim()) return;
+                    const cfg: GoogleFormConfig = {
+                      formId: manualFormId.trim(),
+                      formUrl: `https://docs.google.com/forms/d/${manualFormId.trim()}/edit`,
+                      responderUrl: `https://docs.google.com/forms/d/e/${manualFormId.trim()}/viewform`,
+                      title: 'Formulir Pendaftaran SIPARTAN (Manual)',
+                      lastSyncedAt: new Date().toISOString(),
+                    };
+                    setFormConfig(cfg);
+                    setNotification({ type: 'success', text: 'Form ID berhasil ditautkan!' });
+                    setShowManualFormInput(false);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 text-white font-bold text-xs"
+                >
+                  Simpan Form ID
+                </button>
+              </div>
+            )}
+
+            {/* Current Form Status info */}
+            {formConfig && (
+              <div className="pt-2 flex flex-wrap items-center justify-between text-[11px] text-slate-700 gap-2 border-t border-slate-200">
+                <span className="font-semibold text-slate-700">
+                  Form Terhubung: <span className="font-mono text-indigo-700 font-bold">{formConfig.formId}</span> ({formConfig.title})
+                </span>
+                <span>
+                  Sinkronisasi Terakhir: {formConfig.lastSyncedAt ? new Date(formConfig.lastSyncedAt).toLocaleString('id-ID') : '-'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Section: Proteksi Unduhan Word (Pencegahan Pengeditan Data via Word) */}
+          <div
+            className={`p-4 sm:p-5 rounded-2xl border-2 transition-all shadow-xs ${
+              isWordDisabled
+                ? 'bg-gradient-to-br from-amber-50 via-orange-50/50 to-amber-50 border-amber-400'
+                : 'bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-slate-50 border-blue-200'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs border ${
+                    isWordDisabled
+                      ? 'bg-amber-500 text-white border-amber-600 ring-4 ring-amber-400/20'
+                      : 'bg-blue-600 text-white border-blue-700 ring-4 ring-blue-500/10'
+                  }`}
+                >
+                  <Lock className="w-5 h-5" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                      Proteksi Data: Izin Unduhan Dokumen Word (.doc)
+                    </h4>
+                    {isWordDisabled ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-200/90 text-amber-950 border border-amber-400/80 shadow-2xs">
+                        <Lock className="w-3 h-3 text-amber-900" />
+                        DINONAKTIFKAN ADMIN
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                        DIIZINKAN (AKTIF)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+                    {isWordDisabled ? (
+                      <>
+                        <strong className="text-amber-950">Fitur unduhan Word telah dimatikan.</strong> Pengguna yang mengklik tombol unduh Word akan dicegat dengan notifikasi:{' '}
+                        <em className="text-amber-900 font-semibold">
+                          "unduhan word di nonaktifkan oleh admin! (hal ini mencegah pengeditan data via word!)"
+                        </em>
+                        . Guru/pengguna hanya diizinkan mengunduh dokumen resmi dalam format <strong>PDF Siap Cetak</strong>.
+                      </>
+                    ) : (
+                      <>
+                        Saat ini pengguna dapat mengunduh dokumen dalam format Word (.doc) dan PDF. Klik tombol di samping untuk menonaktifkan unduhan Word{' '}
+                        <strong className="text-slate-800">guna mencegah modifikasi/pengeditan data kurikulum di luar sistem SIPARTAN</strong>.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center">
+                <button
+                  type="button"
+                  onClick={handleToggleWordExport}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
+                    isWordDisabled
+                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-emerald-900/20'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white hover:shadow-amber-900/20'
+                  }`}
+                >
+                  {isWordDisabled ? (
+                    <>
+                      <ToggleRight className="w-4 h-4 text-emerald-200" />
+                      <span>Aktifkan Kembali Unduhan Word</span>
+                    </>
+                  ) : (
+                    <>
+                      <ToggleLeft className="w-4 h-4 text-amber-200" />
+                      <span>Nonaktifkan Unduhan Word</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Pengaturan Ruang Murid (CBT) & Kode Masuk Siswa Permanen (FTB-123) */}
+          <div
+            className={`p-4 sm:p-5 rounded-2xl border-2 transition-all shadow-xs ${
+              isRuangMuridActive
+                ? 'bg-gradient-to-br from-emerald-50 via-teal-50/40 to-slate-50 border-emerald-300'
+                : 'bg-gradient-to-br from-rose-50 via-amber-50/40 to-slate-50 border-rose-300'
+            }`}
+          >
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5 min-w-0">
+                <div
+                  className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 shadow-xs border ${
+                    isRuangMuridActive
+                      ? 'bg-emerald-600 text-white border-emerald-700 ring-4 ring-emerald-500/10'
+                      : 'bg-rose-600 text-white border-rose-700 ring-4 ring-rose-500/10'
+                  }`}
+                >
+                  {isRuangMuridActive ? <Sparkles className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                      Ruang Murid (CBT): Akses Asesmen &amp; Evaluasi Siswa
+                    </h4>
+                    {isRuangMuridActive ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                        RUANG MURID AKTIF
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-100 text-rose-900 border border-rose-300 shadow-2xs">
+                        <Lock className="w-3 h-3 text-rose-700" />
+                        DINONAKTIFKAN ADMIN (GP-1386)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed max-w-3xl">
+                    {isRuangMuridActive ? (
+                      <>
+                        Ruang Murid saat ini <strong>terbuka untuk 12 siswa Kelas 6 SDN Fatubai</strong>. Siswa wajib memasukkan kode unik peserta didik <strong className="font-mono text-emerald-800 font-black">{RUANG_MURID_STUDENT_PASSCODE}</strong> saat masuk.
+                      </>
+                    ) : (
+                      <>
+                        <strong className="text-rose-900">Ruang Murid dinonaktifkan oleh Admin.</strong> Ketika user/siswa mengklik Ruang Murid, sistem menampilkan kartu informasi beremoticon:{' '}
+                        <em className="text-rose-900 font-semibold">
+                          "Mohon maaf, fitur ini tersedia khusus untuk murid Kelas 6 SDN Fatubai."
+                        </em>
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              <div className="shrink-0 flex items-center">
+                <button
+                  type="button"
+                  onClick={handleToggleRuangMurid}
+                  className={`w-full sm:w-auto px-4 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
+                    isRuangMuridActive
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white hover:shadow-rose-900/20'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-emerald-900/20'
+                  }`}
+                >
+                  {isRuangMuridActive ? (
+                    <>
+                      <ToggleLeft className="w-4 h-4 text-rose-200" />
+                      <span>Nonaktifkan Ruang Murid</span>
+                    </>
+                  ) : (
+                    <>
+                      <ToggleRight className="w-4 h-4 text-emerald-200" />
+                      <span>Aktifkan Kembali Ruang Murid</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Permanent Student Access Code Display Card (Khusus Master Admin) */}
+            <div className="mt-3.5 pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-amber-50/90 p-3.5 rounded-xl border border-amber-200">
+              <div className="flex items-start gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0 mt-0.5">
+                  🔑
+                </div>
+                <div>
+                  <div className="text-[11px] font-bold text-amber-900 flex flex-wrap items-center gap-1.5">
+                    <span>KODE AKSES RESMI PESERTA DIDIK (DISAMPAIKAN LISAN):</span>
+                    <span className="px-2 py-0.5 rounded bg-amber-200 text-amber-950 font-mono font-black text-xs border border-amber-300">
+                      {RUANG_MURID_STUDENT_PASSCODE}
+                    </span>
+                  </div>
+                  <p className="text-[10.5px] text-amber-900/90 mt-1 leading-relaxed">
+                    <strong>Hanya ada di Akun Master Admin:</strong> Sampaikan kode ini secara <em>lisan langsung</em> kepada murid di kelas saat akan memulai asesmen. Kode ini tidak pernah ditampilkan di kartu input murid guna mencegah pihak luar masuk dan merusak daftar nilai siswa.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(RUANG_MURID_STUDENT_PASSCODE);
+                    setCopiedCode(RUANG_MURID_STUDENT_PASSCODE);
+                    setTimeout(() => setCopiedCode(null), 2500);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-colors"
+                  title="Salin kode untuk keperluan administrasi guru"
+                >
+                  {copiedCode === RUANG_MURID_STUDENT_PASSCODE ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Tersalin!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin Kode Akses</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Quick Stats & Bulk Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Stat Card 1 */}
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Total Kode Terbit</div>
+                <div className="text-2xl font-black text-slate-900 mt-0.5">{records.length}</div>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                <Users className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* Stat Card 2 */}
+            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">Kode Aktif (Bisa Masuk)</div>
+                <div className="text-2xl font-black text-emerald-700 mt-0.5">{totalActive}</div>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+            </div>
+
+            {/* Stat Card 3 */}
+            <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-bold text-red-800 uppercase tracking-wider">Kode Nonaktif (Terkunci)</div>
+                <div className="text-2xl font-black text-red-700 mt-0.5">{totalInactive}</div>
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-700 flex items-center justify-center font-bold">
+                <XCircle className="w-5 h-5" />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Action Toolbar & Search */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {pendingRequests.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleActivateAllPending}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-sm transition-all animate-pulse"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-slate-950" />
+                  <span>Aktifkan Permintaan Baru ({pendingRequests.length})</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={handleActivateAll}
+                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Aktifkan Semua Kode
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDeactivateAll}
+                className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+                Nonaktifkan Semua Kode
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Terbitkan Kode Manual
+              </button>
+
+              <button
+                type="button"
+                onClick={refreshList}
+                disabled={isSyncingFirestore}
+                className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                title="Tarik & sinkronkan data pendaftaran terbaru dari Cloud Firestore"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingFirestore ? 'animate-spin' : ''}`} />
+                <span>{isSyncingFirestore ? 'Menyinkronkan...' : 'Sinkron Cloud'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportBackup}
+                className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all border border-slate-300"
+                title="Unduh seluruh data pendaftaran kode guru sebagai file cadangan JSON"
+              >
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+                <span>Ekspor Cadangan</span>
+              </button>
+
+              <label className="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all border border-slate-300 cursor-pointer">
+                <Upload className="w-3.5 h-3.5 text-slate-600" />
+                <span>Impor Cadangan</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleImportBackup}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            {/* Search & Filter */}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Cari guru / sekolah / kode..."
+                  className="pl-8 pr-3 py-1.5 text-xs border border-slate-300 rounded-xl focus:border-blue-600 focus:outline-none w-48 sm:w-56 bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                />
+              </div>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as any)}
+                className="px-2.5 py-1.5 text-xs border border-slate-300 rounded-xl bg-white focus:border-blue-600 focus:outline-none font-semibold text-slate-900"
+              >
+                <option value="ALL">Semua ({records.length})</option>
+                <option value="PENDING">⚡ Menunggu Aktivasi ({pendingRequests.length})</option>
+                <option value="ACTIVE">Aktif Saja ({totalActive})</option>
+                <option value="INACTIVE">Nonaktif Saja ({totalInactive})</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Section 4: Table / Cards of All Access Records */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+              <span>Daftar Guru & Kode Akses Terbit ({filtered.length})</span>
+              <span className="text-[11px] text-slate-700 normal-case font-normal">
+                Kode aktif dapat membuka aplikasi; identitas otomatis mengunci dokumen.
+              </span>
+            </h4>
+
+            {filtered.length === 0 ? (
+              <div className="p-8 text-center bg-slate-50 border border-slate-200 rounded-xl text-slate-700 text-xs">
+                Tidak ada data kode akses yang cocok dengan pencarian.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {filtered.map((r) => {
+                  const isMaster = Boolean(r.isPremiumMaster || isMasterAccessCode(r.kodeAkses));
+                  return (
+                    <div
+                      key={r.id}
+                      className={`p-4 rounded-xl border transition-all flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${
+                        !r.isActive && !isMaster
+                          ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-400/40 shadow-xs'
+                          : r.isActive
+                          ? 'bg-white border-slate-200 hover:border-blue-300 shadow-2xs'
+                          : 'bg-slate-50/70 border-slate-200 opacity-75'
+                      }`}
+                    >
+                      {/* Left info */}
+                      <div className="space-y-1.5 flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`font-mono text-sm font-black px-2.5 py-1 rounded-lg border shadow-2xs flex items-center gap-1.5 ${
+                              isMaster
+                                ? 'bg-amber-50 text-amber-900 border-amber-300'
+                                : r.isActive
+                                ? 'bg-blue-50 text-blue-900 border-blue-200'
+                                : 'bg-slate-100 text-slate-500 border-slate-300 line-through'
+                            }`}
+                          >
+                            <KeyRound className="w-3.5 h-3.5" />
+                            {r.kodeAkses}
+                          </span>
+
+                          {isMaster && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-amber-400 to-yellow-400 text-slate-950 flex items-center gap-1 shadow-2xs">
+                              <Crown className="w-3 h-3" />
+                              KODE MASTER ADMIN (RAHASIA)
+                            </span>
+                          )}
+
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                              r.isActive ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {r.isActive ? '● AKTIF' : '○ NONAKTIF'}
+                          </span>
+
+                          {isMaster ? (
+                            <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300">
+                              Akses Bebas Semua Fase &amp; Semua Kelas • Jabatan Bebas
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-semibold">
+                              {r.jabatan} • {r.fase} (Kelas {r.kelas})
+                            </span>
+                          )}
+
+                          <span className="text-[10px] text-slate-700">
+                            Terbit: {new Date(r.tanggalDibuat).toLocaleDateString('id-ID')}
+                          </span>
+                        </div>
+
+                        {/* Teacher & School Details */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs pt-1">
+                          <div>
+                            <span className="text-slate-700">Guru: </span>
+                            <span className="font-bold text-slate-900">{r.namaGuru}</span>
+                            <span className="text-slate-700 text-[11px]"> (NIP: {r.nipGuru || '-'})</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-700">Satuan: </span>
+                            <span className="font-semibold text-slate-800">{r.namaSekolah}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-700">Kepala Sekolah: </span>
+                            <span className="font-medium text-slate-800">{r.namaKepalaSekolah || '-'}</span>
+                            <span className="text-slate-700 text-[11px]"> (NIP: {r.nipKepalaSekolah || '-'})</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[11px] text-emerald-900">
+                            <MessageCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                            <span>No. WA Guru: <strong className="font-mono text-black font-bold">{r.nomorHpPendaftar || 'Belum diisi'}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right action buttons */}
+                      <div className="flex flex-wrap items-center gap-2 shrink-0 self-end md:self-center">
+                        {/* Toggle switch or Master badge */}
+                        {isMaster ? (
+                          <div
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-amber-100 text-amber-950 border border-amber-300 cursor-default select-none shadow-2xs"
+                            title="Kode Master Admin selalu aktif dan tidak dapat dinonaktifkan"
+                          >
+                            <Crown className="w-3.5 h-3.5 text-amber-700" />
+                            Selalu Aktif
+                          </div>
+                        ) : (
+                          <>
+                            {!r.isActive && (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleStatus(r.kodeAkses)}
+                                className="px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-1.5 transition-all cursor-pointer bg-linear-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-white shadow-xs hover:scale-105 active:scale-95"
+                                title="Klik untuk langsung aktifkan permohonan kode guru ini"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Aktifkan Sekarang</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleToggleStatus(r.kodeAkses)}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                r.isActive
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+                                  : 'bg-slate-200 text-slate-700 border border-slate-300 hover:bg-slate-300'
+                              }`}
+                              title={r.isActive ? 'Klik untuk Nonaktifkan' : 'Klik untuk Aktifkan'}
+                            >
+                              {r.isActive ? (
+                                <>
+                                  <ToggleRight className="w-4 h-4 text-emerald-600" />
+                                  Aktif
+                                </>
+                              ) : (
+                                <>
+                                  <ToggleLeft className="w-4 h-4 text-slate-500" />
+                                  Nonaktif
+                                </>
+                              )}
+                            </button>
+                          </>
+                        )}
+
+                        {/* Copy Code */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyCode(r.kodeAkses)}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                          title="Salin Kode Akses"
+                        >
+                          {copiedCode === r.kodeAkses ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {/* Direct WhatsApp to Teacher */}
+                        {r.nomorHpPendaftar ? (
+                          <a
+                            href={createTeacherWhatsAppLink(r.nomorHpPendaftar, getTeacherActivationWAMessage(r))}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 rounded-lg border border-emerald-400 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1 shadow-2xs transition-colors cursor-pointer"
+                            title={`Buka WhatsApp & Kirim Kode Langsung ke ${r.namaGuru} (${r.nomorHpPendaftar})`}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>Kirim ke WA Guru</span>
+                          </a>
+                        ) : null}
+
+                        {/* Open via Admin WhatsApp (082236015517) */}
+                        <a
+                          href={createAdminWhatsAppLink(getTeacherActivationWAMessage(r))}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 rounded-lg border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                          title={`Buka WhatsApp via Nomor Admin (${ADMIN_WA_DISPLAY})`}
+                        >
+                          <Share2 className="w-3.5 h-3.5 text-emerald-600" />
+                          <span>Share WA Admin</span>
+                        </a>
+
+                        {/* Copy WA Message */}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyWAMessage(r)}
+                          className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 transition-colors cursor-pointer"
+                          title="Salin Pesan Format WhatsApp"
+                        >
+                          {copiedCode === r.kodeAkses + '-wa' ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {/* Delete button (except master) */}
+                        {!isMaster && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(r.kodeAkses)}
+                            className="p-1.5 rounded-lg border border-red-200 bg-white hover:bg-red-50 text-red-600 transition-colors cursor-pointer"
+                            title="Hapus Kode Akses"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+        {/* Modal Sub: Terbitkan Manual */}
+        {showAddModal && (
+          <div className="absolute inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <form
+              onSubmit={handleCreateManualCode}
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 space-y-4 animate-in fade-in zoom-in-95"
+            >
+              <div className="flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-5 h-5 text-blue-600" />
+                  <h3 className="text-base font-bold text-slate-900">Terbitkan Kode Akses Manual</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="text-slate-400 hover:text-slate-600 font-bold"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Tombol Cepat Tempel Format WhatsApp Guru */}
+              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-emerald-900 text-xs">
+                  <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-semibold">Punya pesan pendaftaran dari WhatsApp guru?</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowWaPasteInput(!showWaPasteInput)}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shrink-0 cursor-pointer"
+                >
+                  {showWaPasteInput ? 'Tutup Tempel' : 'Tempel Teks WA'}
+                </button>
+              </div>
+
+              {showWaPasteInput && (
+                <div className="p-3 bg-emerald-100/60 border border-emerald-300 rounded-xl space-y-2 text-xs">
+                  <p className="text-emerald-950 font-medium text-[11px]">
+                    Tempel pesan WhatsApp yang dikirimkan guru (yang berisi Nama, NIP, Satuan Pendidikan, No WA, dll), lalu klik &quot;Ekstrak Otomatis&quot;:
+                  </p>
+                  <textarea
+                    rows={4}
+                    value={waPasteInput}
+                    onChange={(e) => setWaPasteInput(e.target.value)}
+                    placeholder="Contoh format pesan WA:
+Nama Lengkap: Yeni Ellu, S.Pd.
+NIP: 19860520...
+Jabatan: Guru Kelas (Fase C)
+Satuan Pendidikan: SDN Fatubai
+Nomor WA: 081234567890
+Kepala Sekolah: Gusmardi, S.Pd."
+                    className="w-full p-2 border border-emerald-400 rounded-lg bg-white text-slate-900 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowWaPasteInput(false)}
+                      className="px-2.5 py-1 rounded-lg border border-emerald-300 bg-white text-emerald-800 text-xs font-semibold"
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleParseWaPaste}
+                      className="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs cursor-pointer"
+                    >
+                      Ekstrak Otomatis ke Form
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1">
+                    1. Nama Lengkap Guru (dengan Gelar) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newNamaGuru}
+                    onChange={(e) => setNewNamaGuru(e.target.value)}
+                    placeholder="Contoh: Yeni Ellu, S.Pd."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">2. NIP Guru</label>
+                  <input
+                    type="text"
+                    value={newNipGuru}
+                    onChange={(e) => setNewNipGuru(e.target.value)}
+                    placeholder="18 digit atau -"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">3. Jabatan Guru</label>
+                  <select
+                    value={newJabatan}
+                    onChange={(e) => setNewJabatan(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                  >
+                    <option value="Guru Kelas">Guru Kelas</option>
+                    <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1">
+                    4. Nama Satuan Pendidikan (Sekolah) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newNamaSekolah}
+                    onChange={(e) => setNewNamaSekolah(e.target.value)}
+                    placeholder="Contoh: UPT SD Negeri 1 Silaut"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                      Nomor WhatsApp Guru (Wajib Aktif) <span className="text-red-500">*</span>
+                    </span>
+                    <span className="text-[10px] text-emerald-700 font-bold">
+                      Untuk Kirim Kode via WhatsApp
+                    </span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={newNomorWA}
+                    onChange={(e) => setNewNomorWA(e.target.value)}
+                    placeholder="Contoh: 081234567890"
+                    className="w-full px-3 py-2 border border-emerald-400 rounded-lg focus:border-emerald-600 focus:outline-none bg-emerald-50/20 text-black font-bold placeholder:text-slate-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">5. Fase</label>
+                  <select
+                    value={newFase}
+                    onChange={(e) => {
+                      const f = e.target.value as any;
+                      setNewFase(f);
+                      setNewKelas(f === 'Fase A' ? '1 & 2' : f === 'Fase B' ? '3 & 4' : '5 & 6');
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                  >
+                    <option value="Fase C">Fase C (Kelas 5 & 6)</option>
+                    <option value="Fase B">Fase B (Kelas 3 & 4)</option>
+                    <option value="Fase A">Fase A (Kelas 1 & 2)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">Kelas</label>
+                  <input
+                    type="text"
+                    value={newKelas}
+                    onChange={(e) => setNewKelas(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">6. Nama Kepala Sekolah</label>
+                  <input
+                    type="text"
+                    value={newNamaKS}
+                    onChange={(e) => setNewNamaKS(e.target.value)}
+                    placeholder="Contoh: Gusmardi, S.Pd."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-bold text-slate-800 mb-1">7. NIP Kepala Sekolah</label>
+                  <input
+                    type="text"
+                    value={newNipKS}
+                    onChange={(e) => setNewNipKS(e.target.value)}
+                    placeholder="18 digit atau -"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-3.5 py-2 rounded-xl border text-xs font-semibold hover:bg-slate-100"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  Terbitkan Kode (GP-XXXX)
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+        {/* Modal Sub: Konfirmasi Hapus Kode Akses (In-App Dialog, bebas blokir iframe) */}
+        {deleteConfirmTarget && (
+          <div className="fixed inset-0 z-[120] bg-slate-950/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl border-2 border-red-200 w-full max-w-md p-6 space-y-4 animate-in fade-in zoom-in-95 my-auto max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="p-3 bg-red-100 rounded-xl">
+                  <Trash2 className="w-6 h-6 text-red-600" />
+                </div>
+                <div>
+                  <h4 className="text-base font-black text-slate-900">Konfirmasi Hapus Kode</h4>
+                  <p className="text-xs text-slate-500">Tindakan ini permanen dan tidak dapat dibatalkan</p>
+                </div>
+              </div>
+
+              <div className="p-3.5 bg-red-50/70 border border-red-200 rounded-xl text-xs space-y-2 text-slate-800">
+                <p className="font-medium">Apakah Anda yakin ingin menghapus kode akses ini dari sistem SIPARTAN?</p>
+                <div className="font-mono font-black text-sm text-red-700 bg-white px-3 py-1.5 rounded-lg border border-red-300 inline-block shadow-2xs">
+                  {deleteConfirmTarget.kodeAkses}
+                </div>
+                <div className="text-slate-700 space-y-1">
+                  <div>Guru: <strong className="text-slate-900">{deleteConfirmTarget.namaGuru}</strong> (NIP: {deleteConfirmTarget.nipGuru || '-'})</div>
+                  <div>Sekolah: <strong className="text-slate-900">{deleteConfirmTarget.namaSekolah}</strong></div>
+                  <div>Fase &amp; Kelas: <span className="font-medium text-slate-900">{deleteConfirmTarget.fase} ({deleteConfirmTarget.kelas})</span></div>
+                </div>
+                <p className="text-[11px] font-semibold text-red-700 pt-1 border-t border-red-200">
+                  ⚠️ Guru bersangkutan tidak akan dapat masuk ke aplikasi SIPARTAN lagi setelah kode ini dihapus.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmTarget(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={executeDelete}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black shadow-md flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Ya, Hapus Sekarang
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Sub: Konfigurasi Firebase & Panduan Sinkronisasi Netlify */}
+        {showConfigModal && (
+          <div className="fixed inset-0 z-[120] bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl p-6 space-y-4 animate-in fade-in zoom-in-95 my-auto max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between border-b pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-100 text-amber-800">
+                    <Database className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      Konfigurasi Firebase &amp; Panduan Sinkronisasi Netlify
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      Sinkronisasi multi-pengguna dan multi-perangkat via Cloud Firestore
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowConfigModal(false)}
+                  className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg hover:bg-slate-100 text-lg"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Status & Info Proyek Aktif */}
+              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                <div className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>Informasi Firebase Yang Digunakan Saat Ini:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    cloudSyncStatus === 'online'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {cloudSyncStatus === 'online' ? 'TERHUBUNG KE CLOUD' : 'BELUM TERHUBUNG'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-[11px] text-slate-700">
+                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                    <span className="text-slate-400 block text-[10px] uppercase font-sans">Project ID</span>
+                    <strong className="text-slate-900">{getActiveFirebaseConfig().projectId}</strong>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                    <span className="text-slate-400 block text-[10px] uppercase font-sans">Auth Domain</span>
+                    <span className="text-slate-900 truncate block">{getActiveFirebaseConfig().authDomain}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panduan Mengaktifkan Firestore di Firebase Console */}
+              <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-300 text-xs space-y-2.5 text-amber-950">
+                <div className="font-black text-amber-900 flex items-center gap-1.5 text-sm">
+                  <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Mengapa Teman Anda di Netlify Belum Menerima Perubahan?</span>
+                </div>
+                <p className="leading-relaxed">
+                  Aplikasi SIPARTAN dirancang membaca &amp; menulis data ke <strong>Cloud Firestore</strong>. Jika database Firestore di proyek Firebase Anda belum dibuat / diaktifkan di Firebase Console, maka data hanya akan tersimpan di memori lokal browser perangkat Anda sendiri!
+                </p>
+                <div className="pt-2 border-t border-amber-200 space-y-1.5 text-[11.5px]">
+                  <p className="font-bold text-slate-900">Cara mengaktifkan dalam 2 menit:</p>
+                  <ol className="list-decimal pl-5 space-y-1 text-slate-800">
+                    <li>
+                      Buka Firebase Console:{' '}
+                      <a
+                        href={`https://console.firebase.google.com/project/${getActiveFirebaseConfig().projectId}/firestore`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 font-bold underline inline-flex items-center gap-0.5"
+                      >
+                        console.firebase.google.com <ExternalLink className="w-3 h-3 inline" />
+                      </a>
+                    </li>
+                    <li>Pastikan Anda login menggunakan akun Google Anda (<strong>haryantoronibhidju86@gmail.com</strong>).</li>
+                    <li>Di menu sebelah kiri, klik <strong>Build</strong> &gt; <strong>Firestore Database</strong>.</li>
+                    <li>Klik tombol <strong>Create Database</strong>.</li>
+                    <li>Pilih lokasi database (misalnya <em>asia-southeast1</em> atau <em>asia-southeast2</em>).</li>
+                    <li>Pilih <strong>Start in test mode</strong> (aturan baca/tulis aktif), lalu klik <strong>Create / Enable</strong>.</li>
+                    <li>Kembali ke aplikasi ini dan klik tombol <strong>&quot;Tes Koneksi Cloud&quot;</strong>. Status akan langsung berubah menjadi hijau 🟢 Online!</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Form Ganti Konfigurasi Firebase (Custom Config) */}
+              <div className="space-y-2 text-xs">
+                <label className="block font-bold text-slate-900">
+                  Ganti / Tempel Konfigurasi Firebase Sendiri (Opsional):
+                </label>
+                <p className="text-[11px] text-slate-500">
+                  Jika Anda memiliki proyek Firebase pribadi lain (seperti <code>sipartan-da5b2</code>), Anda dapat menempelkan objek konfigurasi Firebase (JSON atau kode JS) di bawah ini:
+                </p>
+                <textarea
+                  rows={6}
+                  value={customConfigInput}
+                  onChange={(e) => setCustomConfigInput(e.target.value)}
+                  placeholder={`{\n  "apiKey": "AIzaSy...",\n  "authDomain": "sipartan-da5b2.firebaseapp.com",\n  "projectId": "sipartan-da5b2",\n  "storageBucket": "sipartan-da5b2.firebasestorage.app"\n}`}
+                  className="w-full p-2.5 border border-slate-300 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs focus:border-blue-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-3 border-t border-slate-100">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleDownloadConfigJson}
+                    className="px-3 py-2 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Unduh Config File (.json)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetConfig}
+                    className="px-3 py-2 rounded-xl border border-red-200 text-red-700 hover:bg-red-50 font-bold text-xs cursor-pointer shadow-2xs"
+                  >
+                    Reset Bawaan
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowConfigModal(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs cursor-pointer"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveCustomConfig}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Simpan &amp; Terapkan
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

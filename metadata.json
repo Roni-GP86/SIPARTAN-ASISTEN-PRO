@@ -1,0 +1,8 @@
+{
+  "name": "Remix ASISTEN GURU",
+  "description": "Aplikasi otomatisasi penyusunan Tujuan Pembelajaran (TP), Alur Tujuan Pembelajaran (ATP) 8 Bagian (A-H), dan Modul Ajar terstruktur berbasis Capaian Pembelajaran (CP) dengan analisis kompetensi dan lingkup materi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

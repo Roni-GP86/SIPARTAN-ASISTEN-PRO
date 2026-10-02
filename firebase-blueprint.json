@@ -1,0 +1,168 @@
+{
+  "entities": {
+    "AccessRecord": {
+      "title": "AccessRecord",
+      "description": "Catatan kode akses dan data identitas guru serta sekolah pemohon kode akses SIPARTAN",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kodeAkses": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "isPremiumMaster": { "type": "boolean" },
+        "isDemo": { "type": "boolean" },
+        "namaGuru": { "type": "string" },
+        "nipGuru": { "type": "string" },
+        "jabatan": { "type": "string", "enum": ["Guru Kelas", "Guru Mata Pelajaran"] },
+        "namaSekolah": { "type": "string" },
+        "namaSatuanPendidikan": { "type": "string" },
+        "fase": { "type": "string", "enum": ["Fase A", "Fase B", "Fase C"] },
+        "kelas": { "type": "string" },
+        "mataPelajaran": { "type": "string" },
+        "namaKepalaSekolah": { "type": "string" },
+        "nipKepalaSekolah": { "type": "string" },
+        "emailPendaftar": { "type": "string" },
+        "nomorHpPendaftar": { "type": "string" },
+        "tanggalDibuat": { "type": "string" },
+        "tanggalAktivasi": { "type": "string" },
+        "sumberPendaftaran": { "type": "string" },
+        "catatanStatus": { "type": "string" }
+      },
+      "required": ["kodeAkses", "namaGuru", "namaSekolah"]
+    },
+    "SystemSetting": {
+      "title": "SystemSetting",
+      "description": "Pengaturan sistem seperti status proteksi ekspor dokumen Microsoft Word",
+      "type": "object",
+      "properties": {
+        "disabled": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      }
+    },
+    "UserWorkspace": {
+      "title": "UserWorkspace",
+      "description": "Penyimpanan permanen seluruh hasil kerja perangkat ajar (TP, ATP, Prota, Promes, KKTP, Modul Ajar, Identitas) milik guru berbasis kode akses unik",
+      "type": "object",
+      "properties": {
+        "kodeAkses": { "type": "string" },
+        "identitas": { "type": "object" },
+        "workspaces": { "type": "object" },
+        "activeWorkspaceKey": { "type": "string" },
+        "currentDrafts": { "type": "object" },
+        "lastUpdated": { "type": "string" }
+      },
+      "required": ["kodeAkses", "identitas"]
+    },
+    "ExamPackage": {
+      "title": "ExamPackage",
+      "description": "Paket naskah ulangan/ujian aktif yang dipublikasikan oleh guru untuk dikerjakan siswa di Ruang Murid",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "kodeAksesGuru": { "type": "string" },
+        "judul": { "type": "string" },
+        "mataPelajaran": { "type": "string" },
+        "fase": { "type": "string" },
+        "kelas": { "type": "string" },
+        "jenisAsesmen": { "type": "string" },
+        "daftarTP": { "type": "array" },
+        "tokenUjian": { "type": "string" },
+        "durasiMenit": { "type": "number" },
+        "isActive": { "type": "boolean" },
+        "soalDocument": { "type": "object" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "judul", "mataPelajaran", "soalDocument"]
+    },
+    "ExamSubmission": {
+      "title": "ExamSubmission",
+      "description": "Lembar jawaban pengerjaan ujian murid, hasil perolehan skor objektif/uraian, nama, NISN, dan analisis ketercapaian TP",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "paketId": { "type": "string" },
+        "namaSiswa": { "type": "string" },
+        "nisn": { "type": "string" },
+        "kelas": { "type": "string" },
+        "mataPelajaran": { "type": "string" },
+        "jenisAsesmen": { "type": "string" },
+        "daftarTP": { "type": "array" },
+        "jawaban": { "type": "object" },
+        "skorTotal": { "type": "number" },
+        "skorMaksimal": { "type": "number" },
+        "nilaiAkhir": { "type": "number" },
+        "keteranganKKTP": { "type": "string" },
+        "submittedAt": { "type": "string" }
+      },
+      "required": ["id", "paketId", "namaSiswa", "nisn", "nilaiAkhir"]
+    },
+    "StudentInfo": {
+      "title": "StudentInfo",
+      "description": "Data peserta didik sekolah (NIS, NISN, Nama Lengkap) yang tersimpan permanen di cloud",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama": { "type": "string" },
+        "nis": { "type": "string" },
+        "nisn": { "type": "string" },
+        "kelas": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "nama", "nisn"]
+    },
+    "LearningMaterial": {
+      "title": "LearningMaterial",
+      "description": "Bahan ajar dan media pembelajaran digital (PDF, JPG, PNG, PPT, Video, Audio) per kamar mata pelajaran yang dapat diunggah guru dan diakses murid secara offline",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "judul": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "mataPelajaran": { "type": "string" },
+        "fase": { "type": "string" },
+        "kelas": { "type": "string" },
+        "jenisMedia": { "type": "string", "enum": ["pdf", "gambar", "ppt", "video", "audio", "teks"] },
+        "fileName": { "type": "string" },
+        "fileSize": { "type": "number" },
+        "fileType": { "type": "string" },
+        "fileData": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "judul", "mataPelajaran", "jenisMedia"]
+    }
+  },
+  "firestore": {
+    "/sipartan_learning_materials/{materialId}": {
+      "schema": "LearningMaterial",
+      "description": "Koleksi bahan ajar dan media belajar digital per mata pelajaran (PDF, Gambar, PPT, Video) untuk murid"
+    },
+    "/sipartan_access_codes/{codeId}": {
+      "schema": "AccessRecord",
+      "description": "Penyimpanan dokumen permohonan kode akses guru yang tersinkronisasi lintas perangkat"
+    },
+    "/sipartan_students/{studentDocId}": {
+      "schema": "StudentInfo",
+      "description": "Penyimpanan data murid sekolah dan kelas yang tersinkronisasi permanen di cloud"
+    },
+    "/sipartan_settings/{settingId}": {
+      "schema": "SystemSetting",
+      "description": "Pengaturan sistem aplikasi SIPARTAN yang dikelola oleh Administrator"
+    },
+    "/sipartan_user_workspaces/{workspaceId}": {
+      "schema": "UserWorkspace",
+      "description": "Penyimpanan dokumen kerja kurikulum guru yang tersinkronisasi permanen lintas perangkat"
+    },
+    "/sipartan_exam_packages/{packageId}": {
+      "schema": "ExamPackage",
+      "description": "Koleksi paket soal ulangan harian, STS, dan SAS yang dapat diakses oleh peserta didik"
+    },
+    "/sipartan_exam_submissions/{submissionId}": {
+      "schema": "ExamSubmission",
+      "description": "Koleksi hasil ujian siswa lengkap dengan Nama, NISN, analisis per TP, dan rekapitulasi nilai"
+    }
+  }
+}
