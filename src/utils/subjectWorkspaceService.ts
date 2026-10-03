@@ -477,7 +477,7 @@ export function createDefaultIPASWorkspace(
 
 /**
  * Returns initial default workspace for Pendidikan Agama Katolik dan Budi Pekerti (Fase A, B, or C) (100% complete)
- * Sesuai Regulasi Standar Capaian Pembelajaran BKP No. 20/2026
+ * Sesuai Regulasi Standar Capaian Pembelajaran BKP No. 020/2026
  */
 export function createDefaultKatolikWorkspace(
   fase: 'Fase A' | 'Fase B' | 'Fase C',
@@ -491,7 +491,7 @@ export function createDefaultKatolikWorkspace(
     mataPelajaran: mapelName,
     fase,
     kelas: defaultKelas,
-    alokasiWaktuTotal: `${alloc.jpTahunIntra} JP / Tahun (${alloc.jpMingguIntra} JP/Minggu Intrakurikuler @ 35 Menit) - Regulasi BKP No. 20/2026 & Permendikdasmen No. 13 Tahun 2025`,
+    alokasiWaktuTotal: `${alloc.jpTahunIntra} JP / Tahun (${alloc.jpMingguIntra} JP/Minggu Intrakurikuler @ 35 Menit) - Regulasi BKP 020/2026 & Permendikdasmen No. 13 Tahun 2025`,
   };
 
   const selectedElements: SelectedElementItem[] = folder
@@ -547,6 +547,101 @@ export function createDefaultKatolikWorkspace(
     promesDoc = buildPromesDocumentFromTP(identitas, tpList, atpDoc);
   } catch (e) {
     console.error(`Error generating Prota/Promes for Katolik ${fase}:`, e);
+  }
+
+  return {
+    id: makeSubjectKey(mapelName, fase),
+    mataPelajaran: mapelName,
+    fase,
+    kelas: defaultKelas,
+    identitas,
+    preferensiTambahan: '',
+    selectedElements,
+    elemenRows,
+    tpList,
+    rasionalAnalisis,
+    atpDocument: atpDoc,
+    kktpDocument: kktpDoc,
+    protaDocument: protaDoc,
+    promesDocument: promesDoc,
+    modulAjarDocument: null,
+    soalDocument: null,
+    lastUpdated: new Date().toISOString(),
+  };
+}
+
+/**
+ * Returns initial default workspace for Pendidikan Agama Kristen dan Budi Pekerti (Fase A, B, or C) (100% complete)
+ * Sesuai Regulasi Standar Capaian Pembelajaran BKP No. 020/2026
+ */
+export function createDefaultKristenWorkspace(
+  fase: 'Fase A' | 'Fase B' | 'Fase C',
+  defaultKelas: string
+): SubjectWorkspace {
+  const mapelName = 'Pendidikan Agama Kristen dan Budi Pekerti';
+  const folder = findOfficialSubjectFolder(mapelName, fase);
+  const alloc = getPermen13Allocation(mapelName, fase, defaultKelas);
+  const identitas: SchoolIdentity = {
+    ...INITIAL_MATEMATIKA_IDENTITAS,
+    mataPelajaran: mapelName,
+    fase,
+    kelas: defaultKelas,
+    alokasiWaktuTotal: `${alloc.jpTahunIntra} JP / Tahun (${alloc.jpMingguIntra} JP/Minggu Intrakurikuler @ 35 Menit) - Regulasi BKP 020/2026 & Permendikdasmen No. 13 Tahun 2025`,
+  };
+
+  const selectedElements: SelectedElementItem[] = folder
+    ? folder.elemenList.map((el) => ({
+        id: el.id,
+        elemen: el.elemen,
+        capaianPembelajaran: el.capaianPembelajaran,
+        deskripsiSingkat: el.deskripsiSingkat,
+        isSelected: true,
+      }))
+    : [];
+
+  const tpGen = generateMultiElementTPFallback(identitas, selectedElements, '');
+  const tpList = tpGen.daftarTP || [];
+  const elemenRows = tpGen.elemenRows || [];
+  const rasionalAnalisis = tpGen.rasionalAnalisis || '';
+
+  let atpDoc: ATPDocument | null = null;
+  let kktpDoc: KKTPDocument | null = null;
+  let protaDoc: ProtaDocument | null = null;
+  let promesDoc: PromesDocument | null = null;
+
+  try {
+    const firstEl = selectedElements[0] || { elemen: 'Allah Berkarya', capaianPembelajaran: '' };
+    const rawAtp = generatePedagogicalATPFallback(
+      identitas,
+      firstEl.elemen,
+      firstEl.capaianPembelajaran,
+      tpList as any,
+      '',
+      selectedElements.map((e) => ({ elemen: e.elemen, capaianPembelajaran: e.capaianPembelajaran }))
+    );
+    atpDoc = {
+      id: `atp-kristen-${fase.toLowerCase().replace(/\s+/g, '-')}`,
+      identitas,
+      elemen: firstEl.elemen,
+      capaianPembelajaran: firstEl.capaianPembelajaran,
+      tanggalDibuat: new Date().toLocaleDateString('id-ID'),
+      ...rawAtp,
+    } as ATPDocument;
+  } catch (e) {
+    console.error(`Error generating ATP for Kristen ${fase}:`, e);
+  }
+
+  try {
+    kktpDoc = buildKKTPDocumentFromTP(identitas, tpList, atpDoc);
+  } catch (e) {
+    console.error(`Error generating KKTP for Kristen ${fase}:`, e);
+  }
+
+  try {
+    protaDoc = buildProtaDocumentFromTP(identitas, tpList, atpDoc);
+    promesDoc = buildPromesDocumentFromTP(identitas, tpList, atpDoc);
+  } catch (e) {
+    console.error(`Error generating Prota/Promes for Kristen ${fase}:`, e);
   }
 
   return {
@@ -912,10 +1007,77 @@ export function isTPListValidForSubject(
     return true;
   }
 
-  // 6. PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI
+  // 6. PENDIDIKAN AGAMA KRISTEN DAN BUDI PEKERTI
+  if (mapel.includes('kristen')) {
+    const kristenContaminants = [
+      'pecahan',
+      'bilangan cacah',
+      'kpk',
+      'fpb',
+      'aljabar',
+      'fotosintesis',
+      'ekosistem',
+      'tata surya',
+      'uud 1945',
+    ];
+
+    const kristenPositiveKeywords = [
+      'tuhan',
+      'allah',
+      'yesus',
+      'kristus',
+      'gereja',
+      'roh kudus',
+      'buah roh',
+      'pencipta',
+      'pemelihara',
+      'penyelamat',
+      'pembaru',
+      'hakikat manusia',
+      'nilai-nilai kristiani',
+      'kristiani',
+      'ibadah',
+      'doa',
+      'panggilan gereja',
+      'bersekutu',
+      'bersaksi',
+      'melayani',
+      'masyarakat majemuk',
+      'toleransi',
+      'alam ciptaan',
+      'lingkungan hidup',
+      'iman',
+      'kasih',
+      'kebaikan',
+      'keluarga',
+      'berkebutuhan khusus',
+      'flora',
+      'fauna',
+    ];
+
+    let positiveHits = 0;
+    let contaminantHits = 0;
+
+    for (const tp of tpList) {
+      const text = `${tp.lingkupMateri || ''} ${tp.rumusanTP || ''} ${tp.elemen || ''} ${tp.kompetensi || ''}`.toLowerCase();
+      if (kristenContaminants.some((w) => text.includes(w))) {
+        contaminantHits++;
+      }
+      if (kristenPositiveKeywords.some((w) => text.includes(w))) {
+        positiveHits++;
+      }
+    }
+
+    if (contaminantHits > 0 || positiveHits === 0) {
+      return false;
+    }
+    return true;
+  }
+
+  // 7. PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI
   if (
     mapel.includes('katolik') ||
-    mapel.includes('agama')
+    (mapel.includes('agama') && !mapel.includes('kristen'))
   ) {
     const katolikContaminants = [
       'pecahan',
@@ -1113,7 +1275,7 @@ export function getAllSubjectWorkspaces(): Record<string, SubjectWorkspace> {
       needsResave = true;
     }
 
-    // PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI (Regulasi BKP No. 20/2026)
+    // PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI (Regulasi BKP No. 020/2026)
     const katAFullKey = makeSubjectKey('Pendidikan Agama Katolik dan Budi Pekerti', 'Fase A');
     if (!workspaces[katAFullKey] || !workspaces[katAFullKey].tpList || workspaces[katAFullKey].tpList.length === 0) {
       workspaces[katAFullKey] = createDefaultKatolikWorkspace('Fase A', '1');
@@ -1138,23 +1300,51 @@ export function getAllSubjectWorkspaces(): Record<string, SubjectWorkspace> {
       needsResave = true;
     }
 
+    // PENDIDIKAN AGAMA KRISTEN DAN BUDI PEKERTI (Regulasi BKP No. 020/2026)
+    const krisAFullKey = makeSubjectKey('Pendidikan Agama Kristen dan Budi Pekerti', 'Fase A');
+    if (!workspaces[krisAFullKey] || !workspaces[krisAFullKey].tpList || workspaces[krisAFullKey].tpList.length === 0) {
+      workspaces[krisAFullKey] = createDefaultKristenWorkspace('Fase A', '1');
+      needsResave = true;
+    }
+
+    const krisBFullKey = makeSubjectKey('Pendidikan Agama Kristen dan Budi Pekerti', 'Fase B');
+    if (!workspaces[krisBFullKey] || !workspaces[krisBFullKey].tpList || workspaces[krisBFullKey].tpList.length === 0) {
+      workspaces[krisBFullKey] = createDefaultKristenWorkspace('Fase B', '3');
+      needsResave = true;
+    }
+
+    const krisCFullKey = makeSubjectKey('Pendidikan Agama Kristen dan Budi Pekerti', 'Fase C');
+    if (!workspaces[krisCFullKey] || !workspaces[krisCFullKey].tpList || workspaces[krisCFullKey].tpList.length === 0) {
+      workspaces[krisCFullKey] = createDefaultKristenWorkspace('Fase C', '5');
+      needsResave = true;
+    }
+
     // Set Aliases for ease of lookup
-    const katAliases: [string, 'Fase A' | 'Fase B' | 'Fase C', string][] = [
+    const religionAliases: [string, 'Fase A' | 'Fase B' | 'Fase C', string][] = [
       ['Pendidikan Agama Katolik', 'Fase A', katAFullKey],
       ['Pendidikan Agama Katolik', 'Fase B', katBFullKey],
       ['Pendidikan Agama Katolik', 'Fase C', katCFullKey],
+      ['Agama Katolik', 'Fase A', katAFullKey],
+      ['Agama Katolik', 'Fase B', katBFullKey],
+      ['Agama Katolik', 'Fase C', katCFullKey],
+      ['Pendidikan Agama Kristen', 'Fase A', krisAFullKey],
+      ['Pendidikan Agama Kristen', 'Fase B', krisBFullKey],
+      ['Pendidikan Agama Kristen', 'Fase C', krisCFullKey],
+      ['Agama Kristen', 'Fase A', krisAFullKey],
+      ['Agama Kristen', 'Fase B', krisBFullKey],
+      ['Agama Kristen', 'Fase C', krisCFullKey],
+      ['PAK', 'Fase A', krisAFullKey],
+      ['PAK', 'Fase B', krisBFullKey],
+      ['PAK', 'Fase C', krisCFullKey],
       ['Pendidikan Agama', 'Fase A', katAFullKey],
       ['Pendidikan Agama', 'Fase B', katBFullKey],
       ['Pendidikan Agama', 'Fase C', katCFullKey],
       ['Pendidikan Agama & Budi Pekerti', 'Fase A', katAFullKey],
       ['Pendidikan Agama & Budi Pekerti', 'Fase B', katBFullKey],
       ['Pendidikan Agama & Budi Pekerti', 'Fase C', katCFullKey],
-      ['Agama Katolik', 'Fase A', katAFullKey],
-      ['Agama Katolik', 'Fase B', katBFullKey],
-      ['Agama Katolik', 'Fase C', katCFullKey],
     ];
 
-    katAliases.forEach(([aliasMapel, aliasFase, sourceKey]) => {
+    religionAliases.forEach(([aliasMapel, aliasFase, sourceKey]) => {
       const aliasKey = makeSubjectKey(aliasMapel, aliasFase);
       if (!workspaces[aliasKey] || !workspaces[aliasKey].tpList || workspaces[aliasKey].tpList.length === 0) {
         if (workspaces[sourceKey]) {
@@ -1318,8 +1508,14 @@ export function findOfficialSubjectFolder(
     if (normMapel.includes('seni rupa')) return fm.includes('seni rupa');
     if (normMapel.includes('seni musik')) return fm.includes('seni musik');
     if (normMapel.includes('inggris') || normMapel.includes('english')) return fm.includes('inggris');
+    if (normMapel.includes('katolik')) {
+      return fm.includes('katolik');
+    }
+    if (normMapel.includes('kristen') || normMapel.includes('pak')) {
+      return fm.includes('kristen');
+    }
     if (normMapel.includes('agama') || normMapel.includes('islam') || normMapel.includes('pai')) {
-      return fm.includes('agama') || fm.includes('islam');
+      return fm.includes('agama') || fm.includes('katolik') || fm.includes('kristen');
     }
     return fm.includes(normMapel) || normMapel.includes(fm);
   });

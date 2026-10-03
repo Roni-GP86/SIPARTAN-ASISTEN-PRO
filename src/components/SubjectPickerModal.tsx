@@ -184,7 +184,7 @@ export const SubjectPickerModal: React.FC<SubjectPickerModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  Bank Mata Pelajaran Resmi BSKAP No. 046/2025 &amp; BKP No. 20/2026
+                  Bank Mata Pelajaran Resmi BSKAP No. 046/2025 &amp; BKP 020/2026
                 </span>
                 <span className="text-xs text-slate-400 font-semibold">• {filteredFolders.length} Mapel Tersedia</span>
               </div>

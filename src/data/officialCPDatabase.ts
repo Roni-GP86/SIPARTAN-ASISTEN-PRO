@@ -450,14 +450,14 @@ Murid dapat mengidentifikasi, meniru, dan mengembangkan pola bilangan membesar d
 
   // =========================================================================
   // 10. PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI - FASE A (KELAS I & II)
-  // Sesuai Regulasi Standar CP BKP No. 20/2026
+  // Sesuai Regulasi Standar CP BKP No. 020/2026
   // =========================================================================
   {
     id: 'folder-katolik-fase-a',
     mataPelajaran: 'Pendidikan Agama Katolik dan Budi Pekerti',
     fase: 'Fase A',
     kelas: 'I & II (Satu & Dua)',
-    deskripsiMapel: 'Folder resmi Pendidikan Agama Katolik dan Budi Pekerti Fase A (4 Elemen: Pribadi murid, Yesus Kristus, Gereja, Masyarakat) - Regulasi BKP No. 20/2026',
+    deskripsiMapel: 'Folder resmi Pendidikan Agama Katolik dan Budi Pekerti Fase A (4 Elemen: Pribadi murid, Yesus Kristus, Gereja, Masyarakat) - Regulasi BKP 020/2026',
     elemenList: [
       {
         id: 'katolik-fa-el-1',
@@ -487,15 +487,57 @@ Murid dapat mengidentifikasi, meniru, dan mengembangkan pola bilangan membesar d
   },
 
   // =========================================================================
-  // 11. PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI - FASE B (KELAS III & IV)
-  // Sesuai Regulasi Standar CP BKP No. 20/2026
+  // 11. PENDIDIKAN AGAMA KRISTEN DAN BUDI PEKERTI - FASE A (KELAS I & II)
+  // Sesuai Regulasi Standar CP BKP No. 020/2026
+  // =========================================================================
+  {
+    id: 'folder-kristen-fase-a',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    fase: 'Fase A',
+    kelas: 'I & II (Satu & Dua)',
+    deskripsiMapel: 'Folder resmi Pendidikan Agama Kristen dan Budi Pekerti Fase A (4 Elemen: Allah Berkarya, Manusia dan Nilai-nilai Kristiani, Gereja dan Masyarakat Majemuk, Alam dan Lingkungan Hidup) - Regulasi BKP 020/2026',
+    elemenList: [
+      {
+        id: 'kristen-fa-el-1',
+        elemen: 'Allah Berkarya',
+        deskripsiSingkat: 'Allah Pencipta: Pribadi istimewa & berinteraksi; Allah Pemelihara: Pemeliharaan Allah melalui kehadiran keluarga',
+        capaianPembelajaran: `Subelemen Allah Pencipta: Murid memahami Allah menciptakan dirinya sebagai pribadi yang istimewa dan membangun interaksi dengan lingkungan terdekat.
+Subelemen Allah Pemelihara: Murid memahami pemeliharaan Allah pada dirinya melalui kehadiran keluarga.`
+      },
+      {
+        id: 'kristen-fa-el-2',
+        elemen: 'Manusia dan Nilai-nilai Kristiani',
+        deskripsiSingkat: 'Hakikat Manusia: Diri sebagai pribadi bertumbuh & berkembang; Nilai-nilai Kristiani: Makna kebaikan, ramah dan sopan di rumah dan di sekolah',
+        capaianPembelajaran: `Subelemen Hakikat Manusia: Murid memahami diri sebagai pribadi yang bertumbuh dan berkembang.
+Subelemen Nilai-nilai Kristiani: Murid memahami makna kebaikan, ramah dan sopan di rumah dan di sekolah.`
+      },
+      {
+        id: 'kristen-fa-el-3',
+        elemen: 'Gereja dan Masyarakat Majemuk',
+        deskripsiSingkat: 'Tugas Panggilan Gereja: Wadah berkumpul & beribadah, berdoa & memuji Tuhan; Masyarakat Majemuk: Keragaman suku bangsa anugerah Allah',
+        capaianPembelajaran: `Subelemen Tugas Panggilan Gereja: Murid memahami keberadaan gereja sebagai wadah berkumpul dan beribadah serta kewajiban berdoa dan memuji Tuhan.
+Subelemen Masyarakat Majemuk: Murid memahami keragaman suku bangsa sebagai anugerah Allah.`
+      },
+      {
+        id: 'kristen-fa-el-4',
+        elemen: 'Alam dan Lingkungan Hidup',
+        deskripsiSingkat: 'Alam Ciptaan Allah: Alam dan lingkungan hidup ciptaan Allah; Tanggung Jawab: Tugas memelihara alam & lingkungan di rumah dan di sekolah',
+        capaianPembelajaran: `Subelemen Alam Ciptaan Allah: Murid memahami alam dan lingkungan hidup sebagai ciptaan Allah.
+Subelemen Tanggung Jawab Manusia Terhadap Alam: Murid memahami tugas memelihara alam dan lingkungan hidup di rumah dan di sekolah.`
+      }
+    ]
+  },
+
+  // =========================================================================
+  // 12. PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI - FASE B (KELAS III & IV)
+  // Sesuai Regulasi Standar CP BKP No. 020/2026
   // =========================================================================
   {
     id: 'folder-katolik-fase-b',
     mataPelajaran: 'Pendidikan Agama Katolik dan Budi Pekerti',
     fase: 'Fase B',
     kelas: 'III & IV (Tiga & Empat)',
-    deskripsiMapel: 'Folder resmi Pendidikan Agama Katolik dan Budi Pekerti Fase B (4 Elemen: Pribadi murid, Yesus Kristus, Gereja, Masyarakat) - Regulasi BKP No. 20/2026',
+    deskripsiMapel: 'Folder resmi Pendidikan Agama Katolik dan Budi Pekerti Fase B (4 Elemen: Pribadi murid, Yesus Kristus, Gereja, Masyarakat) - Regulasi BKP 020/2026',
     elemenList: [
       {
         id: 'katolik-fb-el-1',
@@ -520,6 +562,50 @@ Murid dapat mengidentifikasi, meniru, dan mengembangkan pola bilangan membesar d
         elemen: 'Masyarakat',
         deskripsiSingkat: 'Menghormati pemimpin masyarakat & tradisi, melestarikan lingkungan alam, menghormati orang tua, menghormati hidup pribadi & milik orang lain',
         capaianPembelajaran: `Murid mewujudkan imannya di tengah masyarakat melalui kebiasaan menghormati pemimpin masyarakat, menghargai tradisi masyarakat, melestarikan lingkungan alam; mewujudkan rasa hormat terhadap orang tua, menghormati hidup pribadi, menghormati milik orang lain.`
+      }
+    ]
+  },
+
+  // =========================================================================
+  // 13. PENDIDIKAN AGAMA KRISTEN DAN BUDI PEKERTI - FASE B (KELAS III & IV)
+  // Sesuai Regulasi Standar CP BKP No. 020/2026
+  // =========================================================================
+  {
+    id: 'folder-kristen-fase-b',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    fase: 'Fase B',
+    kelas: 'III & IV (Tiga & Empat)',
+    deskripsiMapel: 'Folder resmi Pendidikan Agama Kristen dan Budi Pekerti Fase B (4 Elemen: Allah Berkarya, Manusia dan Nilai-nilai Kristiani, Gereja dan Masyarakat Majemuk, Alam dan Lingkungan Hidup) - Regulasi BKP 020/2026',
+    elemenList: [
+      {
+        id: 'kristen-fb-el-1',
+        elemen: 'Allah Berkarya',
+        deskripsiSingkat: 'Allah Pencipta: Flora, fauna, manusia; Allah Pemelihara: Hadir lewat orang sekitar; Allah Penyelamat: Sebagai penyelamat; Allah Pembaru: Mengenal Allah pembaru',
+        capaianPembelajaran: `Subelemen Allah Pencipta: Murid memahami Allah menciptakan flora dan fauna, serta manusia (perempuan dan laki-laki).
+Subelemen Allah Pemelihara: Murid memahami pemeliharaan Allah pada dirinya dan melalui kehadiran orang-orang di sekitarnya.
+Subelemen Allah Penyelamat: Murid memahami Allah sebagai penyelamat.
+Subelemen Allah Pembaru: Murid mengenal Allah pembaru.`
+      },
+      {
+        id: 'kristen-fb-el-2',
+        elemen: 'Manusia dan Nilai-nilai Kristiani',
+        deskripsiSingkat: 'Hakikat Manusia: Makhluk individu & sosial bergaul kerja sama; Nilai-nilai Kristiani: Sikap disiplin di rumah dan sekolah',
+        capaianPembelajaran: `Subelemen Hakikat Manusia: Murid memahami diri sebagai makhluk individu dan sosial yang dapat bergaul dan bekerja sama dengan teman, saudara, dan orang tua.
+Subelemen Nilai-nilai Kristiani: Murid memahami sikap disiplin di rumah dan di sekolah.`
+      },
+      {
+        id: 'kristen-fb-el-3',
+        elemen: 'Gereja dan Masyarakat Majemuk',
+        deskripsiSingkat: 'Tugas Panggilan Gereja: Bersekutu, bersaksi, dan melayani; Masyarakat Majemuk: Keragaman budaya dan agama anugerah Allah',
+        capaianPembelajaran: `Subelemen Tugas Panggilan Gereja: Murid memahami tugas panggilan gereja untuk bersekutu, bersaksi, dan melayani.
+Subelemen Masyarakat Majemuk: Murid memahami keragaman budaya dan agama sebagai anugerah Allah.`
+      },
+      {
+        id: 'kristen-fb-el-4',
+        elemen: 'Alam dan Lingkungan Hidup',
+        deskripsiSingkat: 'Alam Ciptaan Allah: Hadir dalam berbagai fenomena alam; Tanggung Jawab: Upaya memelihara alam dan lingkungan sekitarnya',
+        capaianPembelajaran: `Subelemen Alam Ciptaan Allah: Murid memahami Allah hadir dalam berbagai fenomena alam.
+Subelemen Tanggung Jawab Manusia Terhadap Alam: Murid memahami upaya memelihara alam dan lingkungan sekitarnya.`
       }
     ]
   },
@@ -644,14 +730,14 @@ Murid dapat mengidentifikasi, meniru, dan mengembangkan pola bilangan membesar d
 
   // =========================================================================
   // 15. PENDIDIKAN AGAMA KATOLIK DAN BUDI PEKERTI - FASE C (KELAS V & VI)
-  // Sesuai Regulasi Standar CP BKP No. 20/2026
+  // Sesuai Regulasi Standar CP BKP No. 020/2026
   // =========================================================================
   {
     id: 'folder-katolik-fase-c',
     mataPelajaran: 'Pendidikan Agama Katolik dan Budi Pekerti',
     fase: 'Fase C',
     kelas: 'V & VI (Lima & Enam)',
-    deskripsiMapel: 'Folder resmi Pendidikan Agama Katolik dan Budi Pekerti Fase C (4 Elemen: Pribadi murid, Yesus Kristus, Gereja, Masyarakat) - Regulasi BKP No. 20/2026',
+    deskripsiMapel: 'Folder resmi Pendidikan Agama Katolik dan Budi Pekerti Fase C (4 Elemen: Pribadi murid, Yesus Kristus, Gereja, Masyarakat) - Regulasi BKP 020/2026',
     elemenList: [
       {
         id: 'katolik-fc-el-1',
@@ -676,6 +762,50 @@ Murid dapat mengidentifikasi, meniru, dan mengembangkan pola bilangan membesar d
         elemen: 'Masyarakat',
         deskripsiSingkat: 'Pelestarian lingkungan, bersikap jujur, bertindak menurut hati nurani, menegakkan keadilan hidup sehari-hari orang beriman Kristiani, dialog antarumat beragama',
         capaianPembelajaran: `Murid memahami pentingnya terlibat aktif dalam pelestarian lingkungan, bersikap jujur, bertindak menurut hati nurani, menegakkan keadilan dalam hidup sehari-hari sebagai orang beriman Kristiani, melakukan dialog antarumat beragama.`
+      }
+    ]
+  },
+
+  // =========================================================================
+  // 16. PENDIDIKAN AGAMA KRISTEN DAN BUDI PEKERTI - FASE C (KELAS V & VI)
+  // Sesuai Regulasi Standar CP BKP No. 020/2026
+  // =========================================================================
+  {
+    id: 'folder-kristen-fase-c',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    fase: 'Fase C',
+    kelas: 'V & VI (Lima & Enam)',
+    deskripsiMapel: 'Folder resmi Pendidikan Agama Kristen dan Budi Pekerti Fase C (4 Elemen: Allah Berkarya, Manusia dan Nilai-nilai Kristiani, Gereja dan Masyarakat Majemuk, Alam dan Lingkungan Hidup) - Regulasi BKP 020/2026',
+    elemenList: [
+      {
+        id: 'kristen-fc-el-1',
+        elemen: 'Allah Berkarya',
+        deskripsiSingkat: 'Allah Pencipta: Berkarya via keluarga, sekolah, masyarakat; Allah Pemelihara: Seluruh umat termasuk berkebutuhan khusus; Allah Penyelamat: Menyelamatkan via Yesus Kristus; Allah Pembaru: Membarui hidup manusia',
+        capaianPembelajaran: `Subelemen Allah Pencipta: Murid memahami Allah pencipta berkarya melalui keluarga, sekolah dan masyarakat.
+Subelemen Allah Pemelihara: Murid memahami Allah memelihara seluruh umat manusia termasuk mereka yang berkebutuhan khusus.
+Subelemen Allah Penyelamat: Murid memahami Allah menyelamatkan manusia melalui Yesus Kristus.
+Subelemen Allah Pembaru: Murid memahami Allah membarui hidup manusia.`
+      },
+      {
+        id: 'kristen-fc-el-2',
+        elemen: 'Manusia dan Nilai-nilai Kristiani',
+        deskripsiSingkat: 'Hakikat Manusia: Manusia adalah makhluk terbatas; Nilai-nilai Kristiani: Buah Roh dalam interaksi antar sesama',
+        capaianPembelajaran: `Subelemen Hakikat Manusia: Murid memahami bahwa manusia adalah makhluk terbatas.
+Subelemen Nilai-nilai Kristiani: Murid memahami buah Roh dalam interaksi antar sesama.`
+      },
+      {
+        id: 'kristen-fc-el-3',
+        elemen: 'Gereja dan Masyarakat Majemuk',
+        deskripsiSingkat: 'Tugas Panggilan Gereja: Pelayanan sesama tanggung jawab orang beriman; Masyarakat Majemuk: Hidup rukun & toleransi masyarakat majemuk',
+        capaianPembelajaran: `Subelemen Tugas Panggilan Gereja: Murid memahami pelayanan terhadap sesama sebagai tanggung jawab orang beriman dalam kehidupan.
+Subelemen Masyarakat Majemuk: Murid memahami hidup rukun dan toleransi dalam masyarakat majemuk.`
+      },
+      {
+        id: 'kristen-fc-el-4',
+        elemen: 'Alam dan Lingkungan Hidup',
+        deskripsiSingkat: 'Alam Ciptaan Allah: Hadir melalui alam ciptaan; Tanggung Jawab: Tanggung jawab orang beriman memelihara lingkungan hidup',
+        capaianPembelajaran: `Subelemen Alam Ciptaan Allah: Murid memahami Allah hadir melalui alam ciptaan.
+Subelemen Tanggung Jawab Manusia Terhadap Alam: Murid memahami tanggung jawab orang beriman dalam memelihara lingkungan hidup.`
       }
     ]
   },

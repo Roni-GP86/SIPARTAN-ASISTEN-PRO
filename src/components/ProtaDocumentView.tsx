@@ -70,9 +70,18 @@ export const ProtaDocumentView: React.FC<ProtaDocumentViewProps> = ({
   const [activeTab, setActiveTab] = useState<'sem1' | 'sem2' | 'rekap'>('sem1');
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
 
-  const isAgamaKatolik = (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('agama') || (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('katolik');
-  const regCpLabel = isAgamaKatolik ? 'Regulasi Standar Capaian Pembelajaran BKP No. 20/2026' : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
-  const regCpShort = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046/2025';
+  const isAgama =
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('agama') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('katolik') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('kristen') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('islam') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('hindu') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('buddha') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('khonghucu') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('pak') ||
+    (protaData?.identitas?.mataPelajaran || '').toLowerCase().includes('pai');
+  const regCpLabel = isAgama ? 'Regulasi Standar Capaian Pembelajaran BKP No. 020/2026' : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
+  const regCpShort = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046/2025';
 
   // Available classes for current Fase
   const availableClasses = useMemo(() => {

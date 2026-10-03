@@ -213,8 +213,17 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
 
             <div>
               {(() => {
-                const isAgamaKatolik = (modul.identitas?.mataPelajaran || '').toLowerCase().includes('agama') || (modul.identitas?.mataPelajaran || '').toLowerCase().includes('katolik');
-                const regCpShort = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046/2025';
+                const isAgama =
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('agama') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('katolik') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('kristen') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('islam') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('hindu') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('buddha') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('khonghucu') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('pak') ||
+                  (modul.identitas?.mataPelajaran || '').toLowerCase().includes('pai');
+                const regCpShort = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046/2025';
                 return (
                   <label className="block text-[11pt] font-bold text-slate-800 mb-1">
                     Elemen ({regCpShort}):

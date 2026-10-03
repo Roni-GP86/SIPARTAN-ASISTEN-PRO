@@ -80,9 +80,18 @@ export const TPAnalysisView: React.FC<TPAnalysisViewProps> = ({
 
   const totalJP = tpList.reduce((acc, curr) => acc + (Number(curr.alokasiJP) || 0), 0);
   const rasionalData = getRasionalDanTaksonomiBedahCP(tpList, identitas, rasionalAnalisis);
-  const isAgamaKatolik = (identitas.mataPelajaran || '').toLowerCase().includes('agama') || (identitas.mataPelajaran || '').toLowerCase().includes('katolik');
-  const regulasiCpLabel = isAgamaKatolik ? 'Regulasi Standar Capaian Pembelajaran BKP No. 20/2026' : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
-  const regulasiCpShort = isAgamaKatolik ? 'BKP No. 20/2026' : 'Keputusan Kepala BSKAP No. 046/2025';
+  const isAgama =
+    (identitas.mataPelajaran || '').toLowerCase().includes('agama') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('katolik') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('kristen') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('islam') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('hindu') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('buddha') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('khonghucu') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('pak') ||
+    (identitas.mataPelajaran || '').toLowerCase().includes('pai');
+  const regulasiCpLabel = isAgama ? 'Regulasi Standar Capaian Pembelajaran BKP No. 020/2026' : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
+  const regulasiCpShort = isAgama ? 'BKP 020/2026' : 'Keputusan Kepala BSKAP No. 046/2025';
 
   // Build resolved rows for display with strict deduplication
   const seenTPKeys = new Set<string>();

@@ -112,9 +112,18 @@ export const KKTPDocumentView: React.FC<KKTPDocumentViewProps> = ({
     new Set((kktp?.kktpList || []).map((item) => item?.elemen).filter(Boolean))
   );
 
-  const isAgamaKatolik = (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('agama') || (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('katolik');
-  const regCpLabel = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046 Tahun 2025';
-  const regCpShort = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046/2025';
+  const isAgama =
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('agama') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('katolik') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('kristen') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('islam') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('hindu') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('buddha') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('khonghucu') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('pak') ||
+    (kktp?.identitas?.mataPelajaran || '').toLowerCase().includes('pai');
+  const regCpLabel = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046 Tahun 2025';
+  const regCpShort = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046/2025';
 
   const filteredItems = (kktp?.kktpList || []).filter((item) => {
     const q = (searchQuery || '').toLowerCase().trim();

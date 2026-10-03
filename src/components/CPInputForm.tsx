@@ -417,8 +417,17 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
   };
 
   const selectedCount = selectedElements.filter((e) => e.isSelected).length;
-  const isAgamaKatolik = (identitas?.mataPelajaran || '').toLowerCase().includes('agama') || (identitas?.mataPelajaran || '').toLowerCase().includes('katolik');
-  const cpRegulasiTitle = isAgamaKatolik ? 'Regulasi BKP No. 20/2026' : 'BSKAP No. 046 Tahun 2025';
+  const isAgama =
+    (identitas?.mataPelajaran || '').toLowerCase().includes('agama') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('katolik') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('kristen') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('islam') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('hindu') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('buddha') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('khonghucu') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('pak') ||
+    (identitas?.mataPelajaran || '').toLowerCase().includes('pai');
+  const cpRegulasiTitle = isAgama ? 'Regulasi BKP 020/2026' : 'BSKAP No. 046 Tahun 2025';
 
   return (
     <div className="space-y-4 max-w-5xl mx-auto pb-8">

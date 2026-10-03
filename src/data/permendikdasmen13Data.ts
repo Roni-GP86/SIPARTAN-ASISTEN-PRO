@@ -48,6 +48,15 @@ export const ALOKASI_KELAS_1: LevelAllocationStructure = {
       kategori: 'wajib',
     },
     {
+      mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+      jpMingguIntra: 3,
+      jpTahunIntra: 108,
+      jpMingguKoku: 1,
+      jpTahunKoku: 36,
+      totalJPTahun: 144,
+      kategori: 'wajib',
+    },
+    {
       mataPelajaran: 'Pendidikan Pancasila',
       jpMingguIntra: 4,
       jpTahunIntra: 144,
@@ -128,6 +137,15 @@ export const ALOKASI_KELAS_2: LevelAllocationStructure = {
       kategori: 'wajib',
     },
     {
+      mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+      jpMingguIntra: 3,
+      jpTahunIntra: 108,
+      jpMingguKoku: 1,
+      jpTahunKoku: 36,
+      totalJPTahun: 144,
+      kategori: 'wajib',
+    },
+    {
       mataPelajaran: 'Pendidikan Pancasila',
       jpMingguIntra: 4,
       jpTahunIntra: 144,
@@ -200,6 +218,15 @@ export const ALOKASI_KELAS_3_4: LevelAllocationStructure = {
   daftarMapel: [
     {
       mataPelajaran: 'Pendidikan Agama Katolik dan Budi Pekerti',
+      jpMingguIntra: 3,
+      jpTahunIntra: 108,
+      jpMingguKoku: 1,
+      jpTahunKoku: 36,
+      totalJPTahun: 144,
+      kategori: 'wajib',
+    },
+    {
+      mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
       jpMingguIntra: 3,
       jpTahunIntra: 108,
       jpMingguKoku: 1,
@@ -308,6 +335,15 @@ export const ALOKASI_KELAS_5: LevelAllocationStructure = {
       kategori: 'wajib',
     },
     {
+      mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+      jpMingguIntra: 3,
+      jpTahunIntra: 108,
+      jpMingguKoku: 1,
+      jpTahunKoku: 36,
+      totalJPTahun: 144,
+      kategori: 'wajib',
+    },
+    {
       mataPelajaran: 'Pendidikan Pancasila',
       jpMingguIntra: 4,
       jpTahunIntra: 144,
@@ -408,6 +444,15 @@ export const ALOKASI_KELAS_6: LevelAllocationStructure = {
   daftarMapel: [
     {
       mataPelajaran: 'Pendidikan Agama Katolik dan Budi Pekerti',
+      jpMingguIntra: 3,
+      jpTahunIntra: 96,
+      jpMingguKoku: 1,
+      jpTahunKoku: 32,
+      totalJPTahun: 128,
+      kategori: 'wajib',
+    },
+    {
+      mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
       jpMingguIntra: 3,
       jpTahunIntra: 96,
       jpMingguKoku: 1,
@@ -526,8 +571,11 @@ export function normalizeMapelName(rawName: string): string {
     s.includes('hindu') ||
     s.includes('buddha') ||
     s.includes('khonghucu')
-  )
+  ) {
+    if (s.includes('kristen')) return 'Pendidikan Agama Kristen dan Budi Pekerti';
+    if (s.includes('katolik')) return 'Pendidikan Agama Katolik dan Budi Pekerti';
     return 'Pendidikan Agama Katolik dan Budi Pekerti';
+  }
   if (s.includes('jasmani') || s.includes('pjok') || s.includes('olahraga') || s.includes('penjas') || s.includes('penjaskes'))
     return 'Pendidikan Jasmani Olahraga dan Kesehatan';
   if (

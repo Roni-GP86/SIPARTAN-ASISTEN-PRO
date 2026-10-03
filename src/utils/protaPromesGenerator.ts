@@ -165,7 +165,7 @@ export function buildProtaDocumentFromTP(
       totalJPTahun: alokasiResmi.totalJPTahun,
       asumsiMingguTahun: alokasiResmi.asumsiMingguTahun,
       durasiMenitPerJP: 35,
-      dasarHukum: `${alokasiResmi.catatanRegulasi}, ${(mapel.toLowerCase().includes('agama') || mapel.toLowerCase().includes('katolik')) ? 'BKP No. 20/2026' : 'BSKAP No. 046/2025'}, & Kaldik Dikbud Kab. Timor Tengah Utara SK No. ${KALDIK_TTU_METADATA.nomorSK}`,
+      dasarHukum: `${alokasiResmi.catatanRegulasi}, ${(mapel.toLowerCase().includes('agama') || mapel.toLowerCase().includes('katolik') || mapel.toLowerCase().includes('kristen') || mapel.toLowerCase().includes('pak') || mapel.toLowerCase().includes('pai')) ? 'BKP 020/2026' : 'BSKAP No. 046/2025'}, & Kaldik Dikbud Kab. Timor Tengah Utara SK No. ${KALDIK_TTU_METADATA.nomorSK}`,
     },
     itemsSemester1,
     itemsSemester2,

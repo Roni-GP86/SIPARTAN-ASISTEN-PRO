@@ -2225,6 +2225,316 @@ function deconstructCPToAtomicUnits(
     ];
   }
 
+  // =========================================================================
+  // PENDIDIKAN AGAMA KRISTEN DAN BUDI PEKERTI (Regulasi BKP No. 020/2026)
+  // =========================================================================
+  // FASE A
+  // 1. Allah Berkarya Fase A
+  if (
+    lowerElemen.includes('allah berkarya') &&
+    (fase === 'Fase A' || lowerCP.includes('pribadi yang istimewa') || lowerCP.includes('kehadiran keluarga'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Allah Menciptakan Dirinya sebagai Pribadi Istimewa',
+        lingkupMateri: 'Allah Pencipta yang menjadikan setiap pribadi istimewa, unik, dan mampu berinteraksi positif dengan lingkungan terdekat',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah menciptakan dirinya sebagai pribadi yang istimewa serta membangun interaksi yang ramah dengan lingkungan terdekat.',
+        indikatorKetercapaian: 'Dapat menceritakan keistimewaan dirinya sebagai ciptaan Allah dan menunjukkan interaksi yang baik dengan teman di sekitar.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami Pemeliharaan Allah melalui Kehadiran Keluarga',
+        lingkupMateri: 'Allah Pemelihara yang memelihara kehidupan manusia melalui kasih sayang, perhatian, dan bimbingan orang tua serta keluarga',
+        rumusanTP: 'Peserta didik mampu memahami dan mensyukuri pemeliharaan Allah pada dirinya melalui kehadiran keluarga dalam kehidupan sehari-hari.',
+        indikatorKetercapaian: 'Dapat menyebutkan wujud kasih sayang anggota keluarga dan mempraktikkan ungkapan terima kasih serta doa syukur atas keluarganya.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 2. Manusia dan Nilai-nilai Kristiani Fase A
+  if (
+    (lowerElemen.includes('manusia') || lowerElemen.includes('nilai')) &&
+    (fase === 'Fase A' || lowerCP.includes('bertumbuh dan berkembang') || lowerCP.includes('kebaikan, ramah'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Diri sebagai Pribadi yang Bertumbuh dan Berkembang',
+        lingkupMateri: 'Hakikat manusia ciptaan Allah yang mengalami pertumbuhan fisik, akal budi, dan perkembangan emosional secara sehat',
+        rumusanTP: 'Peserta didik mampu memahami dirinya sebagai pribadi yang senantiasa bertumbuh dan berkembang atas anugerah Allah.',
+        indikatorKetercapaian: 'Dapat menceritakan perubahan kemampuan dirinya dari bayi hingga masa sekolah dasar dengan rasa syukur.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami dan Menerapkan Makna Kebaikan, Sikap Ramah, dan Sopan',
+        lingkupMateri: 'Nilai-nilai Kristiani: berbuat kebaikan, bersikap ramah, berkata jujur, dan berperilaku sopan di lingkungan rumah dan sekolah',
+        rumusanTP: 'Peserta didik mampu memahami makna tindakan kebaikan serta mempraktikkan sikap ramah dan sopan di rumah maupun di sekolah.',
+        indikatorKetercapaian: 'Dapat membiasakan 5S (senyum, salam, sapa, sopan, santun) dan membantu teman yang membutuhkan dengan tulus.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 3. Gereja dan Masyarakat Majemuk Fase A
+  if (
+    (lowerElemen.includes('gereja') || lowerElemen.includes('majemuk')) &&
+    (fase === 'Fase A' || lowerCP.includes('wadah berkumpul') || lowerCP.includes('keragaman suku'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Keberadaan Gereja, Berdoa, dan Memuji Tuhan',
+        lingkupMateri: 'Tugas panggilan gereja sebagai persekutuan orang percaya, wadah ibadah bersama, serta pembiasaan doa dan puji-pujian kepada Tuhan',
+        rumusanTP: 'Peserta didik mampu memahami keberadaan gereja sebagai wadah berkumpul dan beribadah serta membiasakan diri tekun berdoa dan memuji Tuhan.',
+        indikatorKetercapaian: 'Dapat menyanyikan lagu pujian rohani anak dan mempraktikkan sikap doa yang khidmat dalam ibadah sekolah/gereja.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami Keragaman Suku Bangsa sebagai Anugerah Allah',
+        lingkupMateri: 'Masyarakat majemuk: keragaman suku bangsa, bahasa daerah, dan kebiasaan di Indonesia sebagai kekayaan anugerah Allah yang indah',
+        rumusanTP: 'Peserta didik mampu memahami keragaman suku bangsa di sekitarnya sebagai anugerah Allah dan hidup rukun bersama sesama.',
+        indikatorKetercapaian: 'Dapat menyebutkan beragam suku teman di kelasnya dan menunjukkan sikap mau berteman tanpa membeda-bedakan asal daerah.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 4. Alam dan Lingkungan Hidup Fase A
+  if (
+    (lowerElemen.includes('alam') || lowerElemen.includes('lingkungan')) &&
+    (fase === 'Fase A' || lowerCP.includes('lingkungan hidup sebagai ciptaan') || lowerCP.includes('memelihara alam dan lingkungan hidup di rumah'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Alam dan Lingkungan Hidup sebagai Ciptaan Allah',
+        lingkupMateri: 'Keindahan alam ciptaan Allah: langit, bumi, tanaman, dan hewan yang diciptakan Allah untuk kelangsungan hidup manusia',
+        rumusanTP: 'Peserta didik mampu memahami alam dan lingkungan hidup sekitar sebagai karya agung ciptaan Allah yang patut disyukuri.',
+        indikatorKetercapaian: 'Dapat menyebutkan berbagai ciptaan Allah di sekitarnya dan mengungkapkan kekaguman atas keindahan ciptaan Tuhan.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami Tugas Memelihara Alam dan Lingkungan di Rumah dan Sekolah',
+        lingkupMateri: 'Tanggung jawab manusia terhadap alam: menjaga kebersihan kelas, membuang sampah pada tempatnya, dan merawat tanaman di rumah dan sekolah',
+        rumusanTP: 'Peserta didik mampu memahami dan menjalankan tugas memelihara alam serta kebersihan lingkungan hidup di rumah dan di sekolah.',
+        indikatorKetercapaian: 'Dapat mempraktikkan tindakan nyata menyiram tanaman, memilah sampah, dan merapikan ruang kelas secara bertanggung jawab.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // FASE B
+  // 1. Allah Berkarya Fase B
+  if (
+    lowerElemen.includes('allah berkarya') &&
+    (fase === 'Fase B' || lowerCP.includes('flora dan fauna') || lowerCP.includes('allah pembaru') || lowerCP.includes('penyelamat'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Allah Menciptakan Flora, Fauna, dan Manusia (Perempuan dan Laki-Laki)',
+        lingkupMateri: 'Kemahakuasaan Allah Sang Pencipta dalam menciptakan keanekaragaman flora, fauna, serta manusia perempuan dan laki-laki yang sederajat',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah menciptakan flora, fauna, serta manusia perempuan dan laki-laki dengan martabat yang setara.',
+        indikatorKetercapaian: 'Dapat menjelaskan keterkaitan harmonis antara flora, fauna, dan manusia serta menghormati kesetaraan perempuan dan laki-laki.',
+        alokasiJP: 7,
+      },
+      {
+        kompetensi: 'Memahami Pemeliharaan Allah melalui Kehadiran Orang-Orang di Sekitarnya',
+        lingkupMateri: 'Pemeliharaan Allah yang hadir melalui peran orang tua, guru, sahabat, dan tetangga yang saling memperhatikan dan mengasihi',
+        rumusanTP: 'Peserta didik mampu memahami dan mensyukuri pemeliharaan Allah pada dirinya melalui kehadiran orang-orang di sekitarnya.',
+        indikatorKetercapaian: 'Dapat menyebutkan peran nyata orang-orang di sekitarnya yang mencerminkan pemeliharaan dan kasih Allah.',
+        alokasiJP: 7,
+      },
+      {
+        kompetensi: 'Memahami dan Mengimani Allah sebagai Penyelamat',
+        lingkupMateri: 'Karya keselamatan Allah bagi manusia: pertolongan Allah di saat kesulitan dan pemenuhan janji keselamatan bagi umat beriman',
+        rumusanTP: 'Peserta didik mampu memahami hakikat Allah sebagai Penyelamat hidup manusia dan menaruh pengharapan teguh kepada-Nya.',
+        indikatorKetercapaian: 'Dapat menceritakan kisah pertolongan Allah dalam Alkitab dan mengaitkannya dengan pengalaman hidupnya.',
+        alokasiJP: 7,
+      },
+      {
+        kompetensi: 'Mengenal dan Meneladani Allah sebagai Pembaru Hidup',
+        lingkupMateri: 'Allah Pembaru: kuasa pembaruan Allah yang mengubah hati, sikap, dan pola pikir manusia menjadi semakin baik dan benar',
+        rumusanTP: 'Peserta didik mampu mengenal Allah sebagai Pembaru yang membimbing manusia untuk senantiasa memperbaiki diri.',
+        indikatorKetercapaian: 'Dapat mengidentifikasi perilaku lama yang buruk untuk diubah menjadi perilaku baru yang memuliakan Allah.',
+        alokasiJP: 6,
+      },
+    ];
+  }
+
+  // 2. Manusia dan Nilai-nilai Kristiani Fase B
+  if (
+    (lowerElemen.includes('manusia') || lowerElemen.includes('nilai')) &&
+    (fase === 'Fase B' || lowerCP.includes('makhluk individu dan sosial') || lowerCP.includes('disiplin di rumah'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Diri sebagai Makhluk Individu dan Sosial yang Bekerja Sama',
+        lingkupMateri: 'Hakikat manusia sebagai makhluk individu yang mandiri sekaligus makhluk sosial yang membutuhkan teman, saudara, dan orang tua',
+        rumusanTP: 'Peserta didik mampu memahami diri sebagai makhluk individu dan sosial yang dapat bergaul dan bekerja sama dengan teman, saudara, dan orang tua.',
+        indikatorKetercapaian: 'Dapat bekerja sama secara aktif dalam kelompok belajar dan menunjukkan sikap saling tolong-menolong tanpa pamrih.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami dan Menerapkan Sikap Disiplin di Rumah dan Sekolah',
+        lingkupMateri: 'Nilai-nilai Kristiani: sikap disiplin waktu, tertib belajar, ketaatan pada aturan, dan tanggung jawab moral di rumah dan sekolah',
+        rumusanTP: 'Peserta didik mampu memahami pentingnya sikap disiplin dan membiasakannya dalam aktivitas di rumah serta di sekolah.',
+        indikatorKetercapaian: 'Dapat mematuhi jadwal harian, menyelesaikan tugas sekolah tepat waktu, dan mematuhi tata tertib dengan kesadaran sendiri.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 3. Gereja dan Masyarakat Majemuk Fase B
+  if (
+    (lowerElemen.includes('gereja') || lowerElemen.includes('majemuk')) &&
+    (fase === 'Fase B' || lowerCP.includes('bersekutu, bersaksi, dan melayani') || lowerCP.includes('budaya dan agama sebagai'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Tugas Panggilan Gereja: Bersekutu, Bersaksi, dan Melayani',
+        lingkupMateri: 'Tri tugas gereja: bersekutu (koinonia), bersaksi tentang kasih Kristus (marturia), dan melayani sesama dengan tulus (diakonia)',
+        rumusanTP: 'Peserta didik mampu memahami tugas panggilan gereja untuk bersekutu, bersaksi, dan melayani dalam kehidupan nyata.',
+        indikatorKetercapaian: 'Dapat menjelaskan arti persekutuan, kesaksian, dan pelayanan serta memberi contoh tindakan pelayanannya di lingkungan kelas/sekolah.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami Keragaman Budaya dan Agama sebagai Anugerah Allah',
+        lingkupMateri: 'Masyarakat majemuk: kemajemukan suku, bahasa, tradisi, dan agama di Indonesia sebagai kekayaan yang harus disyukuri dan dihormati',
+        rumusanTP: 'Peserta didik mampu memahami keragaman budaya dan agama sebagai anugerah Allah yang indah serta menumbuhkan persaudaraan lintas batas.',
+        indikatorKetercapaian: 'Dapat menghargai perbedaan tata cara ibadah dan budaya teman serta menunjukkan sikap toleran dalam pergaulan sehari-hari.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 4. Alam dan Lingkungan Hidup Fase B
+  if (
+    (lowerElemen.includes('alam') || lowerElemen.includes('lingkungan')) &&
+    (fase === 'Fase B' || lowerCP.includes('berbagai fenomena alam') || lowerCP.includes('memelihara alam dan lingkungan sekitarnya'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Kehadiran Allah dalam Berbagai Fenomena Alam',
+        lingkupMateri: 'Kehadiran dan keagungan Allah yang terungkap lewat fenomena alam: pergantian musim, siklus air, pelangi, dan keteraturan kosmis',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah hadir dan menyatakan kemahakuasaan-Nya melalui berbagai macam fenomena alam.',
+        indikatorKetercapaian: 'Dapat menguraikan bagaimana keteraturan alam mencerminkan hikmat dan pemeliharaan Allah bagi seluruh ciptaan.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami dan Melakukan Upaya Memelihara Alam dan Lingkungan Sekitar',
+        lingkupMateri: 'Tanggung jawab manusia terhadap alam: konservasi lingkungan, penghematan energi, penghijauan, dan pencegahan kerusakan alam',
+        rumusanTP: 'Peserta didik mampu memahami dan mempraktikkan upaya memelihara alam dan lingkungan sekitarnya secara berkelanjutan.',
+        indikatorKetercapaian: 'Dapat memprakarsai kegiatan menanam tanaman obat/hias di sekolah dan mempraktikkan pengurangan limbah plastik.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // FASE C
+  // 1. Allah Berkarya Fase C
+  if (
+    lowerElemen.includes('allah berkarya') &&
+    (fase === 'Fase C' || lowerCP.includes('berkarya melalui keluarga, sekolah') || lowerCP.includes('berkebutuhan khusus') || lowerCP.includes('yesus kristus'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Allah Pencipta Berkarya melalui Keluarga, Sekolah, dan Masyarakat',
+        lingkupMateri: 'Karya pemeliharaan dan penciptaan Allah yang berkesinambungan melalui peran keluarga, lingkungan sekolah, dan tatanan masyarakat',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah Pencipta berkarya nyata melalui keluarga, sekolah, dan masyarakat untuk kebaikan bersama.',
+        indikatorKetercapaian: 'Dapat menganalisis peran konstruktif keluarga, guru di sekolah, dan warga masyarakat dalam mendukung pertumbuhan hidupnya.',
+        alokasiJP: 7,
+      },
+      {
+        kompetensi: 'Memahami Pemeliharaan Allah bagi Seluruh Umat Termasuk yang Berkebutuhan Khusus',
+        lingkupMateri: 'Keadilan dan kasih pemeliharaan Allah yang inklusif tanpa membedakan kondisi fisik, mental, maupun mereka yang berkebutuhan khusus',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah memelihara seluruh umat manusia, termasuk mereka yang berkebutuhan khusus, dengan kasih yang sempurna.',
+        indikatorKetercapaian: 'Dapat menunjukkan empati, penerimaan tulus, dan pembelaan terhadap martabat sesama teman yang berkebutuhan khusus.',
+        alokasiJP: 7,
+      },
+      {
+        kompetensi: 'Memahami Karya Penyelamatan Allah bagi Manusia melalui Yesus Kristus',
+        lingkupMateri: 'Hakikat karya keselamatan: pengampunan dosa, kasih karunia, dan penebusan sejati yang dianugerahkan Allah dalam pribadi Yesus Kristus',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah menyelamatkan manusia dari kuasa dosa melalui pengorbanan dan kasih Yesus Kristus.',
+        indikatorKetercapaian: 'Dapat menjelaskan makna pengorbanan Yesus Kristus di kayu salib dan menghayati keselamatan tersebut dalam doa dan pertobatan.',
+        alokasiJP: 7,
+      },
+      {
+        kompetensi: 'Memahami Karya Allah Membarui Hidup Manusia',
+        lingkupMateri: 'Pembaruan hidup manusia oleh Roh Kudus: perubahan dari manusia lama yang berdosa menuju manusia baru yang hidup dalam kebenaran Allah',
+        rumusanTP: 'Peserta didik mampu memahami bahwa Allah membarui hidup manusia untuk senantiasa hidup seturut firman-Nya.',
+        indikatorKetercapaian: 'Dapat memberikan kesaksian hidup tentang perubahan sikap dari egois menjadi peduli dan taat kepada firman Tuhan.',
+        alokasiJP: 6,
+      },
+    ];
+  }
+
+  // 2. Manusia dan Nilai-nilai Kristiani Fase C
+  if (
+    (lowerElemen.includes('manusia') || lowerElemen.includes('nilai')) &&
+    (fase === 'Fase C' || lowerCP.includes('makhluk terbatas') || lowerCP.includes('buah roh'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Hakikat Manusia sebagai Makhluk Terbatas yang Membutuhkan Pertolongan Allah',
+        lingkupMateri: 'Kejatuhan manusia dalam dosa, kerapuhan, keterbatasan akal dan daya manusia, serta kebutuhan mutlak akan pertolongan dan anugerah Allah',
+        rumusanTP: 'Peserta didik mampu memahami bahwa manusia adalah makhluk terbatas yang bergantung sepenuhnya pada pertolongan Allah.',
+        indikatorKetercapaian: 'Dapat merefleksikan keterbatasan dirinya dengan rendah hati dan membiasakan diri memohon hikmat Tuhan dalam setiap tantangan.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami dan Mewujudkan Buah Roh dalam Interaksi Antar Sesama',
+        lingkupMateri: 'Buah Roh (kasih, sukacita, damai sejahtera, kesabaran, kemurahan, kebaikan, kesetiaan, kelemahlembutan, penguasaan diri) dalam pergaulan',
+        rumusanTP: 'Peserta didik mampu memahami dan mewujudkan buah Roh dalam interaksi sehari-hari bersama sesama tanpa membeda-bedakan.',
+        indikatorKetercapaian: 'Dapat menunjukkan sikap bersahabat, berbela rasa, dan tolong-menolong tanpa membeda-bedakan suku, agama, ras, dan antargolongan.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 3. Gereja dan Masyarakat Majemuk Fase C
+  if (
+    (lowerElemen.includes('gereja') || lowerElemen.includes('majemuk')) &&
+    (fase === 'Fase C' || lowerCP.includes('pelayanan terhadap sesama') || lowerCP.includes('hidup rukun dan toleransi'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami Pelayanan terhadap Sesama sebagai Tanggung Jawab Orang Beriman',
+        lingkupMateri: 'Panggilan pelayanan (diakonia): membela kaum lemah, aksi solidaritas, berbela rasa, dan kepedulian sosial sebagai bukti iman yang hidup',
+        rumusanTP: 'Peserta didik mampu memahami pelayanan terhadap sesama sebagai wujud tanggung jawab dan panggilan hidup orang beriman.',
+        indikatorKetercapaian: 'Dapat merancang dan berpartisipasi dalam aksi bakti sosial sederhana atau kepedulian sosial di lingkungan sekolah/masyarakat.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami Hidup Rukun dan Toleransi dalam Masyarakat Majemuk',
+        lingkupMateri: 'Toleransi aktif, moderasi beragama, merawat kerukunan, serta menolak segala bentuk diskriminasi dalam masyarakat majemuk Indonesia',
+        rumusanTP: 'Peserta didik mampu memahami pentingnya hidup rukun, bertoleransi, dan merajut persaudaraan sejati dalam masyarakat majemuk.',
+        indikatorKetercapaian: 'Dapat menyelesaikan perbedaan pendapat secara damai dan berkolaborasi harmonis dalam kegiatan bersama teman lintas agama/suku.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
+  // 4. Alam dan Lingkungan Hidup Fase C
+  if (
+    (lowerElemen.includes('alam') || lowerElemen.includes('lingkungan')) &&
+    (fase === 'Fase C' || lowerCP.includes('allah hadir melalui alam') || lowerCP.includes('tanggung jawab orang beriman dalam memelihara'))
+  ) {
+    return [
+      {
+        kompetensi: 'Memahami dan Menghayati Kehadiran Allah melalui Alam Ciptaan',
+        lingkupMateri: 'Teologi penciptaan: alam semesta sebagai cermin kemuliaan, kebijaksanaan, dan keagungan Allah yang harus dijunjung tinggi',
+        rumusanTP: 'Peserta didik mampu memahami dan menghayati kehadiran serta kebesaran Allah yang tercermin melalui alam semesta ciptaan-Nya.',
+        indikatorKetercapaian: 'Dapat mengekspresikan kekaguman atas ciptaan Allah melalui tulisan reflektif atau karya seni lingkungan hidup.',
+        alokasiJP: 14,
+      },
+      {
+        kompetensi: 'Memahami Tanggung Jawab Orang Beriman dalam Memelihara Lingkungan Hidup',
+        lingkupMateri: 'Mandat penatalayanan alam: mitigasi krisis iklim, pelestarian ekosistem, pencegahan eksploitasi, dan gaya hidup ramah lingkungan',
+        rumusanTP: 'Peserta didik mampu memahami dan mewujudkan tanggung jawab orang beriman dalam memelihara serta menjaga kelestarian lingkungan hidup.',
+        indikatorKetercapaian: 'Dapat menyusun rencana aksi nyata pengurangan jejak karbon sederhana, pemanfaatan daur ulang, dan perawatan ruang hijau sekolah.',
+        alokasiJP: 13,
+      },
+    ];
+  }
+
   // Step 2: Intelligent Generalized Clause & Competency Decomposer for custom or any other CP text
   // Split on:
   // - Semicolons ;
@@ -2405,9 +2715,17 @@ export function generateMultiElementTPFallback(
     });
   });
 
-  const isAgamaKatolik = mapel.toLowerCase().includes('agama') || mapel.toLowerCase().includes('katolik');
-  const regName = isAgamaKatolik
-    ? 'Regulasi Standar Capaian Pembelajaran BKP No. 20/2026'
+  const isAgama = mapel.toLowerCase().includes('agama') || 
+                  mapel.toLowerCase().includes('katolik') || 
+                  mapel.toLowerCase().includes('kristen') || 
+                  mapel.toLowerCase().includes('islam') || 
+                  mapel.toLowerCase().includes('hindu') || 
+                  mapel.toLowerCase().includes('buddha') || 
+                  mapel.toLowerCase().includes('khonghucu') || 
+                  mapel.toLowerCase().includes('pak') || 
+                  mapel.toLowerCase().includes('pai');
+  const regName = isAgama
+    ? 'Regulasi Standar Capaian Pembelajaran BKP No. 020/2026'
     : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
 
   return {
@@ -2731,13 +3049,13 @@ export function generatePedagogicalATPFallback(
     },
     {
       penulis: 'Badan Standar, Kurikulum, dan Asesmen Pendidikan (BSKAP)',
-      tahun: isAgamaKatolik ? '2026' : '2025',
-      judul: isAgamaKatolik
-        ? 'Keputusan Kepala BSKAP No. 20/2026 (BKP No. 20/2026) tentang Capaian Pembelajaran Pendidikan Agama dan Budi Pekerti (Pendidikan Agama Katolik dan Budi Pekerti)'
+      tahun: isAgama ? '2026' : '2025',
+      judul: isAgama
+        ? `Keputusan BKP No. 020/2026 tentang Capaian Pembelajaran Pendidikan Agama dan Budi Pekerti (${mapel})`
         : 'Keputusan Kepala BSKAP No. 046 Tahun 2025 tentang Capaian Pembelajaran pada Pendidikan Anak Usia Dini, Jenjang Pendidikan Dasar, dan Jenjang Pendidikan Menengah',
       penerbit: 'Kemendikdasmen / Kemendikbudristek RI',
       kota: 'Jakarta',
-      keterangan: isAgamaKatolik ? 'Regulasi Standar Capaian Pembelajaran BKP No. 20/2026' : 'Regulasi Standar Capaian Pembelajaran Terbaru 2025',
+      keterangan: isAgama ? 'Regulasi Standar Capaian Pembelajaran BKP No. 020/2026' : 'Regulasi Standar Capaian Pembelajaran Terbaru 2025',
     },
     {
       penulis: 'Kementerian Pendidikan, Kebudayaan, Riset, dan Teknologi',

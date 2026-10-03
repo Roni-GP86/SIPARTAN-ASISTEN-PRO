@@ -32,6 +32,17 @@ export const PRESET_CP_LIST: PresetCP[] = [
     deskripsiSingkat: 'Simbol Sila Garuda Pancasila & Nilai Pancasila di Keluarga (BSKAP 046/2025)',
     capaianPembelajaran: `Mengenal bendera negara, lagu kebangsaan, simbol dan sila-sila Pancasila dalam lambang negara Garuda Pancasila dan simbol Pancasila beserta sila-sila Pancasila; menerapkan nilai-nilai Pancasila di lingkungan keluarga.`
   },
+  {
+    id: 'fase-a-agama-kristen',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    jenjang: 'SD / MI',
+    fase: 'Fase A',
+    kelas: 'I & II (Satu & Dua)',
+    elemen: 'Allah Berkarya',
+    deskripsiSingkat: 'Allah Pencipta & Allah Pemelihara Diri dan Keluarga (BKP 020/2026)',
+    capaianPembelajaran: `Subelemen Allah Pencipta: Murid memahami Allah menciptakan dirinya sebagai pribadi yang istimewa dan membangun interaksi dengan lingkungan terdekat.
+Subelemen Allah Pemelihara: Murid memahami pemeliharaan Allah pada dirinya melalui kehadiran keluarga.`
+  },
 
   // --- FASE B (Kelas 3 - 4 SD/MI) ---
   {
@@ -76,6 +87,19 @@ Murid dapat melakukan perbandingan dan pengurutan pecahan dengan pembilang satu 
     deskripsiSingkat: 'Makna Sila Pancasila, Perumus & Bangga Berbahasa Indonesia (BSKAP 046/2025)',
     capaianPembelajaran: `Mengidentifikasi makna sila-sila Pancasila, dan penerapannya dalam kehidupan sehari-hari; mengenal karakter para perumus Pancasila; menunjukkan sikap bangga menjadi anak Indonesia yang memiliki bahasa Indonesia sebagai bahasa persatuan di lingkungan sekitar.`
   },
+  {
+    id: 'fase-b-agama-kristen',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    jenjang: 'SD / MI',
+    fase: 'Fase B',
+    kelas: 'III & IV (Tiga & Empat)',
+    elemen: 'Allah Berkarya',
+    deskripsiSingkat: 'Allah Pencipta Flora Fauna & Manusia, Pemelihara, Penyelamat, Pembaru (BKP 020/2026)',
+    capaianPembelajaran: `Subelemen Allah Pencipta: Murid memahami Allah menciptakan flora dan fauna, serta manusia (perempuan dan laki-laki).
+Subelemen Allah Pemelihara: Murid memahami pemeliharaan Allah pada dirinya dan melalui kehadiran orang-orang di sekitarnya.
+Subelemen Allah Penyelamat: Murid memahami Allah sebagai penyelamat.
+Subelemen Allah Pembaru: Murid mengenal Allah pembaru.`
+  },
 
   // --- FASE C (Kelas 5 - 6 SD/MI) ---
   {
@@ -118,6 +142,19 @@ Murid dapat membandingkan dan mengurutkan berbagai pecahan termasuk pecahan camp
     elemen: 'Pancasila',
     deskripsiSingkat: 'Kronologi Kelahiran Pancasila & Nilai Dasar Negara (BSKAP 046/2025)',
     capaianPembelajaran: `Memahami kronologi sejarah kelahiran Pancasila; meneladani sikap para perumus Pancasila dan menerapkan di lingkungan masyarakat; menghubungkan sila-sila dalam Pancasila sebagai suatu kesatuan yang utuh; menguraikan makna nilai-nilai Pancasila sebagai dasar negara, dan pandangan hidup bangsa.`
+  },
+  {
+    id: 'fase-c-agama-kristen',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    jenjang: 'SD / MI',
+    fase: 'Fase C',
+    kelas: 'V & VI (Lima & Enam)',
+    elemen: 'Allah Berkarya',
+    deskripsiSingkat: 'Karya Allah via Keluarga/Sekolah/Masyarakat, Penyelamatan Yesus Kristus, Pembaruan Hidup (BKP 020/2026)',
+    capaianPembelajaran: `Subelemen Allah Pencipta: Murid memahami Allah pencipta berkarya melalui keluarga, sekolah dan masyarakat.
+Subelemen Allah Pemelihara: Murid memahami Allah memelihara seluruh umat manusia termasuk mereka yang berkebutuhan khusus.
+Subelemen Allah Penyelamat: Murid memahami Allah menyelamatkan manusia melalui Yesus Kristus.
+Subelemen Allah Pembaru: Murid memahami Allah membarui hidup manusia.`
   }
 ];
 

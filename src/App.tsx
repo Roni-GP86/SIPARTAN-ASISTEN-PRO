@@ -2020,7 +2020,7 @@ export default function App() {
               </span>
               <span className="px-2 py-0.5 rounded-md bg-emerald-950/70 text-emerald-300 border border-emerald-500/40 font-semibold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                BSKAP 046/2025 &amp; BKP 20/2026 (Katolik)
+                BSKAP 046/2025 &amp; BKP 020/2026 (Agama)
               </span>
               <span className="px-2 py-0.5 rounded-md bg-blue-950/70 text-blue-300 border border-blue-500/40 font-semibold">
                 Permendikdasmen No. 13/2025 (1 JP = 35 Menit)

@@ -99,8 +99,17 @@ export function auditDataIntegrity(params: {
   // 2. Audit Kesesuaian TP dengan Mata Pelajaran (Anti-Kontaminasi Data)
   if (tpList && tpList.length > 0) {
     const isValidSubject = isTPListValidForSubject(tpList, identitas.mataPelajaran);
-    const isAgamaKatolik = (identitas.mataPelajaran || '').toLowerCase().includes('agama') || (identitas.mataPelajaran || '').toLowerCase().includes('katolik');
-    const cpRegName = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046 Tahun 2025';
+    const isAgama =
+      (identitas.mataPelajaran || '').toLowerCase().includes('agama') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('katolik') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('kristen') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('islam') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('hindu') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('buddha') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('khonghucu') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('pak') ||
+      (identitas.mataPelajaran || '').toLowerCase().includes('pai');
+    const cpRegName = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046 Tahun 2025';
     if (isValidSubject) {
       items.push({
         id: 'id-tp-validity',

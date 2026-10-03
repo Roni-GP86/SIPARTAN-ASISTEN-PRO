@@ -54,9 +54,18 @@ export const SubjectAnalysisWarningModal: React.FC<SubjectAnalysisWarningModalPr
   const targetEmoticon = getSubjectEmoticon(resolvedTargetSubject);
   const currentEmoticon = getSubjectEmoticon(resolvedCurrentSubject);
 
-  const isAgamaKatolik = (resolvedTargetSubject || '').toLowerCase().includes('agama') || (resolvedTargetSubject || '').toLowerCase().includes('katolik');
-  const regCpLabel = isAgamaKatolik ? 'Regulasi Standar Capaian Pembelajaran BKP No. 20/2026' : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
-  const regCpShort = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046/2025';
+  const isAgama =
+    (resolvedTargetSubject || '').toLowerCase().includes('agama') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('katolik') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('kristen') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('islam') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('hindu') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('buddha') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('khonghucu') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('pak') ||
+    (resolvedTargetSubject || '').toLowerCase().includes('pai');
+  const regCpLabel = isAgama ? 'Regulasi Standar Capaian Pembelajaran BKP No. 020/2026' : 'Keputusan Kepala BSKAP No. 046 Tahun 2025';
+  const regCpShort = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046/2025';
 
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto animate-fade-in">

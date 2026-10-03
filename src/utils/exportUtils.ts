@@ -51,16 +51,26 @@ export function lockWordData(content: string, fieldName: string = 'Identitas Res
 
 /**
  * Returns exact official CP regulation metadata according to statutory law:
- * - Pendidikan Agama Katolik dan Budi Pekerti berpedoman pada BKP No. 20/2026
+ * - Seluruh mata pelajaran Pendidikan Agama dan Budi Pekerti berpedoman pada BKP No. 020/2026 (BKP 020/2026)
  * - Mata pelajaran umum lainnya berpedoman pada Keputusan Kepala BSKAP No. 046 Tahun 2025
  */
 export function getCpRegulationInfo(mataPelajaran?: string) {
-  const isAgamaKatolik = (mataPelajaran || '').toLowerCase().includes('agama') || (mataPelajaran || '').toLowerCase().includes('katolik');
-  if (isAgamaKatolik) {
+  const m = (mataPelajaran || '').toLowerCase();
+  const isAgama =
+    m.includes('agama') ||
+    m.includes('katolik') ||
+    m.includes('kristen') ||
+    m.includes('islam') ||
+    m.includes('hindu') ||
+    m.includes('buddha') ||
+    m.includes('khonghucu') ||
+    m.includes('pak') ||
+    m.includes('pai');
+  if (isAgama) {
     return {
-      fullName: 'Regulasi Standar Capaian Pembelajaran BKP No. 20/2026',
-      shortName: 'BKP No. 20/2026',
-      headerName: 'BKP No. 20/2026',
+      fullName: 'Regulasi Standar Capaian Pembelajaran BKP No. 020/2026',
+      shortName: 'BKP 020/2026',
+      headerName: 'BKP 020/2026',
       isAgama: true,
     };
   }

@@ -102,8 +102,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const subjectEmoticon = getSubjectEmoticon(identitas.mataPelajaran);
 
   const activeSubjectName = identitas?.mataPelajaran || '';
-  const isAgamaKatolik = activeSubjectName.toLowerCase().includes('agama') || activeSubjectName.toLowerCase().includes('katolik');
-  const activeRegulasiBadge = isAgamaKatolik ? 'BKP No. 20/2026' : 'BSKAP No. 046/2025';
+  const isAgama =
+    activeSubjectName.toLowerCase().includes('agama') ||
+    activeSubjectName.toLowerCase().includes('katolik') ||
+    activeSubjectName.toLowerCase().includes('kristen') ||
+    activeSubjectName.toLowerCase().includes('islam') ||
+    activeSubjectName.toLowerCase().includes('hindu') ||
+    activeSubjectName.toLowerCase().includes('buddha') ||
+    activeSubjectName.toLowerCase().includes('khonghucu') ||
+    activeSubjectName.toLowerCase().includes('pak') ||
+    activeSubjectName.toLowerCase().includes('pai');
+  const activeRegulasiBadge = isAgama ? 'BKP 020/2026' : 'BSKAP No. 046/2025';
 
   return (
     <aside className="w-[280px] bg-[#0B1528] flex flex-col shrink-0 border-r-2 border-slate-800/80 shadow-xl select-none h-full z-20">
