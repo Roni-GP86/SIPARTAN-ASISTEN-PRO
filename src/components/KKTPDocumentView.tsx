@@ -437,16 +437,16 @@ export const KKTPDocumentView: React.FC<KKTPDocumentViewProps> = ({
               )}
               <div className="space-y-0.5">
                 <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
-                  {kktp.identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}
+                  {kktp.identitas.kopBaris1 || (kktp.identitas.kabupaten ? `PEMERINTAH KABUPATEN ${kktp.identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH')}
                 </h4>
                 <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
                   {kktp.identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}
                 </h4>
                 <h2 className="text-lg sm:text-2xl font-black text-slate-950 uppercase tracking-tight">
-                  {kktp.identitas.kopBaris3 || kktp.identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI'}
+                  {(kktp.identitas.kopBaris3 || kktp.identitas.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase()}
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-600 font-medium">
-                  {kktp.identitas.kopBaris4 || (kktp.identitas.alamatInstansi ? (kktp.identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? kktp.identitas.alamatInstansi : `Alamat: ${kktp.identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}
+                  {kktp.identitas.kopBaris4 || (kktp.identitas.alamatInstansi ? (kktp.identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? kktp.identitas.alamatInstansi : `Alamat: ${kktp.identitas.alamatInstansi}`) : '')}
                 </p>
               </div>
             </div>
@@ -2132,18 +2132,18 @@ export const KKTPDocumentView: React.FC<KKTPDocumentViewProps> = ({
               <div className="h-16 flex items-center justify-center">
                 <span className="text-[10px] text-slate-300 italic no-print">(Tanda Tangan & Stempel Sekolah)</span>
               </div>
-              <p className="font-extrabold text-slate-900 underline text-sm">{kktp.identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}</p>
-              <p className="text-slate-500">NIP. {kktp.identitas.nipKepalaSekolah || '196709192008011008'}</p>
+              <p className="font-extrabold text-slate-900 underline text-sm">{kktp.identitas.namaKepalaSekolah && kktp.identitas.namaKepalaSekolah !== '-' ? kktp.identitas.namaKepalaSekolah : '...........................................'}</p>
+              <p className="text-slate-500">NIP. {kktp.identitas.nipKepalaSekolah || '-'}</p>
             </div>
 
             <div className="space-y-1">
-              <p className="text-slate-600">{kktp.identitas.tempatPenetapan || 'Fatubai'}, {kktp.identitas.tanggalPenetapan || kktp.tanggalDibuat || '22 September 2026'}</p>
+              <p className="text-slate-600">{kktp.identitas.tempatPenetapan || (kktp.identitas.namaSatuanPendidikan ? kktp.identitas.namaSatuanPendidikan.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim() : '........................')}, {kktp.identitas.tanggalPenetapan || kktp.tanggalDibuat || '22 September 2026'}</p>
               <p className="font-bold text-slate-900">{kktp.identitas.peranGuru || 'Guru Kelas'}</p>
               <div className="h-16 flex items-center justify-center">
                 <span className="text-[10px] text-slate-300 italic no-print">(Tanda Tangan Penyusun)</span>
               </div>
-              <p className="font-extrabold text-slate-900 underline text-sm">{kktp.identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}</p>
-              <p className="text-slate-500">NIP. {kktp.identitas.nipGuru || '198603012020121005'}</p>
+              <p className="font-extrabold text-slate-900 underline text-sm">{kktp.identitas.namaGuru && kktp.identitas.namaGuru !== '-' ? kktp.identitas.namaGuru : '...........................................'}</p>
+              <p className="text-slate-500">NIP. {kktp.identitas.nipGuru || '-'}</p>
             </div>
           </div>
         </div>

@@ -298,7 +298,7 @@ export const DEFAULT_PERMANENT_RECORDS: AccessRecord[] = [
     tanggalDibuat: '2026-07-01T00:00:00.000Z',
     tanggalAktivasi: '2026-07-01T00:00:00.000Z',
     namaGuru: 'Venidora Tefi, S.Pd.',
-    nipGuru: '199209082023022035',
+    nipGuru: '19920908 202321 2 035',
     jabatan: 'Guru Kelas',
     namaSekolah: 'SD Negeri Bele',
     namaSatuanPendidikan: 'SD Negeri Bele',
@@ -309,6 +309,27 @@ export const DEFAULT_PERMANENT_RECORDS: AccessRecord[] = [
     nipKepalaSekolah: '196907312005022006',
     sumberPendaftaran: 'Sistem Bawaan',
     catatanStatus: 'Akun Guru Kelas V (Fase C) SD Negeri Bele (Permanen)',
+  },
+  {
+    id: 'acc-bele-venidora-tefi-pak',
+    kodeAkses: 'GP-VT08',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Venidora Tefi, S.Pd.',
+    nipGuru: '19920908 202321 2 035',
+    jabatan: 'Guru Mata Pelajaran',
+    mataPelajaran: 'Pendidikan Agama Kristen dan Budi Pekerti',
+    namaSekolah: 'SD Negeri Bele',
+    namaSatuanPendidikan: 'SD Negeri Bele',
+    fase: 'Fase C',
+    kelas: '1 - 6',
+    namaKepalaSekolah: 'Maria Helena Ustetu, S.Pd.SD.',
+    nipKepalaSekolah: '196907312005022006',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Mata Pelajaran Agama Kristen (Kelas 1-6 / Semua Fase) SD Negeri Bele (Permanen)',
   },
   {
     id: 'acc-bele-lidia-siki',
@@ -409,12 +430,33 @@ export const DEFAULT_PERMANENT_RECORDS: AccessRecord[] = [
     namaSekolah: 'SD GMIT 2 Kefamenanu',
     namaSatuanPendidikan: 'SD GMIT 2 Kefamenanu',
     fase: 'Fase C',
-    kelas: '5 & 6',
+    kelas: '6',
     mataPelajaran: 'Matematika',
     namaKepalaSekolah: 'Marlyn B. Y. Henukh, S.Pd. SD',
     nipKepalaSekolah: '197605302009042001',
     sumberPendaftaran: 'Sistem Bawaan',
-    catatanStatus: 'Akun Guru Kelas Fase C SD GMIT 2 Kefamenanu (Permanen)',
+    catatanStatus: 'Akun Guru Kelas VI (Fase C) SD GMIT 2 Kefamenanu (Permanen)',
+  },
+  {
+    id: 'acc-oemasi-hendrina-bait',
+    kodeAkses: 'GP-HB03',
+    isActive: true,
+    status: 'active',
+    isPermanent: true,
+    tanggalDibuat: '2026-07-01T00:00:00.000Z',
+    tanggalAktivasi: '2026-07-01T00:00:00.000Z',
+    namaGuru: 'Hendrina Bait, S.Pd.,Gr',
+    nipGuru: '198309142023212013',
+    jabatan: 'Guru Kelas',
+    namaSekolah: 'SD Negeri Oemasi',
+    namaSatuanPendidikan: 'SD Negeri Oemasi',
+    fase: 'Fase B',
+    kelas: '3',
+    mataPelajaran: 'Bahasa Indonesia',
+    namaKepalaSekolah: 'Theodora Abi, S.Pd',
+    nipKepalaSekolah: '196801041994012004',
+    sumberPendaftaran: 'Sistem Bawaan',
+    catatanStatus: 'Akun Guru Kelas III (Fase B) SD Negeri Oemasi (Permanen)',
   },
 ];
 
@@ -555,9 +597,21 @@ export function getAllAccessRecords(): AccessRecord[] {
       const key = userRec.kodeAkses.toUpperCase().trim();
       const existingDef = recordMap.get(key);
       if (existingDef) {
+        // Jangan biarkan NIP lama yang salah menimpa NIP baru Venidora Tefi
+        const nipToUse = (key === 'GP-VT05' && userRec.nipGuru === '199209082023022035')
+          ? existingDef.nipGuru
+          : (userRec.nipGuru || existingDef.nipGuru);
+
+        // Jangan biarkan kelas lama '5 & 6' menimpa kelas 6 untuk Chandrawati Tunliu
+        const kelasToUse = (key === 'GP-CT03' && (userRec.kelas === '5 & 6' || !userRec.kelas))
+          ? '6'
+          : (userRec.kelas || existingDef.kelas);
+
         recordMap.set(key, {
           ...existingDef,
           ...userRec,
+          nipGuru: nipToUse,
+          kelas: kelasToUse,
           isPermanent: true,
           isPremiumMaster: existingDef.isPremiumMaster || userRec.isPremiumMaster,
           isDemo: existingDef.isDemo || userRec.isDemo,
@@ -1218,24 +1272,57 @@ export function convertAccessRecordToIdentity(
     }
   }
 
+  const resolvedSekolah = (currentIdentity?.namaSatuanPendidikan && currentIdentity.namaSatuanPendidikan.toLowerCase() === (record.namaSatuanPendidikan || record.namaSekolah || '').toLowerCase())
+    ? currentIdentity.namaSatuanPendidikan
+    : (record.namaSatuanPendidikan || record.namaSekolah);
+
+  // Ekstrak nama wilayah/kota default dari nama satuan pendidikan jika tempat penetapan belum diisi
+  const extractedTempat = (record.namaSatuanPendidikan || record.namaSekolah || '')
+    .replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '')
+    .trim();
+
+  // Resolusi tempat penetapan: utamakan inputan guru sebelumnya, atau ekstrak dari nama sekolah
+  const finalTempat = currentIdentity?.tempatPenetapan && currentIdentity.tempatPenetapan.trim()
+    ? currentIdentity.tempatPenetapan.trim()
+    : (extractedTempat || (isDemoAccessCode(record.kodeAkses) ? 'Fatubai' : ''));
+
+  // Resolusi alamat instansi: jaga inputan guru, jangan memaksakan alamat Fatubai jika sekolah guru berbeda
+  let finalAlamat = currentIdentity?.alamatInstansi || (record as any).alamatSekolah || '';
+  const isFatubaiSchool = resolvedSekolah.toLowerCase().includes('fatubai');
+  if (!isFatubaiSchool && finalAlamat.toLowerCase().includes('fatubai, desa oehalo')) {
+    finalAlamat = '';
+  }
+
+  const finalKop1 = currentIdentity?.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
+  const finalKop2 = currentIdentity?.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
+  const finalKop3 = (currentIdentity?.kopBaris3 || resolvedSekolah).toUpperCase();
+  const finalKop4 = currentIdentity?.kopBaris4 || (finalAlamat ? (finalAlamat.toLowerCase().startsWith('alamat:') ? finalAlamat : `Alamat: ${finalAlamat}`) : '');
+
   return {
-    // Data Satuan Pendidikan & Guru SELALU TERKUNCI PERMANEN sesuai record
-    namaSatuanPendidikan: (currentIdentity?.namaSatuanPendidikan && currentIdentity.namaSatuanPendidikan.toLowerCase() === (record.namaSatuanPendidikan || record.namaSekolah || '').toLowerCase())
-      ? currentIdentity.namaSatuanPendidikan
-      : (record.namaSatuanPendidikan || record.namaSekolah),
-    namaGuru: record.namaGuru,
-    nipGuru: record.nipGuru,
-    peranGuru: record.jabatan,
-    namaKepalaSekolah: record.namaKepalaSekolah,
-    nipKepalaSekolah: record.nipKepalaSekolah,
+    // Data Satuan Pendidikan & Guru SELALU mengikuti inputan pendaftaran resmi & record guru
+    namaSatuanPendidikan: resolvedSekolah,
+    namaSekolah: resolvedSekolah,
+    namaGuru: record.namaGuru || currentIdentity?.namaGuru || '',
+    nipGuru: record.nipGuru || currentIdentity?.nipGuru || '-',
+    peranGuru: record.jabatan || currentIdentity?.peranGuru || 'Guru Kelas',
+    fotoGuruUrl: currentIdentity?.fotoGuruUrl,
+    namaKepalaSekolah: record.namaKepalaSekolah || currentIdentity?.namaKepalaSekolah || '',
+    nipKepalaSekolah: record.nipKepalaSekolah || currentIdentity?.nipKepalaSekolah || '-',
     mataPelajaran: finalMataPelajaran,
     fase: finalFase,
     kelas: finalKelas,
     tahunPelajaran: currentIdentity?.tahunPelajaran || '2026/2027',
     semester: currentIdentity?.semester || '1 (Ganjil)',
     alokasiWaktuTotal: currentIdentity?.alokasiWaktuTotal || '180 JP / Tahun (5 JP/Minggu Intrakurikuler @ 35 Menit) - Permendikdasmen No. 13 Tahun 2025',
-    tempatPenetapan: currentIdentity?.tempatPenetapan || (record.namaSatuanPendidikan || record.namaSekolah).replace(/UPTD?|SD|Negeri|Swasta/gi, '').trim() || 'Fatubai',
+    tempatPenetapan: finalTempat,
     tanggalPenetapan: currentIdentity?.tanggalPenetapan || new Date().toISOString().split('T')[0],
+    alamatInstansi: finalAlamat,
+    kabupaten: currentIdentity?.kabupaten || (record as any).kabupaten || 'Timor Tengah Utara',
+    logoUrl: currentIdentity?.logoUrl || (record as any).logoUrl || undefined,
+    kopBaris1: finalKop1,
+    kopBaris2: finalKop2,
+    kopBaris3: finalKop3,
+    kopBaris4: finalKop4,
     isLockedByAdmin: Boolean(record.isLockedByAdmin || !isMasterOrDemo),
   };
 }

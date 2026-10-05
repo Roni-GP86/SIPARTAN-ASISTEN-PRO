@@ -838,7 +838,7 @@ export const ATPDocumentView: React.FC<ATPDocumentViewProps> = ({
                   <td className="w-1/2 border-none p-0 align-top">
                     <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                       <p>
-                        {atp.identitas.tempatPenetapan || 'Fatubai'},{' '}
+                        {atp.identitas.tempatPenetapan || (atp.identitas.namaSatuanPendidikan ? atp.identitas.namaSatuanPendidikan.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim() : '........................')},{' '}
                         {atp.identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', {
                           day: 'numeric',
                           month: 'long',
@@ -868,14 +868,14 @@ export const ATPDocumentView: React.FC<ATPDocumentViewProps> = ({
                   <td className="w-1/2 border-none p-0 align-bottom h-20 pb-1">
                     <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                       <p className="font-bold underline break-words inline-block">
-                        {atp.identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}
+                        {atp.identitas.namaKepalaSekolah && atp.identitas.namaKepalaSekolah !== '-' ? atp.identitas.namaKepalaSekolah : '...........................................'}
                       </p>
                     </div>
                   </td>
                   <td className="w-1/2 border-none p-0 align-bottom h-20 pb-1">
                     <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                       <p className="font-bold underline break-words inline-block">
-                        {atp.identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}
+                        {atp.identitas.namaGuru && atp.identitas.namaGuru !== '-' ? atp.identitas.namaGuru : '...........................................'}
                       </p>
                     </div>
                   </td>
@@ -886,14 +886,14 @@ export const ATPDocumentView: React.FC<ATPDocumentViewProps> = ({
                   <td className="w-1/2 border-none p-0 align-top">
                     <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                       <p className="text-slate-600">
-                        NIP. {atp.identitas.nipKepalaSekolah || '196709192008011008'}
+                        NIP. {atp.identitas.nipKepalaSekolah || '-'}
                       </p>
                     </div>
                   </td>
                   <td className="w-1/2 border-none p-0 align-top">
                     <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                       <p className="text-slate-600">
-                        NIP. {atp.identitas.nipGuru || '198603012020121005'}
+                        NIP. {atp.identitas.nipGuru || '-'}
                       </p>
                     </div>
                   </td>

@@ -51,6 +51,68 @@ export function lockWordData(content: string, fieldName: string = 'Identitas Res
 }
 
 /**
+ * Helper extractor data identitas resmi dokumen:
+ * Wajib mengikuti data inputan guru, bukan bawaan sistem.
+ */
+export function getNamaGuruDoc(id?: Partial<SchoolIdentity>): string {
+  const name = (id?.namaGuru || '').trim();
+  return name && name !== '-' ? name : '...........................................';
+}
+
+export function getNipGuruDoc(id?: Partial<SchoolIdentity>): string {
+  const nip = (id?.nipGuru || '').trim();
+  return nip && nip !== '-' ? nip : '-';
+}
+
+export function getNamaKepalaSekolahDoc(id?: Partial<SchoolIdentity>): string {
+  const ks = (id?.namaKepalaSekolah || '').trim();
+  return ks && ks !== '-' ? ks : '...........................................';
+}
+
+export function getNipKepalaSekolahDoc(id?: Partial<SchoolIdentity>): string {
+  const nip = (id?.nipKepalaSekolah || '').trim();
+  return nip && nip !== '-' ? nip : '-';
+}
+
+export function getTempatPenetapanDoc(id?: Partial<SchoolIdentity>): string {
+  if (id?.tempatPenetapan && id.tempatPenetapan.trim()) {
+    return id.tempatPenetapan.trim();
+  }
+  const school = id?.namaSatuanPendidikan || id?.namaSekolah || '';
+  if (school) {
+    const cleaned = school.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim();
+    if (cleaned) return cleaned;
+  }
+  return '........................';
+}
+
+export function getAlamatInstansiDoc(id?: Partial<SchoolIdentity>): string {
+  if (id?.alamatInstansi && id.alamatInstansi.trim()) {
+    return id.alamatInstansi.trim();
+  }
+  if (id?.kopBaris4 && id.kopBaris4.trim()) {
+    return id.kopBaris4.replace(/^alamat:\s*/i, '').trim();
+  }
+  const school = id?.namaSatuanPendidikan || id?.namaSekolah || '';
+  return school ? `Satuan Pendidikan ${school}` : '...........................................';
+}
+
+export function getNamaSatuanPendidikanDoc(id?: Partial<SchoolIdentity>): string {
+  const school = (id?.kopBaris3 || id?.namaSatuanPendidikan || id?.namaSekolah || '').trim();
+  return school || 'SATUAN PENDIDIKAN';
+}
+
+export function getKopBaris1Doc(id?: Partial<SchoolIdentity>): string {
+  if (id?.kopBaris1 && id.kopBaris1.trim()) return id.kopBaris1.trim();
+  if (id?.kabupaten && id.kabupaten.trim()) return `PEMERINTAH KABUPATEN ${id.kabupaten.toUpperCase()}`;
+  return 'PEMERINTAH DAERAH';
+}
+
+export function getKopBaris2Doc(id?: Partial<SchoolIdentity>): string {
+  return id?.kopBaris2?.trim() || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
+}
+
+/**
  * Returns exact official CP regulation metadata according to statutory law:
  * - Seluruh mata pelajaran Pendidikan Agama dan Budi Pekerti berpedoman pada BKP No. 020/2026 (BKP 020/2026)
  * - Mata pelajaran umum lainnya berpedoman pada Keputusan Kepala BSKAP No. 046 Tahun 2025
@@ -473,7 +535,7 @@ export function exportTPAnalysisToWord(
       <tr>
         <td style="width: 32%; padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">Satuan Pendidikan</td>
         <td style="width: 4%; padding: 3px 0; text-align: center; font-weight: bold; border: none; vertical-align: top;">:</td>
-        <td style="width: 64%; padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">${lockWordData(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', 'Satuan Pendidikan')}</td>
+        <td style="width: 64%; padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">${lockWordData(getNamaSatuanPendidikanDoc(identitas), 'Satuan Pendidikan')}</td>
       </tr>
       <tr>
         <td style="padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">Tahun Pelajaran</td>
@@ -501,7 +563,7 @@ export function exportTPAnalysisToWord(
     <tr>
       <td style="width: 17%; font-weight: bold; vertical-align: top; padding: 2px 0;">Satuan Pendidikan</td>
       <td style="width: 3%; text-align: center; vertical-align: top; padding: 2px 0; font-weight: bold;">:</td>
-      <td style="width: 40%; font-weight: bold; vertical-align: top; padding: 2px 0;">${lockWordData(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', 'Satuan Pendidikan')}</td>
+      <td style="width: 40%; font-weight: bold; vertical-align: top; padding: 2px 0;">${lockWordData(getNamaSatuanPendidikanDoc(identitas), 'Satuan Pendidikan')}</td>
       <td style="width: 17%; font-weight: bold; vertical-align: top; padding: 2px 0;">Fase / Kelas</td>
       <td style="width: 3%; text-align: center; vertical-align: top; padding: 2px 0; font-weight: bold;">:</td>
       <td style="width: 20%; vertical-align: top; padding: 2px 0;">${lockWordData(identitas.fase, 'Fase')} / Kelas ${lockWordData(identitas.kelas, 'Kelas')}</td>
@@ -627,7 +689,7 @@ export function exportTPAnalysisToWord(
       <table class="footer-ttd" style="width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: avoid;">
         <tr>
           <td>Mengetahui,</td>
-          <td>${identitas.tempatPenetapan || 'Fatubai'}, ${identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+          <td>${getTempatPenetapanDoc(identitas)}, ${identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
         </tr>
         <tr>
           <td><strong>Kepala Sekolah</strong></td>
@@ -635,15 +697,15 @@ export function exportTPAnalysisToWord(
         </tr>
         <tr>
           <td style="padding-top: 40pt; vertical-align: bottom;">
-            <strong><u>${lockWordData(identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Nama Kepala Sekolah')}</u></strong>
+            <strong><u>${lockWordData(getNamaKepalaSekolahDoc(identitas), 'Nama Kepala Sekolah')}</u></strong>
           </td>
           <td style="padding-top: 40pt; vertical-align: bottom;">
-            <strong><u>${lockWordData(identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd', 'Nama Guru')}</u></strong>
+            <strong><u>${lockWordData(getNamaGuruDoc(identitas), 'Nama Guru')}</u></strong>
           </td>
         </tr>
         <tr>
-          <td>NIP. ${lockWordData(identitas.nipKepalaSekolah || '196709192008011008', 'NIP Kepala Sekolah')}</td>
-          <td>NIP. ${lockWordData(identitas.nipGuru || '198603012020121005', 'NIP Guru')}</td>
+          <td>NIP. ${lockWordData(getNipKepalaSekolahDoc(identitas), 'NIP Kepala Sekolah')}</td>
+          <td>NIP. ${lockWordData(getNipGuruDoc(identitas), 'NIP Guru')}</td>
         </tr>
       </table>
     </div>
@@ -721,7 +783,7 @@ export function exportTPAnalysisToPDF(
   doc.text(`${(identitas.fase || 'FASE C').toUpperCase()}${identitas.kelas ? ` - KELAS ${identitas.kelas}` : ''}`, pageWidth / 2, 105, { align: 'center' });
 
   doc.setFontSize(13);
-  doc.text((identitas.namaSatuanPendidikan || 'SD Negeri Fatubai').toUpperCase(), pageWidth / 2, 130, { align: 'center' });
+  doc.text(getNamaSatuanPendidikanDoc(identitas).toUpperCase(), pageWidth / 2, 130, { align: 'center' });
   doc.text((identitas.tahunPelajaran || '2026/2027').toUpperCase(), pageWidth / 2, 138, { align: 'center' });
   doc.setFontSize(11);
   doc.setFont('times', 'normal');
@@ -745,7 +807,7 @@ export function exportTPAnalysisToPDF(
       [
         { content: 'Satuan Pendidikan', styles: { fontStyle: 'bold', cellWidth: 32 } },
         { content: ':', styles: { halign: 'center', cellWidth: 4, fontStyle: 'bold' } },
-        { content: identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', styles: { fontStyle: 'bold', cellWidth: 92 } },
+        { content: getNamaSatuanPendidikanDoc(identitas), styles: { fontStyle: 'bold', cellWidth: 92 } },
         { content: 'Fase / Kelas', styles: { fontStyle: 'bold', cellWidth: 26 } },
         { content: ':', styles: { halign: 'center', cellWidth: 4, fontStyle: 'bold' } },
         { content: `${identitas.fase || 'Fase B'} / Kelas ${identitas.kelas || '-'}`, styles: { cellWidth: 'auto' } },
@@ -1183,7 +1245,7 @@ export function exportATPToWord(atp: ATPDocument) {
       <tr>
         <td style="width: 35%; padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">Satuan Pendidikan</td>
         <td style="width: 4%; padding: 3px 0; text-align: center; font-weight: bold; border: none; vertical-align: top;">:</td>
-        <td style="width: 61%; padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">${lockWordData(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', 'Satuan Pendidikan')}</td>
+        <td style="width: 61%; padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">${lockWordData(getNamaSatuanPendidikanDoc(identitas), 'Satuan Pendidikan')}</td>
       </tr>
       <tr>
         <td style="padding: 3px 0; font-weight: bold; border: none; vertical-align: top;">Tahun Pelajaran</td>
@@ -1337,7 +1399,7 @@ export function exportATPToWord(atp: ATPDocument) {
     <table class="footer-ttd" style="width: 100%; border-collapse: collapse; margin-top: 36px; page-break-inside: avoid;">
       <tr>
         <td>Mengetahui,</td>
-        <td>${identitas.tempatPenetapan || 'Fatubai'}, ${identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+        <td>${getTempatPenetapanDoc(identitas)}, ${identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
       </tr>
       <tr>
         <td><strong>Kepala Sekolah</strong></td>
@@ -1345,15 +1407,15 @@ export function exportATPToWord(atp: ATPDocument) {
       </tr>
       <tr>
         <td style="padding-top: 45pt; vertical-align: bottom;">
-          <strong><u>${lockWordData(identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Nama Kepala Sekolah')}</u></strong>
+          <strong><u>${lockWordData(getNamaKepalaSekolahDoc(identitas), 'Nama Kepala Sekolah')}</u></strong>
         </td>
         <td style="padding-top: 45pt; vertical-align: bottom;">
-          <strong><u>${lockWordData(identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd', 'Nama Guru')}</u></strong>
+          <strong><u>${lockWordData(getNamaGuruDoc(identitas), 'Nama Guru')}</u></strong>
         </td>
       </tr>
       <tr>
-        <td>NIP. ${lockWordData(identitas.nipKepalaSekolah || '196709192008011008', 'NIP Kepala Sekolah')}</td>
-        <td>NIP. ${lockWordData(identitas.nipGuru || '198603012020121005', 'NIP Guru')}</td>
+        <td>NIP. ${lockWordData(getNipKepalaSekolahDoc(identitas), 'NIP Kepala Sekolah')}</td>
+        <td>NIP. ${lockWordData(getNipGuruDoc(identitas), 'NIP Guru')}</td>
       </tr>
     </table>
   </div>
@@ -1544,7 +1606,7 @@ export function exportModulAjarToWord(modul: ModulAjarDocument) {
   const isRPM = Boolean(identifikasiRPM || desainPembelajaranRPM || langkahPembelajaranRPM);
 
   const docJudul = judulModul || (isRPM ? 'RENCANA PEMBELAJARAN MENDALAM' : 'MODUL AJAR KURIKULUM MERDEKA');
-  const namaSekolah = lockWordData(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', 'Satuan Pendidikan');
+  const namaSekolah = lockWordData(getNamaSatuanPendidikanDoc(identitas), 'Satuan Pendidikan');
   const namaGuru = lockWordData(identitas.namaGuru || '-', 'Nama Guru');
   const nipGuru = identitas.nipGuru ? lockWordData(identitas.nipGuru, 'NIP Guru') : '';
   const tahunPelajaran = lockWordData(identitas.tahunPelajaran, 'Tahun Pelajaran');
@@ -1866,7 +1928,7 @@ export function exportModulAjarToWord(modul: ModulAjarDocument) {
   <table class="footer-ttd">
     <tr>
       <td>Mengetahui,</td>
-      <td>${identitas.tempatPenetapan || 'Fatubai'}, ${identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
+      <td>${getTempatPenetapanDoc(identitas)}, ${identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td>
     </tr>
     <tr>
       <td><strong>Kepala Sekolah</strong></td>
@@ -1874,15 +1936,15 @@ export function exportModulAjarToWord(modul: ModulAjarDocument) {
     </tr>
     <tr>
       <td style="padding-top: 48pt; vertical-align: bottom;">
-        <strong><u>${lockWordData(identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Nama Kepala Sekolah')}</u></strong>
+        <strong><u>${lockWordData(getNamaKepalaSekolahDoc(identitas), 'Nama Kepala Sekolah')}</u></strong>
       </td>
       <td style="padding-top: 48pt; vertical-align: bottom;">
-        <strong><u>${namaGuru}</u></strong>
+        <strong><u>${lockWordData(getNamaGuruDoc(identitas), 'Nama Guru')}</u></strong>
       </td>
     </tr>
     <tr>
-      <td>NIP. ${lockWordData(identitas.nipKepalaSekolah || '196709192008011008', 'NIP Kepala Sekolah')}</td>
-      <td>NIP. ${nipGuru || '198603012020121005'}</td>
+      <td>NIP. ${lockWordData(getNipKepalaSekolahDoc(identitas), 'NIP Kepala Sekolah')}</td>
+      <td>NIP. ${lockWordData(getNipGuruDoc(identitas), 'NIP Guru')}</td>
     </tr>
   </table>
 
@@ -2157,7 +2219,7 @@ export function exportATPToPDF(atp: ATPDocument, layoutOptions?: Partial<PDFLayo
   doc.text(`${(identitas.fase || 'FASE C').toUpperCase()}${identitas.kelas ? ` - KELAS ${identitas.kelas}` : ''}`, pageWidth / 2, coverTitleY + 41, { align: 'center' });
 
   doc.setFontSize(13);
-  doc.text((identitas.namaSatuanPendidikan || 'SD Negeri Fatubai').toUpperCase(), pageWidth / 2, coverTitleY + 70, { align: 'center' });
+  doc.text(getNamaSatuanPendidikanDoc(identitas).toUpperCase(), pageWidth / 2, coverTitleY + 70, { align: 'center' });
   doc.text(`TAHUN PELAJARAN ${identitas.tahunPelajaran || '2026/2027'}`, pageWidth / 2, coverTitleY + 78, { align: 'center' });
   doc.setFontSize(11);
   doc.setFont('times', 'normal');
@@ -2606,7 +2668,7 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
   currentY += 9.5;
 
   const identitasRows = [
-    ['Nama Satuan Pendidikan', ':', `${identitas.namaSatuanPendidikan || 'SD Negeri Fatubai'}`],
+    ['Nama Satuan Pendidikan', ':', getNamaSatuanPendidikanDoc(identitas)],
     ['Penyusun / Guru', ':', `${identitas.namaGuru || '-'}`],
     ['Tahun Pelajaran / Semester', ':', `${identitas.tahunPelajaran} / Semester ${identitas.semester}`],
     ['Fase / Kelas', ':', `${identitas.fase} / Kelas ${identitas.kelas}`],
@@ -3808,19 +3870,19 @@ function renderSignatures(doc: jsPDF, identitas: any, startY: number, pageWidth:
   doc.text('Kepala Sekolah', col1X, startY + 5.5);
 
   doc.setFont('times', 'bold');
-  doc.text(identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.', col1X, startY + 26);
+  doc.text(getNamaKepalaSekolahDoc(identitas), col1X, startY + 26);
   doc.setFont('times', 'normal');
-  doc.text(`NIP. ${identitas.nipKepalaSekolah || '196709192008011008'}`, col1X, startY + 31.5);
+  doc.text(`NIP. ${getNipKepalaSekolahDoc(identitas)}`, col1X, startY + 31.5);
 
   // Col 2: Penyusun
   const tanggalHariIni = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-  doc.text(`${identitas.tempatPenetapan || 'Fatubai'}, ${identitas.tanggalPenetapan || tanggalHariIni}`, col2X, startY);
+  doc.text(`${getTempatPenetapanDoc(identitas)}, ${identitas.tanggalPenetapan || tanggalHariIni}`, col2X, startY);
   doc.text(`${identitas.peranGuru || 'Guru Kelas'}`, col2X, startY + 5.5);
 
   doc.setFont('times', 'bold');
-  doc.text(identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd', col2X, startY + 26);
+  doc.text(getNamaGuruDoc(identitas), col2X, startY + 26);
   doc.setFont('times', 'normal');
-  doc.text(`NIP. ${identitas.nipGuru || '198603012020121005'}`, col2X, startY + 31.5);
+  doc.text(`NIP. ${getNipGuruDoc(identitas)}`, col2X, startY + 31.5);
 }
 
 function addCleanPageNumbers(doc: jsPDF) {
@@ -3901,10 +3963,10 @@ export function exportKKTPToWord(kktp: KKTPDocument) {
       <tr>
         ${id.logoUrl ? `<td style="width: 15%; text-align: center; vertical-align: middle; padding-right: 12px;"><img src="${id.logoUrl}" style="max-height: 75px; max-width: 75px; object-fit: contain;" alt="Logo" /></td>` : ''}
         <td style="text-align: center; vertical-align: middle;">
-          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">${id.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}</h3>
-          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">${id.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}</h2>
-          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(id.kopBaris3 || id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Satuan Pendidikan')}</h1>
-          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">${id.kopBaris4 || `Alamat: ${lockWordData(id.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}`}</p>
+          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">${getKopBaris1Doc(id)}</h3>
+          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">${getKopBaris2Doc(id)}</h2>
+          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(getNamaSatuanPendidikanDoc(id), 'Satuan Pendidikan')}</h1>
+          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">${id.kopBaris4 || `Alamat: ${lockWordData(getAlamatInstansiDoc(id))}`}</p>
         </td>
       </tr>
     </table>
@@ -4037,14 +4099,14 @@ export function exportKKTPToWord(kktp: KKTPDocument) {
           <td style="width: 50%; text-align: center; border: none;">
             Mengetahui,<br/>
             Kepala Sekolah<br/><br/><br/><br/>
-            <strong><u>${lockWordData(id.namaKepalaSekolah, 'Nama Kepala Sekolah')}</u></strong><br/>
-            NIP. ${lockWordData(id.nipKepalaSekolah || '........................................', 'NIP Kepala Sekolah')}
+            <strong><u>${lockWordData(getNamaKepalaSekolahDoc(id), 'Nama Kepala Sekolah')}</u></strong><br/>
+            NIP. ${lockWordData(getNipKepalaSekolahDoc(id), 'NIP Kepala Sekolah')}
           </td>
           <td style="width: 50%; text-align: center; border: none;">
-            ${id.tempatPenetapan || 'Fatubai'}, ${id.tanggalPenetapan || kktp.tanggalDibuat || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br/>
+            ${getTempatPenetapanDoc(id)}, ${id.tanggalPenetapan || kktp.tanggalDibuat || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}<br/>
             ${lockWordData(id.peranGuru || 'Guru Kelas', 'Jabatan Guru')}<br/><br/><br/><br/>
-            <strong><u>${lockWordData(id.namaGuru, 'Nama Guru')}</u></strong><br/>
-            NIP. ${lockWordData(id.nipGuru || '........................................', 'NIP Guru')}
+            <strong><u>${lockWordData(getNamaGuruDoc(id), 'Nama Guru')}</u></strong><br/>
+            NIP. ${lockWordData(getNipGuruDoc(id), 'NIP Guru')}
           </td>
         </tr>
       </table>
@@ -4240,7 +4302,7 @@ export function exportKKTPToPDF(kktp: KKTPDocument, layoutOptions?: Partial<PDFL
   doc.setFontSize(13);
   doc.text('DOKUMEN KRITERIA KETERCAPAIAN TUJUAN PEMBELAJARAN (KKTP)', pageWidth / 2, 12, { align: 'center' });
   doc.setFontSize(11);
-  doc.text(`${(id.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase()} - KURIKULUM MERDEKA`, pageWidth / 2, 17, { align: 'center' });
+  doc.text(`${getNamaSatuanPendidikanDoc(id).toUpperCase()} - KURIKULUM MERDEKA`, pageWidth / 2, 17, { align: 'center' });
   doc.setFont('times', 'normal');
   doc.setFontSize(11);
   doc.text(
@@ -4424,10 +4486,10 @@ export function exportProtaToWord(prota: ProtaDocument) {
       <tr>
         ${id.logoUrl ? `<td style="width: 15%; text-align: center; vertical-align: middle; padding-right: 12px;"><img src="${id.logoUrl}" style="max-height: 75px; max-width: 75px; object-fit: contain;" alt="Logo" /></td>` : ''}
         <td style="text-align: center; vertical-align: middle;">
-          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">${id.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}</h3>
-          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">${id.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}</h2>
-          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(id.kopBaris3 || id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Satuan Pendidikan')}</h1>
-          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">${id.kopBaris4 || `Alamat: ${lockWordData(id.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}`}</p>
+          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">${getKopBaris1Doc(id)}</h3>
+          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">${getKopBaris2Doc(id)}</h2>
+          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(getNamaSatuanPendidikanDoc(id), 'Satuan Pendidikan')}</h1>
+          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">${id.kopBaris4 || `Alamat: ${lockWordData(getAlamatInstansiDoc(id))}`}</p>
         </td>
       </tr>
     </table>
@@ -4475,7 +4537,7 @@ export function exportProtaToWord(prota: ProtaDocument) {
         <tr>
           <td style="width: 25%; font-weight: bold; border: none; padding: 3px 0;">Satuan Pendidikan</td>
           <td style="width: 2%; border: none; padding: 3px 0;">:</td>
-          <td style="border: none; padding: 3px 0;">${lockWordData(id.namaSatuanPendidikan || 'SD Negeri Fatubai', 'Satuan Pendidikan')}</td>
+          <td style="border: none; padding: 3px 0;">${lockWordData(getNamaSatuanPendidikanDoc(id), 'Satuan Pendidikan')}</td>
           <td style="width: 20%; font-weight: bold; border: none; padding: 3px 0;">Fase / Kelas</td>
           <td style="width: 2%; border: none; padding: 3px 0;">:</td>
           <td style="border: none; padding: 3px 0;">${lockWordData(id.fase, 'Fase')} / Kelas ${lockWordData(String(id.kelas), 'Kelas')}</td>
@@ -4581,14 +4643,14 @@ export function exportProtaToWord(prota: ProtaDocument) {
             <td style="border: none; width: 50%; vertical-align: top;">
               Mengetahui,<br>
               Kepala Sekolah<br><br><br><br>
-              <b>${lockWordData(id.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Kepala Sekolah')}</b><br>
-              NIP. ${lockWordData(id.nipKepalaSekolah || '196709192008011008', 'NIP Kepala Sekolah')}
+              <b>${lockWordData(getNamaKepalaSekolahDoc(id), 'Kepala Sekolah')}</b><br>
+              NIP. ${lockWordData(getNipKepalaSekolahDoc(id), 'NIP Kepala Sekolah')}
             </td>
             <td style="border: none; width: 50%; vertical-align: top;">
-              ${lockWordData(id.tempatPenetapan || 'Fatubai', 'Tempat')}, ${lockWordData(id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 'Tanggal')}<br>
+              ${lockWordData(getTempatPenetapanDoc(id), 'Tempat')}, ${lockWordData(id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 'Tanggal')}<br>
               ${lockWordData(id.peranGuru || 'Guru Kelas', 'Jabatan')}<br><br><br><br>
-              <b>${lockWordData(id.namaGuru, 'Guru')}</b><br>
-              NIP. ${lockWordData(id.nipGuru || '-', 'NIP Guru')}
+              <b>${lockWordData(getNamaGuruDoc(id), 'Guru')}</b><br>
+              NIP. ${lockWordData(getNipGuruDoc(id), 'NIP Guru')}
             </td>
           </tr>
         </table>
@@ -4628,7 +4690,7 @@ export function exportProtaToPDF(prota: ProtaDocument, layoutOptions?: Partial<P
   doc.setTextColor(0, 0, 0);
 
   const metaStartY = 33;
-  doc.text(`Satuan Pendidikan : ${id.namaSatuanPendidikan || 'SD Negeri Fatubai'}`, marginLeft, metaStartY);
+  doc.text(`Satuan Pendidikan : ${getNamaSatuanPendidikanDoc(id)}`, marginLeft, metaStartY);
   doc.text(`Mata Pelajaran    : ${id.mataPelajaran}`, marginLeft, metaStartY + 5);
   doc.text(`Fase / Kelas      : ${id.fase} / Kelas ${id.kelas}`, marginLeft, metaStartY + 10);
 
@@ -4761,7 +4823,7 @@ export function exportProtaToExcel(prota: ProtaDocument) {
   const csvContent = [
     `"PROGRAM TAHUNAN (PROTA) KURIKULUM MERDEKA"`,
     `"Mata Pelajaran: ${id.mataPelajaran} - Kelas ${id.kelas} (${id.fase})"`,
-    `"Satuan Pendidikan: ${id.namaSatuanPendidikan || 'SD Negeri Fatubai'}"`,
+    `"Satuan Pendidikan: ${getNamaSatuanPendidikanDoc(id)}"`,
     `"Regulasi: Permendikdasmen No. 13 Tahun 2025 (${prota.totalJPTahun} JP/Tahun)"`,
     '',
     headers.join(','),
@@ -4874,7 +4936,7 @@ export function exportPromesToWord(promes: PromesDocument, semesterPilihan: '1' 
     <body>
       <div style="text-align: center; border-bottom: 2.5px double #000; padding-bottom: 8px; margin-bottom: 14px;">
         <h2 style="margin: 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">PROGRAM SEMESTER (PROMES) KURIKULUM MERDEKA</h2>
-        <p style="margin: 3px 0 0; font-size: 11pt; font-weight: bold;">TAHUN PELAJARAN ${lockWordData(id.tahunPelajaran || '2025/2026', 'Tahun')} - ${lockWordData(id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Sekolah')}</p>
+        <p style="margin: 3px 0 0; font-size: 11pt; font-weight: bold;">TAHUN PELAJARAN ${lockWordData(id.tahunPelajaran || '2025/2026', 'Tahun')} - ${lockWordData(getNamaSatuanPendidikanDoc(id), 'Sekolah')}</p>
       </div>
 
       <table style="width: 100%; border: none; margin-bottom: 10px;">
@@ -4892,7 +4954,7 @@ export function exportPromesToWord(promes: PromesDocument, semesterPilihan: '1' 
           <td style="border: none;">${promes.jpMinggu} JP / Minggu</td>
           <td style="border: none; font-weight: bold;">Penyusun</td>
           <td style="border: none;">:</td>
-          <td style=\"border: none;\">${lockWordData(id.namaGuru, 'Guru')}</td>
+          <td style=\"border: none;\">${lockWordData(getNamaGuruDoc(id), 'Guru')}</td>
         </tr>
       </table>
 
@@ -4914,14 +4976,14 @@ export function exportPromesToWord(promes: PromesDocument, semesterPilihan: '1' 
             <td style="border: none; width: 50%; vertical-align: top;">
               Mengetahui,<br>
               Kepala Sekolah<br><br><br><br>
-              <b>${lockWordData(id.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Kepala Sekolah')}</b><br>
-              NIP. ${lockWordData(id.nipKepalaSekolah || '196709192008011008', 'NIP')}
+              <b>${lockWordData(getNamaKepalaSekolahDoc(id), 'Kepala Sekolah')}</b><br>
+              NIP. ${lockWordData(getNipKepalaSekolahDoc(id), 'NIP')}
             </td>
             <td style="border: none; width: 50%; vertical-align: top;">
-              ${lockWordData(id.tempatPenetapan || 'Fatubai', 'Tempat')}, ${lockWordData(id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 'Tanggal')}<br>
+              ${lockWordData(getTempatPenetapanDoc(id), 'Tempat')}, ${lockWordData(id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }), 'Tanggal')}<br>
               ${lockWordData(id.peranGuru || 'Guru Kelas', 'Jabatan')}<br><br><br><br>
-              <b>${lockWordData(id.namaGuru, 'Guru')}</b><br>
-              NIP. ${lockWordData(id.nipGuru || '-', 'NIP')}
+              <b>${lockWordData(getNamaGuruDoc(id), 'Guru')}</b><br>
+              NIP. ${lockWordData(getNipGuruDoc(id), 'NIP')}
             </td>
           </tr>
         </table>
@@ -4957,7 +5019,7 @@ export function exportPromesToPDF(promes: PromesDocument, semesterPilihan: '1' |
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  doc.text(`Satuan Pendidikan : ${id.namaSatuanPendidikan || 'SD Negeri Fatubai'}`, marginLeft, 27);
+  doc.text(`Satuan Pendidikan : ${getNamaSatuanPendidikanDoc(id)}`, marginLeft, 27);
   doc.text(`Mata Pelajaran    : ${id.mataPelajaran} (${id.fase} - Kelas ${id.kelas})`, marginLeft, 31);
   doc.text(`Alokasi Waktu     : ${promes.jpMinggu} JP/Minggu | Total: ${data.summary.totalJP} JP (${data.summary.totalMingguEfektif} Minggu Efektif)`, pageWidth - marginRight, 27, { align: 'right' });
   doc.text(`Penyusun          : ${id.namaGuru}`, pageWidth - marginRight, 31, { align: 'right' });
@@ -5087,7 +5149,7 @@ export function exportPromesToExcel(promes: PromesDocument, semesterPilihan: '1'
   const csvContent = [
     `"PROGRAM SEMESTER (PROMES) KURIKULUM MERDEKA - ${data.semesterLabel.toUpperCase()}"`,
     `"Mata Pelajaran: ${id.mataPelajaran} - Kelas ${id.kelas} (${id.fase})"`,
-    `"Satuan Pendidikan: ${id.namaSatuanPendidikan || 'SD Negeri Fatubai'}"`,
+    `"Satuan Pendidikan: ${getNamaSatuanPendidikanDoc(id)}"`,
     `"Alokasi Regulasi: ${promes.jpMinggu} JP/Minggu"`,
     '',
     headers.join(','),
@@ -5426,15 +5488,15 @@ export function exportMediaPromptsToWord(
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 11pt; border: 1px solid #CBD5E1;">
         <tr style="background-color: #F8FAFC;">
           <td style="padding: 6px 12px; width: 25%; font-weight: bold;">Satuan Pendidikan</td>
-          <td style="padding: 6px 12px; width: 25%;">${lockWordData(id.namaSatuanPendidikan || 'SD Negeri Fatubai', 'Nama Satuan Pendidikan')}</td>
+          <td style="padding: 6px 12px; width: 25%;">${lockWordData(id.namaSatuanPendidikan || id.namaSekolah || 'Satuan Pendidikan', 'Nama Satuan Pendidikan')}</td>
           <td style="padding: 6px 12px; width: 25%; font-weight: bold;">Penyusun</td>
-          <td style="padding: 6px 12px; width: 25%;">${lockWordData(id.namaGuru || 'Penyusun', 'Nama Penyusun')}</td>
+          <td style="padding: 6px 12px; width: 25%;">${lockWordData(getNamaGuruDoc(id), 'Nama Penyusun')}</td>
         </tr>
         <tr>
           <td style="padding: 6px 12px; font-weight: bold;">Fase / Kelas</td>
           <td style="padding: 6px 12px;">${id.fase} / ${kelasLabel}</td>
           <td style="padding: 6px 12px; font-weight: bold;">Kepala Sekolah</td>
-          <td style="padding: 6px 12px;">${lockWordData(id.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Nama Kepala Sekolah')}</td>
+          <td style="padding: 6px 12px;">${lockWordData(getNamaKepalaSekolahDoc(id), 'Nama Kepala Sekolah')}</td>
         </tr>
       </table>
 
@@ -5456,15 +5518,15 @@ export function exportMediaPromptsToWord(
               <p style="margin: 0;">Mengetahui,</p>
               <p style="margin: 0; font-weight: bold;">Kepala Sekolah</p>
               <div style="height: 60px;"></div>
-              <p style="margin: 0; font-weight: bold; text-decoration: underline;">${lockWordData(id.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 'Nama Kepala Sekolah')}</p>
-              <p style="margin: 0; font-size: 11pt; color: #475569;">NIP. ${lockWordData(id.nipKepalaSekolah || '196709192008011008', 'NIP Kepala Sekolah')}</p>
+              <p style="margin: 0; font-weight: bold; text-decoration: underline;">${lockWordData(getNamaKepalaSekolahDoc(id), 'Nama Kepala Sekolah')}</p>
+              <p style="margin: 0; font-size: 11pt; color: #475569;">NIP. ${lockWordData(getNipKepalaSekolahDoc(id), 'NIP Kepala Sekolah')}</p>
             </td>
             <td style="width: 50%; vertical-align: top; text-align: right;">
-              <p style="margin: 0;">${id.tempatPenetapan || 'Fatubai'}, ${id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+              <p style="margin: 0;">${getTempatPenetapanDoc(id)}, ${id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               <p style="margin: 0; font-weight: bold;">${lockWordData(id.peranGuru || 'Guru Kelas', 'Jabatan')}</p>
               <div style="height: 60px;"></div>
-              <p style="margin: 0; font-weight: bold; text-decoration: underline;">${lockWordData(id.namaGuru || 'Penyusun', 'Nama Penyusun')}</p>
-              <p style="margin: 0; font-size: 11pt; color: #475569;">NIP. ${lockWordData(id.nipGuru || '-', 'NIP Guru')}</p>
+              <p style="margin: 0; font-weight: bold; text-decoration: underline;">${lockWordData(getNamaGuruDoc(id), 'Nama Penyusun')}</p>
+              <p style="margin: 0; font-size: 11pt; color: #475569;">NIP. ${lockWordData(getNipGuruDoc(id), 'NIP Guru')}</p>
             </td>
           </tr>
         </table>
@@ -5519,7 +5581,7 @@ export function exportMediaPromptsToPDF(
   pdf.setTextColor(0, 0, 0);
   pdf.text('Video 3D • Slide Presentasi • Notebook Digital • Flashcard Pintar • Infografis • Peta Konsep', pageWidth / 2, currentY, { align: 'center' });
   currentY += 4;
-  pdf.text(`Mata Pelajaran: ${id.mataPelajaran || 'Matematika'} • ${kelasLabel} • ${id.namaSatuanPendidikan || 'SD Negeri Fatubai'}`, pageWidth / 2, currentY, { align: 'center' });
+  pdf.text(`Mata Pelajaran: ${id.mataPelajaran || 'Matematika'} • ${kelasLabel} • ${getNamaSatuanPendidikanDoc(id)}`, pageWidth / 2, currentY, { align: 'center' });
   currentY += 4;
   pdf.setDrawColor(0, 0, 0);
   pdf.line(14, currentY, pageWidth - 14, currentY);
@@ -5799,21 +5861,21 @@ export function exportMediaPromptsToPDF(
   pdf.setFontSize(8);
   pdf.setTextColor(0, 0, 0);
   pdf.text('Mengetahui,', 14, currentY);
-  pdf.text(`${id.tempatPenetapan || 'Fatubai'}, ${id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth - 60, currentY);
+  pdf.text(`${getTempatPenetapanDoc(id)}, ${id.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, pageWidth - 60, currentY);
   currentY += 4;
   pdf.setFont('helvetica', 'bold');
   pdf.setTextColor(0, 0, 0);
   pdf.text(`Kepala Sekolah`, 14, currentY);
   pdf.text(`${id.peranGuru || 'Guru Kelas'}`, pageWidth - 60, currentY);
   currentY += 16;
-  pdf.text(id.namaKepalaSekolah || 'Darius Kusi, S.Pd.', 14, currentY);
-  pdf.text(id.namaGuru || 'Penyusun', pageWidth - 60, currentY);
+  pdf.text(getNamaKepalaSekolahDoc(id), 14, currentY);
+  pdf.text(getNamaGuruDoc(id), pageWidth - 60, currentY);
   currentY += 4;
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(7);
   pdf.setTextColor(0, 0, 0);
-  pdf.text(`NIP. ${id.nipKepalaSekolah || '196709192008011008'}`, 14, currentY);
-  pdf.text(`NIP. ${id.nipGuru || '-'}`, pageWidth - 60, currentY);
+  pdf.text(`NIP. ${getNipKepalaSekolahDoc(id)}`, 14, currentY);
+  pdf.text(`NIP. ${getNipGuruDoc(id)}`, pageWidth - 60, currentY);
 
   pdf.save(`Prompt_Media_${id.mataPelajaran || 'Mapel'}_${kelasLabel.replace(/\s+/g, '_')}.pdf`);
 }

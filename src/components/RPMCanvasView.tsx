@@ -1093,7 +1093,7 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
                 <td className="w-1/2 border-none p-0 align-top">
                   <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                     <p>
-                      {modul.identitas.tempatPenetapan || 'Fatubai'},{' '}
+                      {modul.identitas.tempatPenetapan || modul.identitas.kabupaten || '...................'},{' '}
                       {modul.identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', {
                         day: 'numeric',
                         month: 'long',
@@ -1123,14 +1123,14 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
                 <td className="w-1/2 border-none p-0 align-bottom h-20 pb-1">
                   <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                     <p className="font-bold underline break-words inline-block">
-                      {modul.identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}
+                      {modul.identitas.namaKepalaSekolah || '...........................................'}
                     </p>
                   </div>
                 </td>
                 <td className="w-1/2 border-none p-0 align-bottom h-20 pb-1">
                   <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                     <p className="font-bold underline break-words inline-block">
-                      {modul.identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}
+                      {modul.identitas.namaGuru || '...........................................'}
                     </p>
                   </div>
                 </td>
@@ -1141,14 +1141,14 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
                 <td className="w-1/2 border-none p-0 align-top">
                   <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                     <p className="text-slate-600">
-                      NIP. {modul.identitas.nipKepalaSekolah || '196709192008011008'}
+                      NIP. {modul.identitas.nipKepalaSekolah ? modul.identitas.nipKepalaSekolah : '...........................................'}
                     </p>
                   </div>
                 </td>
                 <td className="w-1/2 border-none p-0 align-top">
                   <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                     <p className="text-slate-600">
-                      NIP. {modul.identitas.nipGuru || '198603012020121005'}
+                      NIP. {modul.identitas.nipGuru ? modul.identitas.nipGuru : '...........................................'}
                     </p>
                   </div>
                 </td>

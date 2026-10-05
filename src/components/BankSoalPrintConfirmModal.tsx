@@ -59,16 +59,16 @@ export const BankSoalPrintConfirmModal: React.FC<BankSoalPrintConfirmModalProps>
 
   // 4 Baris KOP
   const [kopBaris1, setKopBaris1] = useState(
-    identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'
+    identitas.kopBaris1 || (identitas.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH')
   );
   const [kopBaris2, setKopBaris2] = useState(
     identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'
   );
   const [kopBaris3, setKopBaris3] = useState(
-    identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SD NEGERI FATUBAI'
+    identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SATUAN PENDIDIKAN'
   );
   const [kopBaris4, setKopBaris4] = useState(
-    identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah'
+    identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : '')
   );
 
   // Logo KOP
@@ -98,7 +98,7 @@ export const BankSoalPrintConfirmModal: React.FC<BankSoalPrintConfirmModalProps>
   );
 
   // Titimangsa & Tahun Pelajaran
-  const [tempat, setTempat] = useState<string>(identitas.tempatPenetapan || 'Fatubai');
+  const [tempat, setTempat] = useState<string>(identitas.tempatPenetapan || identitas.kabupaten || '');
   const [tanggal, setTanggal] = useState<string>(
     konfigurasi.tanggalPelaksanaan || identitas.tanggalPenetapan || '22 September 2026'
   );
@@ -111,10 +111,10 @@ export const BankSoalPrintConfirmModal: React.FC<BankSoalPrintConfirmModalProps>
 
   useEffect(() => {
     if (isOpen) {
-      setKopBaris1(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA');
+      setKopBaris1(identitas.kopBaris1 || (identitas.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH'));
       setKopBaris2(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN');
-      setKopBaris3(identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SD NEGERI FATUBAI');
-      setKopBaris4(identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah');
+      setKopBaris3(identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SATUAN PENDIDIKAN');
+      setKopBaris4(identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : ''));
       setLogoUrl(identitas.logoUrl || '/school_logo.jpg');
       setMataPelajaran(konfigurasi.mataPelajaran || identitas.mataPelajaran || 'Matematika');
       setFase(identitas.fase || 'Fase C');
@@ -129,8 +129,8 @@ export const BankSoalPrintConfirmModal: React.FC<BankSoalPrintConfirmModalProps>
 
       setJenisAsesmen(konfigurasi.jenisAsesmen || 'Semester 1');
       setCustomJudul(identitas.jenisUjian || (konfigurasi.jenisAsesmen === 'Semester 1' ? 'UJIAN SEMESTER 1' : konfigurasi.jenisAsesmen.toUpperCase()));
-      setTempat(identitas.tempatPenetapan || 'Fatubai');
-      setTanggal(konfigurasi.tanggalPelaksanaan || identitas.tanggalPenetapan || '22 September 2026');
+      setTempat(identitas.tempatPenetapan || identitas.kabupaten || '');
+      setTanggal(konfigurasi.tanggalPelaksanaan || identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }));
       setTahunPelajaran(identitas.tahunPelajaran || '2026/2027');
       setSemester(identitas.semester || 'Semester 1');
     }
@@ -158,12 +158,12 @@ export const BankSoalPrintConfirmModal: React.FC<BankSoalPrintConfirmModalProps>
   };
 
   const handleResetKopToDefault = () => {
-    setKopBaris1('PEMERINTAH KABUPATEN TIMOR TENGAH UTARA');
-    setKopBaris2('DINAS PENDIDIKAN DAN KEBUDAYAAN');
-    setKopBaris3('SD NEGERI FATUBAI');
-    setKopBaris4('ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah');
-    setLogoUrl('/school_logo.jpg');
-    setTempat('Fatubai');
+    setKopBaris1(identitas.kopBaris1 || (identitas.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH'));
+    setKopBaris2(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN');
+    setKopBaris3(identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SATUAN PENDIDIKAN');
+    setKopBaris4(identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : ''));
+    setLogoUrl(identitas.logoUrl || '/school_logo.jpg');
+    setTempat(identitas.tempatPenetapan || identitas.kabupaten || '');
   };
 
   const handleSelectJenisUjian = (preset: (typeof JENIS_UJIAN_PRESETS)[0]) => {

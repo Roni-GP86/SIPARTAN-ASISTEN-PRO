@@ -1306,7 +1306,7 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                     <td className="w-1/2 border-none p-0 align-top">
                       <div className="w-fit mx-auto text-left min-w-[200px] sm:min-w-[250px]">
                         <p>
-                          {modul.identitas.tempatPenetapan || 'Fatubai'},{' '}
+                          {modul.identitas.tempatPenetapan || modul.identitas.kabupaten || '...................'},{' '}
                           {modul.identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', {
                             day: 'numeric',
                             month: 'long',
@@ -1336,14 +1336,14 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                     <td className="w-1/2 border-none p-0 align-bottom h-24 pb-1">
                       <div className="w-fit mx-auto text-left min-w-[200px] sm:min-w-[250px]">
                         <p className="font-bold underline break-words inline-block">
-                          {modul.identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}
+                          {modul.identitas.namaKepalaSekolah || '...........................................'}
                         </p>
                       </div>
                     </td>
                     <td className="w-1/2 border-none p-0 align-bottom h-24 pb-1">
                       <div className="w-fit mx-auto text-left min-w-[200px] sm:min-w-[250px]">
                         <p className="font-bold underline break-words inline-block">
-                          {modul.identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}
+                          {modul.identitas.namaGuru || '...........................................'}
                         </p>
                       </div>
                     </td>
@@ -1354,14 +1354,14 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                     <td className="w-1/2 border-none p-0 align-top">
                       <div className="w-fit mx-auto text-left min-w-[200px] sm:min-w-[250px]">
                         <p className="text-slate-700">
-                          NIP. {modul.identitas.nipKepalaSekolah || '196709192008011008'}
+                          NIP. {modul.identitas.nipKepalaSekolah ? modul.identitas.nipKepalaSekolah : '...........................................'}
                         </p>
                       </div>
                     </td>
                     <td className="w-1/2 border-none p-0 align-top">
                       <div className="w-fit mx-auto text-left min-w-[200px] sm:min-w-[250px]">
                         <p className="text-slate-700">
-                          NIP. {modul.identitas.nipGuru || '198603012020121005'}
+                          NIP. {modul.identitas.nipGuru ? modul.identitas.nipGuru : '...........................................'}
                         </p>
                       </div>
                     </td>
@@ -1644,27 +1644,31 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 {/* Nama Satuan Pendidikan */}
                 <div className="sm:col-span-2 space-y-1">
-                  <label className="font-bold text-slate-800">Nama Satuan Pendidikan (Sekolah):</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800">Nama Satuan Pendidikan (Sekolah):</label>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">Terkunci Sesuai Profil</span>
+                  </div>
                   <input
                     type="text"
+                    disabled
                     value={editIdentitasForm.namaSatuanPendidikan || ''}
-                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, namaSatuanPendidikan: e.target.value })}
-                    placeholder="Contoh: SD Negeri Fatubai"
-                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
-                    required
+                    placeholder="Nama Sekolah Terkunci"
+                    className="w-full px-3 py-2 border-2 border-slate-200 bg-slate-100 text-slate-700 rounded-lg cursor-not-allowed font-medium select-none"
                   />
                 </div>
 
                 {/* Nama Guru */}
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-800">Nama Guru / Penyusun:</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800">Nama Guru / Penyusun:</label>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">Terkunci Sesuai Profil</span>
+                  </div>
                   <input
                     type="text"
+                    disabled
                     value={editIdentitasForm.namaGuru || ''}
-                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, namaGuru: e.target.value })}
                     placeholder="Nama Lengkap & Gelar"
-                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
-                    required
+                    className="w-full px-3 py-2 border-2 border-slate-200 bg-slate-100 text-slate-700 rounded-lg cursor-not-allowed font-medium select-none"
                   />
                 </div>
 
@@ -1673,24 +1677,21 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                   <label className="font-bold text-slate-800">NIP Guru:</label>
                   <input
                     type="text"
+                    disabled
                     value={editIdentitasForm.nipGuru || ''}
-                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, nipGuru: e.target.value })}
-                    placeholder="198603012020121005 atau - "
-                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                    className="w-full px-3 py-2 border-2 border-slate-200 bg-slate-100 text-slate-700 rounded-lg cursor-not-allowed font-medium font-mono select-none"
                   />
                 </div>
 
                 {/* Peran Guru */}
                 <div className="space-y-1">
                   <label className="font-bold text-slate-800">Jabatan Guru:</label>
-                  <select
+                  <input
+                    type="text"
+                    disabled
                     value={editIdentitasForm.peranGuru || 'Guru Kelas'}
-                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, peranGuru: e.target.value as any })}
-                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium bg-white"
-                  >
-                    <option value="Guru Kelas">Guru Kelas</option>
-                    <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
-                  </select>
+                    className="w-full px-3 py-2 border-2 border-slate-200 bg-slate-100 text-slate-700 rounded-lg cursor-not-allowed font-medium select-none"
+                  />
                 </div>
 
                 {/* Kelas Target */}
@@ -1709,14 +1710,15 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
 
                 {/* Nama Kepala Sekolah */}
                 <div className="space-y-1">
-                  <label className="font-bold text-slate-800">Nama Kepala Sekolah:</label>
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-slate-800">Nama Kepala Sekolah:</label>
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">Terkunci Sesuai Profil</span>
+                  </div>
                   <input
                     type="text"
+                    disabled
                     value={editIdentitasForm.namaKepalaSekolah || ''}
-                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, namaKepalaSekolah: e.target.value })}
-                    placeholder="Nama Lengkap & Gelar Kepala Sekolah"
-                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
-                    required
+                    className="w-full px-3 py-2 border-2 border-slate-200 bg-slate-100 text-slate-700 rounded-lg cursor-not-allowed font-medium select-none"
                   />
                 </div>
 
@@ -1725,10 +1727,9 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                   <label className="font-bold text-slate-800">NIP Kepala Sekolah:</label>
                   <input
                     type="text"
+                    disabled
                     value={editIdentitasForm.nipKepalaSekolah || ''}
-                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, nipKepalaSekolah: e.target.value })}
-                    placeholder="196709192008011008 atau - "
-                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                    className="w-full px-3 py-2 border-2 border-slate-200 bg-slate-100 text-slate-700 rounded-lg cursor-not-allowed font-medium font-mono select-none"
                   />
                 </div>
 

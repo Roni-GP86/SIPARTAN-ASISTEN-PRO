@@ -12,13 +12,27 @@ import { cleanTPTextWithoutCode } from './curriculumCPResolver';
  */
 export function formatTitimangsaDokumen(tempat?: string, tanggal?: string): string {
   const tpt = (tempat || '').trim();
-  const resolvedTempat = tpt && tpt !== 'Ditetapkan di Tempat' ? tpt : 'Fatubai';
+  const resolvedTempat = tpt && tpt !== 'Ditetapkan di Tempat' ? tpt : '........................';
 
   let tgl = (tanggal || '').trim();
   if (!tgl || /^[\.\-\s]+$/.test(tgl) || tgl === '........................') {
-    tgl = '22 September 2026';
+    tgl = new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   }
   return `${resolvedTempat}, ${tgl}`;
+}
+
+export function getResolvedKop(identitas: any) {
+  const kop1 = identitas?.kopBaris1 || (identitas?.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH');
+  const kop2 = identitas?.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
+  const kop3 = (identitas?.kopBaris3 || identitas?.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase();
+  const rawAlamat = identitas?.alamatInstansi || '';
+  const formattedAlamat = rawAlamat ? (rawAlamat.toLowerCase().startsWith('alamat:') ? rawAlamat : `ALAMAT: ${rawAlamat}`) : '';
+  const kop4 = identitas?.kopBaris4 || formattedAlamat;
+  return { kop1, kop2, kop3, kop4 };
 }
 
 /**
@@ -36,10 +50,7 @@ export function exportKisiKisiToWord(doc: KisiKisiSoalDocument): void {
   const jenisUjian = (identitas.jenisUjian || konfigurasi.jenisAsesmen || 'Ujian Semester 1').toUpperCase();
   const fileName = `Kisi_Kisi_${jenisUjian.replace(/\s+/g, '_')}_${identitas.mataPelajaran}_Kelas_${identitas.kelas}.doc`;
 
-  const kop1 = identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
-  const kop2 = identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const kop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const kop4 = identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah';
+  const { kop1, kop2, kop3, kop4 } = getResolvedKop(identitas);
 
   const rowsHtml = tabelKisiKisi
     .map(
@@ -505,10 +516,7 @@ export function exportNaskahSoalToWord(doc: KisiKisiSoalDocument): void {
     `;
   }
 
-  const kop1 = identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
-  const kop2 = identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const kop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const kop4 = identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah';
+  const { kop1, kop2, kop3, kop4 } = getResolvedKop(identitas);
   const jenisUjian = (identitas.jenisUjian || konfigurasi.jenisAsesmen || 'Ujian Semester 1').toUpperCase();
 
   const wordHtml = `
@@ -658,10 +666,7 @@ export function exportKunciJawabanToWord(doc: KisiKisiSoalDocument): void {
     )
     .join('');
 
-  const kop1 = identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
-  const kop2 = identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const kop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const kop4 = identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah';
+  const { kop1, kop2, kop3, kop4 } = getResolvedKop(identitas);
   const jenisUjian = (identitas.jenisUjian || konfigurasi.jenisAsesmen || 'Ujian Semester 1').toUpperCase();
 
   const wordHtml = `
@@ -705,7 +710,7 @@ export function exportKunciJawabanToWord(doc: KisiKisiSoalDocument): void {
 
       <table style="width:100%; margin-bottom:12px; border:none; font-size:10pt;">
         <tr>
-          <td width="20%"><b>Satuan Pendidikan</b></td><td width="2%">:</td><td width="38%">${lockWordData(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai')}</td>
+          <td width="20%"><b>Satuan Pendidikan</b></td><td width="2%">:</td><td width="38%">${lockWordData(identitas.namaSatuanPendidikan || 'Satuan Pendidikan')}</td>
           <td width="18%"><b>Mata Pelajaran</b></td><td width="2%">:</td><td width="20%"><b>${lockWordData(identitas.mataPelajaran)}</b></td>
         </tr>
         <tr>
@@ -790,10 +795,7 @@ export function exportKisiKisiToPDF(doc: KisiKisiSoalDocument, layoutOptions?: P
 
   const { identitas, konfigurasi, tabelKisiKisi } = doc;
   const jenisUjian = (identitas.jenisUjian || konfigurasi.jenisAsesmen || 'Ujian Semester 1').toUpperCase();
-  const kop1 = identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
-  const kop2 = identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const kop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const kop4 = identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah';
+  const { kop1, kop2, kop3, kop4 } = getResolvedKop(identitas);
 
   const pageWidth = pdf.internal.pageSize.getWidth(); // ~297mm for A4 landscape
   const centerX = pageWidth / 2;
@@ -1095,10 +1097,7 @@ export function exportNaskahSoalToPDF(doc: KisiKisiSoalDocument, layoutOptions?:
 
   const { identitas, konfigurasi, naskahSoal } = doc;
   const jenisUjian = (identitas.jenisUjian || konfigurasi.jenisAsesmen || 'Ujian Semester 1').toUpperCase();
-  const kop1 = identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
-  const kop2 = identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const kop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const kop4 = identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah';
+  const { kop1, kop2, kop3, kop4 } = getResolvedKop(identitas);
 
   const pageWidth = pdf.internal.pageSize.getWidth(); // ~210mm
   const centerX = pageWidth / 2;
@@ -1424,10 +1423,7 @@ export function exportKunciJawabanToPDF(doc: KisiKisiSoalDocument, layoutOptions
 
   const { identitas, konfigurasi, pedomanPenskoran, naskahSoal, ringkasanDistribusi } = doc;
   const jenisUjian = (identitas.jenisUjian || konfigurasi.jenisAsesmen || 'Ujian Semester 1').toUpperCase();
-  const kop1 = identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
-  const kop2 = identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const kop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const kop4 = identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah';
+  const { kop1, kop2, kop3, kop4 } = getResolvedKop(identitas);
 
   const pageWidth = pdf.internal.pageSize.getWidth(); // 210mm
   const centerX = pageWidth / 2;
@@ -1479,7 +1475,7 @@ export function exportKunciJawabanToPDF(doc: KisiKisiSoalDocument, layoutOptions
   pdf.text(':', 48, 50.5);
   pdf.text(':', 48, 54.5);
 
-  pdf.text(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', 51, 46.5);
+  pdf.text(identitas.namaSatuanPendidikan || 'Satuan Pendidikan', 51, 46.5);
   pdf.text(`${identitas.fase} / Kelas ${identitas.kelas}`, 51, 50.5);
   pdf.text(`${identitas.semester} / ${identitas.tahunPelajaran}`, 51, 54.5);
 

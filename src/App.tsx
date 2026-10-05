@@ -103,6 +103,8 @@ import {
   getAllowedFaseForRecord,
   isSubjectAllowedForRecord,
   subscribeToAccessRecordsFromFirestore,
+  subscribeToSingleAccessCode,
+  findAccessRecordAsync,
   subscribeToWordExportDisabledFromFirestore,
   fetchWordExportDisabledFromFirestore,
   updateAccessRecordAsync,
@@ -113,6 +115,7 @@ import {
   applyCloudWorkspaceToLocalStorage,
   getCloudSyncStatus,
   CloudSyncStatus,
+  updateUserWorkspaceIdentityInFirestore,
 } from './services/userWorkspaceFirestore';
 import {
   getAllSubjectWorkspaces,
@@ -234,7 +237,28 @@ export default function App() {
           setActiveAccessRecord(rec);
           setPortalMode('guru');
           setIsAccessGateOpen(false);
+          // Verifikasi ke Cloud Firestore di latar belakang agar selalu sinkron lintas perangkat
+          findAccessRecordAsync(code).then((cloudRec) => {
+            if (cloudRec) {
+              if (!cloudRec.isActive || cloudRec.status === 'inactive') {
+                setActiveAccessRecord(null);
+                clearActiveSessionCode();
+                setIsAccessGateOpen(true);
+              } else {
+                setActiveAccessRecord(cloudRec);
+              }
+            }
+          }).catch(() => {});
           return;
+        } else {
+          // Jika di cache lokal belum aktif, cari langsung di Cloud Firestore
+          findAccessRecordAsync(code).then((cloudRec) => {
+            if (cloudRec && (cloudRec.isActive || cloudRec.status === 'active')) {
+              setActiveAccessRecord(cloudRec);
+              setPortalMode('guru');
+              setIsAccessGateOpen(false);
+            }
+          }).catch(() => {});
         }
       }
 
@@ -288,14 +312,9 @@ export default function App() {
     try {
       const stored = loadFromStorage<SchoolIdentity | null>(STORAGE_KEYS.IDENTITAS, null);
       if (stored) {
+        // Migrasi legacy demo/dev hanya untuk akun default pengembang
         if (stored.namaSatuanPendidikan === 'UPTD SD NEGERI SASI') {
           stored.namaSatuanPendidikan = 'SD Negeri Fatubai';
-        }
-        if (stored.namaKepalaSekolah === 'Dr. Hj. Siti Aminah, M.Pd.') {
-          stored.namaKepalaSekolah = 'Darius Kusi, S.Pd.';
-        }
-        if (stored.nipKepalaSekolah === '19750314 200003 2 001') {
-          stored.nipKepalaSekolah = '196709192008011008';
         }
         if (
           stored.namaGuru === 'Haryanto Roni Bhidju, S.Pd.SD' ||
@@ -303,9 +322,9 @@ export default function App() {
           stored.namaGuru === 'Roni Hariyanto Bhidju, S.Pd'
         ) {
           stored.namaGuru = 'Roni Hariyanto Bhidju, S.Pd';
-        }
-        if (stored.nipGuru === '19880512 201402 1 002' || !stored.nipGuru || stored.nipGuru === '-') {
-          stored.nipGuru = '198603012020121005';
+          if (stored.nipGuru === '19880512 201402 1 002' || !stored.nipGuru) {
+            stored.nipGuru = '198603012020121005';
+          }
         }
         return { ...INITIAL_MATEMATIKA_IDENTITAS, ...stored };
       }
@@ -849,8 +868,43 @@ export default function App() {
 
   const handleUpdateIdentitas = async (newIdentitas: SchoolIdentity) => {
     handleIdentitasChange(newIdentitas);
-    if (activeAccessRecord && !isMasterAccessCode(activeAccessRecord.kodeAkses) && !isDeactivatedLegacyCode(activeAccessRecord.kodeAkses)) {
+
+    // 1. Sinkronkan secara instan ke seluruh dokumen aktif di memori
+    setAtpDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
+    setKktpDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
+    setProtaDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
+    setPromesDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
+    setModulAjarDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
+    setSoalDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
+
+    // 2. Simpan permanen ke subject workspace lokal
+    try {
+      saveSubjectWorkspace({
+        mataPelajaran: newIdentitas.mataPelajaran || identitas.mataPelajaran || 'Matematika',
+        fase: newIdentitas.fase || identitas.fase || 'Fase C',
+        kelas: newIdentitas.kelas || identitas.kelas || '5',
+        identitas: newIdentitas,
+        selectedElements,
+        preferensiTambahan,
+        elemenRows,
+        tpList,
+        rasionalAnalisis,
+        atpDocument: atpDocument ? { ...atpDocument, identitas: { ...atpDocument.identitas, ...newIdentitas } } : null,
+        kktpDocument: kktpDocument ? { ...kktpDocument, identitas: { ...kktpDocument.identitas, ...newIdentitas } } : null,
+        protaDocument: protaDocument ? { ...protaDocument, identitas: { ...protaDocument.identitas, ...newIdentitas } } : null,
+        promesDocument: promesDocument ? { ...promesDocument, identitas: { ...promesDocument.identitas, ...newIdentitas } } : null,
+        modulAjarDocument: modulAjarDocument ? { ...modulAjarDocument, identitas: { ...modulAjarDocument.identitas, ...newIdentitas } } : null,
+        soalDocument: soalDocument ? { ...soalDocument, identitas: { ...soalDocument.identitas, ...newIdentitas } } : null,
+      });
+      saveToStorage(STORAGE_KEYS.IDENTITY, newIdentitas);
+    } catch (e) {
+      console.warn('Gagal menyimpan workspace lokal setelah update identitas:', e);
+    }
+
+    // 3. Sinkronisasi permanen ke Cloud Firestore
+    if (activeAccessRecord && !isDeactivatedLegacyCode(activeAccessRecord.kodeAkses)) {
       try {
+        await updateUserWorkspaceIdentityInFirestore(activeAccessRecord.kodeAkses, newIdentitas);
         const res = await updateAccessRecordAsync(activeAccessRecord.kodeAkses, {
           namaGuru: newIdentitas.namaGuru,
           nipGuru: newIdentitas.nipGuru || '-',
@@ -860,6 +914,15 @@ export default function App() {
           nipKepalaSekolah: newIdentitas.nipKepalaSekolah || '-',
           fase: newIdentitas.fase,
           kelas: newIdentitas.kelas,
+          alamatInstansi: newIdentitas.alamatInstansi,
+          tempatPenetapan: newIdentitas.tempatPenetapan,
+          tahunPelajaran: newIdentitas.tahunPelajaran,
+          semester: newIdentitas.semester,
+          kopBaris1: newIdentitas.kopBaris1,
+          kopBaris2: newIdentitas.kopBaris2,
+          kopBaris3: newIdentitas.kopBaris3,
+          kopBaris4: newIdentitas.kopBaris4,
+          logoUrl: newIdentitas.logoUrl,
         });
         if (res.success && res.record) {
           setActiveAccessRecord(res.record);
@@ -868,7 +931,7 @@ export default function App() {
         console.warn('Gagal sinkronisasi data profil gawai ke cloud:', err);
       }
     }
-    showToast('Profil sekolah dan data guru berhasil diperbarui!');
+    showToast('Profil Sekolah & Guru berhasil diperbarui! Seluruh dokumen resmi otomatis disinkronkan.');
   };
 
   // Muat data pekerjaan dari Firebase Cloud Firestore jika ada
@@ -1053,26 +1116,47 @@ export default function App() {
     await syncUserWorkspaceFromCloud(record.kodeAkses);
   };
 
+  // Real-time Listener Lintas Perangkat: Mendeteksi seketika perubahan dari Cloud Firestore
+  // (misalnya saat Admin mengaktifkan/menonaktifkan atau mengedit data user dari perangkat Admin)
   useEffect(() => {
-    if (activeAccessRecord && (activeAccessRecord.status === 'active' || activeAccessRecord.isActive)) {
-      // Master code memiliki akses penuh tanpa batasan Fase, Kelas, maupun Jabatan
-      if (activeAccessRecord.isPremiumMaster || isMasterAccessCode(activeAccessRecord.kodeAkses)) {
+    if (!activeAccessRecord?.kodeAkses) return;
+    const currentCode = activeAccessRecord.kodeAkses.toUpperCase().trim();
+    if (isMasterAccessCode(currentCode)) return;
+
+    const unsubscribe = subscribeToSingleAccessCode(currentCode, (cloudRecord) => {
+      if (!cloudRecord) return;
+
+      // 1. Jika akun dinonaktifkan oleh Admin dari perangkat lain
+      if (!cloudRecord.isActive || cloudRecord.status === 'inactive') {
+        setActiveAccessRecord(null);
+        clearActiveSessionCode();
+        setIsAccessGateOpen(true);
+        showToast(`Kode akses ${currentCode} telah dinonaktifkan oleh Administrator.`);
         return;
       }
-      const lockedId = convertAccessRecordToIdentity(activeAccessRecord, identitas);
-      if (
-        (identitas.namaSatuanPendidikan || '').toLowerCase() !== (lockedId.namaSatuanPendidikan || '').toLowerCase() ||
-        (identitas.namaGuru || '').toLowerCase() !== (lockedId.namaGuru || '').toLowerCase() ||
-        identitas.nipGuru !== lockedId.nipGuru ||
-        (identitas.namaKepalaSekolah || '').toLowerCase() !== (lockedId.namaKepalaSekolah || '').toLowerCase() ||
-        identitas.nipKepalaSekolah !== lockedId.nipKepalaSekolah ||
-        identitas.fase !== lockedId.fase ||
-        identitas.kelas !== lockedId.kelas
-      ) {
-        handleIdentitasChange(lockedId);
+
+      // 2. Periksa apakah Admin melakukan perubahan identitas
+      const updatedIdentity = convertAccessRecordToIdentity(cloudRecord, identitas);
+      const isChanged =
+        (identitas.namaSatuanPendidikan || '').toLowerCase().trim() !== (updatedIdentity.namaSatuanPendidikan || '').toLowerCase().trim() ||
+        (identitas.namaGuru || '').toLowerCase().trim() !== (updatedIdentity.namaGuru || '').toLowerCase().trim() ||
+        identitas.nipGuru !== updatedIdentity.nipGuru ||
+        (identitas.namaKepalaSekolah || '').toLowerCase().trim() !== (updatedIdentity.namaKepalaSekolah || '').toLowerCase().trim() ||
+        identitas.nipKepalaSekolah !== updatedIdentity.nipKepalaSekolah ||
+        identitas.fase !== updatedIdentity.fase ||
+        identitas.kelas !== updatedIdentity.kelas;
+
+      if (isChanged) {
+        setActiveAccessRecord(cloudRecord);
+        handleUpdateIdentitas(updatedIdentity);
+        showToast(`⚡ Pembaruan identitas dari Admin telah diterapkan ke seluruh dokumen Anda secara real-time.`);
       }
-    }
-  }, [activeAccessRecord]);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [activeAccessRecord?.kodeAkses]);
 
   // Synchronize TP edits to tpList, elemenRows, and kktpDocument for complete referential integrity
   const handleUpdateTPList = (updatedTPs: TPItem[]) => {
@@ -2394,13 +2478,11 @@ export default function App() {
 
             <button
               onClick={() => setIsIdentityModalOpen(true)}
-              className="px-2.5 py-1.5 text-xs font-bold text-amber-300 bg-[#0E1B38] hover:bg-[#122244] hover:text-amber-200 border-2 border-amber-500/50 hover:border-amber-400 rounded-lg shadow-xs transition-all flex items-center gap-1.5 cursor-pointer max-w-[150px] shrink-0"
-              title={`Profil Sekolah: ${identitas.namaSatuanPendidikan || 'Terkunci'}`}
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-amber-300 bg-[#0E1B38] hover:bg-[#162a56] hover:text-amber-100 border-2 border-amber-400/80 hover:border-amber-300 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              title="Menu Profil Sekolah & Guru: Atur alamat instansi, tempat cetak, tahun pelajaran, semester, dan pemilihan kelas"
             >
-              <Lock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate hidden md:inline">
-                {identitas.namaSatuanPendidikan || 'Identitas'}
-              </span>
+              <Building className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>Profil Sekolah &amp; Guru</span>
             </button>
 
             <button
@@ -2752,6 +2834,8 @@ export default function App() {
                 showToast(`Kode ${refreshed.kodeAkses} telah dinonaktifkan.`);
               } else {
                 setActiveAccessRecord(refreshed);
+                const updatedIdentity = convertAccessRecordToIdentity(refreshed, identitas);
+                handleUpdateIdentitas(updatedIdentity);
               }
             }
           }

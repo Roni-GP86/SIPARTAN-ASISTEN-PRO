@@ -128,26 +128,13 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
   onGoToCPInput,
   onOpenSubjectPicker,
 }) => {
-  // Identity Form State
-  const [schoolName, setSchoolName] = useState(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai');
-  const [guruName, setGuruName] = useState(identitas.namaGuru || 'Roni Hariyanto Bhidju, S. Pd');
-  const [nipGuru, setNipGuru] = useState(identitas.nipGuru || '');
-  const [peranGuru, setPeranGuru] = useState<'Guru Kelas' | 'Guru Mata Pelajaran'>(
-    (identitas.peranGuru as any) || 'Guru Kelas'
-  );
-  const [kepalaSekolah, setKepalaSekolah] = useState(identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.');
-  const [nipKepalaSekolah, setNipKepalaSekolah] = useState(identitas.nipKepalaSekolah || '196709192008011008');
-  const [isIdentityExpanded, setIsIdentityExpanded] = useState(false);
-
-  // Sync state if identitas prop changes
-  useEffect(() => {
-    if (identitas.namaSatuanPendidikan) setSchoolName(identitas.namaSatuanPendidikan);
-    if (identitas.namaGuru) setGuruName(identitas.namaGuru);
-    if (identitas.nipGuru) setNipGuru(identitas.nipGuru);
-    if (identitas.namaKepalaSekolah) setKepalaSekolah(identitas.namaKepalaSekolah);
-    if (identitas.nipKepalaSekolah) setNipKepalaSekolah(identitas.nipKepalaSekolah);
-    if (identitas.peranGuru) setPeranGuru(identitas.peranGuru as any);
-  }, [identitas]);
+  // Identity State (Read-only from central profile)
+  const schoolName = identitas.namaSatuanPendidikan || identitas.namaSekolah || '';
+  const guruName = identitas.namaGuru || '';
+  const nipGuru = identitas.nipGuru || '-';
+  const peranGuru = (identitas.peranGuru as any) || 'Guru Kelas';
+  const kepalaSekolah = identitas.namaKepalaSekolah || '';
+  const nipKepalaSekolah = identitas.nipKepalaSekolah || '-';
 
   // Determine available classes for the given Fase (e.g. Fase C -> ['5', '6'])
   const possibleClasses = useMemo(() => getClassesForFase(identitas.fase), [identitas.fase]);
@@ -768,12 +755,6 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
     if (onUpdateIdentitas) {
       onUpdateIdentitas({
         ...identitas,
-        namaSatuanPendidikan: schoolName.trim() || identitas.namaSatuanPendidikan,
-        namaGuru: guruName.trim() || identitas.namaGuru,
-        nipGuru: nipGuru.trim(),
-        peranGuru: peranGuru,
-        namaKepalaSekolah: kepalaSekolah.trim() || identitas.namaKepalaSekolah,
-        nipKepalaSekolah: nipKepalaSekolah.trim(),
         kelas: selectedKelas,
         semester: selectedSemester as any,
       });
@@ -1064,140 +1045,34 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsIdentityExpanded(!isIdentityExpanded)}
-                    className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-white text-slate-700 hover:bg-slate-100 border border-slate-300 transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{isIdentityExpanded ? 'Sembunyikan Form' : 'Edit Identitas Lengkap'}</span>
-                    {isIdentityExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                    <Lock className="w-3 h-3 text-amber-700" /> Terkunci dari Profil
+                  </span>
                 </div>
 
-                {/* Identity Summary Bar when collapsed */}
-                {!isIdentityExpanded ? (
-                  <div className="p-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] bg-slate-50/50">
-                    <div className="flex items-center gap-1.5 text-slate-700">
-                      <Building className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="font-bold">Sekolah:</span>
-                      <span className="truncate font-semibold text-slate-900">{schoolName}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-slate-700">
-                      <User className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="font-bold">Guru:</span>
-                      <span className="truncate font-semibold text-slate-900">{guruName} ({peranGuru})</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-slate-700">
-                      <Award className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="font-bold">Kepala Sekolah:</span>
-                      <span className="truncate font-semibold text-slate-900">{kepalaSekolah}</span>
-                    </div>
+                {/* Identity Summary Card (Locked & Centralized) */}
+                <div className="p-3.5 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50/80 rounded-b-xl border-t border-slate-200">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                      <Building className="w-3 h-3 text-slate-400" /> Satuan Pendidikan
+                    </span>
+                    <p className="font-black text-slate-900 truncate">{schoolName || 'Belum diatur'}</p>
                   </div>
-                ) : (
-                  /* Expanded Identity Form */
-                  <div className="p-4 space-y-3 bg-white">
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Nama Satuan Pendidikan:
-                        </label>
-                        <input
-                          type="text"
-                          value={schoolName}
-                          onChange={(e) => setSchoolName(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
-                          placeholder="SD Negeri Fatubai"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Peran Guru Mata Pelajaran:
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setPeranGuru('Guru Kelas')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                              peranGuru === 'Guru Kelas'
-                                ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
-                                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-                            }`}
-                          >
-                            Guru Kelas
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setPeranGuru('Guru Mata Pelajaran')}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border cursor-pointer ${
-                              peranGuru === 'Guru Mata Pelajaran'
-                                ? 'bg-blue-600 text-white border-blue-700 shadow-xs'
-                                : 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
-                            }`}
-                          >
-                            Guru Mata Pelajaran
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Nama Guru Penyusun:
-                        </label>
-                        <input
-                          type="text"
-                          value={guruName}
-                          onChange={(e) => setGuruName(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
-                          placeholder="Roni Hariyanto Bhidju, S. Pd"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          NIP Guru Penyusun (Opsional):
-                        </label>
-                        <input
-                          type="text"
-                          value={nipGuru}
-                          onChange={(e) => setNipGuru(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500"
-                          placeholder="NIP Guru / -"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          Nama Kepala Satuan Pendidikan:
-                        </label>
-                        <input
-                          type="text"
-                          value={kepalaSekolah}
-                          onChange={(e) => setKepalaSekolah(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500"
-                          placeholder="Darius Kusi, S.Pd."
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                          NIP Kepala Sekolah:
-                        </label>
-                        <input
-                          type="text"
-                          value={nipKepalaSekolah}
-                          onChange={(e) => setNipKepalaSekolah(e.target.value)}
-                          className="w-full px-3 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500"
-                          placeholder="196709192008011008"
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                      <User className="w-3 h-3 text-slate-400" /> Guru ({peranGuru})
+                    </span>
+                    <p className="font-bold text-slate-900 truncate">{guruName || 'Belum diatur'}</p>
+                    {nipGuru && nipGuru !== '-' && <p className="text-[10px] text-slate-500 font-mono">NIP: {nipGuru}</p>}
                   </div>
-                )}
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1">
+                      <Award className="w-3 h-3 text-slate-400" /> Kepala Sekolah
+                    </span>
+                    <p className="font-bold text-slate-900 truncate">{kepalaSekolah || 'Belum diatur'}</p>
+                    {nipKepalaSekolah && nipKepalaSekolah !== '-' && <p className="text-[10px] text-slate-500 font-mono">NIP: {nipKepalaSekolah}</p>}
+                  </div>
+                </div>
               </div>
 
               {/* LANGKAH 2: TENTUKAN KELAS & SEMESTER */}

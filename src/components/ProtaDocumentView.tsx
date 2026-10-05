@@ -733,16 +733,16 @@ export const ProtaDocumentView: React.FC<ProtaDocumentViewProps> = ({
               </p>
               <div className="h-20" />
               <p className="font-black text-slate-950 underline">
-                {id.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}
+                {id.namaKepalaSekolah || '...........................................'}
               </p>
               <p className="text-xs text-slate-600">
-                NIP. {id.nipKepalaSekolah || '196709192008011008'}
+                NIP. {id.nipKepalaSekolah ? id.nipKepalaSekolah : '...........................................'}
               </p>
             </div>
 
             <div className="space-y-1 md:text-right">
               <p className="font-medium text-slate-600">
-                {id.tempatPenetapan || 'Fatubai'},{' '}
+                {id.tempatPenetapan || id.kabupaten || '...................'},{' '}
                 {id.tanggalPenetapan ||
                   new Date().toLocaleDateString('id-ID', {
                     day: 'numeric',
@@ -753,10 +753,10 @@ export const ProtaDocumentView: React.FC<ProtaDocumentViewProps> = ({
               <p className="font-bold text-slate-900">{id.peranGuru || 'Guru Kelas'}</p>
               <div className="h-20" />
               <p className="font-black text-slate-950 underline">
-                {id.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}
+                {id.namaGuru || '...........................................'}
               </p>
               <p className="text-xs text-slate-600">
-                NIP. {id.nipGuru || '198603012020121005'}
+                NIP. {id.nipGuru ? id.nipGuru : '...........................................'}
               </p>
             </div>
           </div>

@@ -949,7 +949,7 @@ export const TPAnalysisView: React.FC<TPAnalysisViewProps> = ({
                         <td className="w-1/2 border-none p-0 align-top">
                           <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                             <p>
-                              {identitas.tempatPenetapan || 'Fatubai'},{' '}
+                              {identitas.tempatPenetapan || identitas.kabupaten || '...................'},{' '}
                               {identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', {
                                 day: 'numeric',
                                 month: 'long',
@@ -979,14 +979,14 @@ export const TPAnalysisView: React.FC<TPAnalysisViewProps> = ({
                         <td className="w-1/2 border-none p-0 align-bottom h-20 pb-1">
                           <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                             <p className="font-bold underline break-words inline-block">
-                              {identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}
+                              {identitas.namaKepalaSekolah || '...........................................'}
                             </p>
                           </div>
                         </td>
                         <td className="w-1/2 border-none p-0 align-bottom h-20 pb-1">
                           <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                             <p className="font-bold underline break-words inline-block">
-                              {identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}
+                              {identitas.namaGuru || '...........................................'}
                             </p>
                           </div>
                         </td>
@@ -997,14 +997,14 @@ export const TPAnalysisView: React.FC<TPAnalysisViewProps> = ({
                         <td className="w-1/2 border-none p-0 align-top">
                           <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                             <p className="text-[11px] font-sans text-slate-600">
-                              NIP. {identitas.nipKepalaSekolah || '196709192008011008'}
+                              NIP. {identitas.nipKepalaSekolah ? identitas.nipKepalaSekolah : '...........................................'}
                             </p>
                           </div>
                         </td>
                         <td className="w-1/2 border-none p-0 align-top">
                           <div className="w-fit mx-auto text-left min-w-[180px] sm:min-w-[220px]">
                             <p className="text-[11px] font-sans text-slate-600">
-                              NIP. {identitas.nipGuru || '198603012020121005'}
+                              NIP. {identitas.nipGuru ? identitas.nipGuru : '...........................................'}
                             </p>
                           </div>
                         </td>

@@ -95,8 +95,8 @@ export function generateUserAccessListPDF(options: UserAccessPdfOptions): void {
 
   // ================= 3. PARAMETER & KEPALA SEKOLAH =================
   const firstRecord = records[0];
-  const ksName = firstRecord?.namaKepalaSekolah && firstRecord.namaKepalaSekolah !== '-' ? firstRecord.namaKepalaSekolah : 'Darius Kusi, S.Pd.';
-  const ksNip = firstRecord?.nipKepalaSekolah && firstRecord.nipKepalaSekolah !== '-' ? firstRecord.nipKepalaSekolah : '196709192008011008';
+  const ksName = firstRecord?.namaKepalaSekolah && firstRecord.namaKepalaSekolah !== '-' ? firstRecord.namaKepalaSekolah : '-';
+  const ksNip = firstRecord?.nipKepalaSekolah && firstRecord.nipKepalaSekolah !== '-' ? firstRecord.nipKepalaSekolah : '-';
   const totalGuru = records.length;
   const totalAktif = records.filter((r) => r.isActive).length;
 

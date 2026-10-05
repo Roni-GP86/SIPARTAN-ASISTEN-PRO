@@ -73,10 +73,12 @@ export function generateStudentExamReportPDF(data: StudentExamReportData): void 
   // Baris 4: Alamat Lengkap Instansi
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713');
-  doc.text(alamat, pageWidth / 2, currentY, { align: 'center' });
-  currentY += 3.5;
-  doc.text('Laman Resmi Asesmen CBT: SIPARTAN TTU • Tahun Ajaran 2026/2027', pageWidth / 2, currentY, { align: 'center' });
+  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : (identitas.namaSatuanPendidikan ? `Alamat: Lingkungan ${identitas.namaSatuanPendidikan}` : ''));
+  if (alamat) {
+    doc.text(alamat, pageWidth / 2, currentY, { align: 'center' });
+    currentY += 3.5;
+  }
+  doc.text(`Laman Resmi Asesmen CBT: SIPARTAN • Tahun Ajaran ${identitas.tahunPelajaran || '2026/2027'}`, pageWidth / 2, currentY, { align: 'center' });
   currentY += 3;
 
   // Garis Pembatas Kop Surat (Double Line)
@@ -377,24 +379,25 @@ export function generateStudentExamReportPDF(data: StudentExamReportData): void 
   doc.setFont('times', 'normal');
   doc.setFontSize(9.5);
 
-  // Tanggal pengesahan
-  doc.text(`Fatubai, ${reportDate}`, rightX, currentY);
+  // Tempat dan tanggal penetapan dokumen
+  const tempatCetak = identitas.tempatPenetapan || (identitas.namaSatuanPendidikan ? identitas.namaSatuanPendidikan.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim() : '........................');
+  doc.text(`${tempatCetak}, ${reportDate}`, rightX, currentY);
   currentY += 5;
 
   doc.text('Mengetahui,', leftX, currentY);
-  doc.text('Guru Kelas VI,', rightX, currentY);
+  doc.text(`${identitas.peranGuru || 'Guru Kelas'},`, rightX, currentY);
   currentY += 4.5;
 
-  doc.text('Kepala SD Negeri Fatubai', leftX, currentY);
-  doc.text(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', rightX, currentY);
+  doc.text(`Kepala ${identitas.namaSatuanPendidikan || 'Satuan Pendidikan'}`, leftX, currentY);
+  doc.text(identitas.namaSatuanPendidikan || 'Satuan Pendidikan', rightX, currentY);
 
   // Spasi tanda tangan
   currentY += 24;
 
-  const ksNama = identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.';
-  const ksNip = identitas.nipKepalaSekolah || '196709192008011008';
-  const grNama = identitas.namaGuru || 'Yohanes Pantola, S.Pd.SD';
-  const grNip = identitas.nipGuru || '198603012020121005';
+  const ksNama = identitas.namaKepalaSekolah && identitas.namaKepalaSekolah !== '-' ? identitas.namaKepalaSekolah : '...........................................';
+  const ksNip = identitas.nipKepalaSekolah && identitas.nipKepalaSekolah !== '-' ? identitas.nipKepalaSekolah : '-';
+  const grNama = identitas.namaGuru && identitas.namaGuru !== '-' ? identitas.namaGuru : '...........................................';
+  const grNip = identitas.nipGuru && identitas.nipGuru !== '-' ? identitas.nipGuru : '-';
 
   doc.setFont('times', 'bold');
   doc.text(ksNama, leftX, currentY);
@@ -416,15 +419,16 @@ export function generateStudentExamReportPDF(data: StudentExamReportData): void 
   doc.setFont('times', 'italic');
   doc.setTextColor(100, 100, 100);
   doc.text(
-    `Dicetak otomatis melalui Aplikasi SIPARTAN SD Negeri Fatubai pada ${new Date().toLocaleString('id-ID')}`,
+    `Dicetak otomatis melalui Aplikasi SIPARTAN ${identitas.namaSatuanPendidikan || ''} pada ${new Date().toLocaleString('id-ID')}`,
     marginX,
     pageHeight - 8
   );
 
   // Simpan file
+  const safeSchoolName = (identitas.namaSatuanPendidikan || 'Sekolah').replace(/[^a-zA-Z0-9_-]/g, '_');
   const filename = selectedPackage
-    ? `Laporan_CBT_${selectedPackage.judul.replace(/[^a-zA-Z0-9_-]/g, '_')}_SDN_Fatubai.pdf`
-    : `Laporan_Hasil_Asesmen_Siswa_Kelas6_SDN_Fatubai.pdf`;
+    ? `Laporan_CBT_${selectedPackage.judul.replace(/[^a-zA-Z0-9_-]/g, '_')}_${safeSchoolName}.pdf`
+    : `Laporan_Hasil_Asesmen_Siswa_${safeSchoolName}.pdf`;
 
   doc.save(filename);
 }

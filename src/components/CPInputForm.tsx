@@ -1083,7 +1083,7 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
                   </span>
                 </div>
                 <div className="font-black text-sm text-slate-900">
-                  {identitas.namaGuru || 'Roni Hariyanto Bhidju, S. Pd'}
+                  {identitas.namaGuru || 'Nama Guru Belum Diatur'}
                 </div>
               </div>
 
@@ -1112,7 +1112,7 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
                   </span>
                 </div>
                 <div className="font-black text-sm text-slate-900">
-                  {identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}
+                  {identitas.namaKepalaSekolah || 'Kepala Sekolah Belum Diatur'}
                 </div>
               </div>
 

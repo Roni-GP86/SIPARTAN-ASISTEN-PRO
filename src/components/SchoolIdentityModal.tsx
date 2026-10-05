@@ -34,6 +34,17 @@ interface SchoolIdentityModalProps {
   defaultTab?: 'profil' | 'logo';
 }
 
+export function getAvailableClassesForFase(fase: string): string[] {
+  const clean = (fase || '').trim().toLowerCase();
+  if (clean.includes('fase a')) return ['1', '2'];
+  if (clean.includes('fase b')) return ['3', '4'];
+  if (clean.includes('fase c')) return ['5', '6'];
+  if (clean.includes('fase d')) return ['7', '8', '9'];
+  if (clean.includes('fase e')) return ['10'];
+  if (clean.includes('fase f')) return ['11', '12'];
+  return ['1', '2', '3', '4', '5', '6'];
+}
+
 export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
   isOpen,
   onClose,
@@ -51,13 +62,36 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
   const [kopBaris2, setKopBaris2] = useState<string>(
     identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'
   );
-  const schoolName = identitas.namaSatuanPendidikan || 'SD Negeri Fatubai';
-  const [alamatInstansi, setAlamatInstansi] = useState<string>(
-    identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713'
+  const schoolName = identitas.namaSatuanPendidikan || identitas.namaSekolah || '';
+  const isFatubaiLocal = schoolName.toLowerCase().includes('fatubai');
+  const defaultAlamat = identitas.alamatInstansi || (isFatubaiLocal ? 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713' : '');
+  const [alamatInstansi, setAlamatInstansi] = useState<string>(defaultAlamat);
+  const [tempatPenetapan, setTempatPenetapan] = useState<string>(
+    identitas.tempatPenetapan ||
+    (schoolName ? schoolName.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim() : (isFatubaiLocal ? 'Fatubai' : ''))
   );
+  const [namaGuru, setNamaGuru] = useState<string>(identitas.namaGuru || '');
+  const [nipGuru, setNipGuru] = useState<string>(identitas.nipGuru || '');
+  const [namaKepalaSekolah, setNamaKepalaSekolah] = useState<string>(identitas.namaKepalaSekolah || '');
+  const [nipKepalaSekolah, setNipKepalaSekolah] = useState<string>(identitas.nipKepalaSekolah || '');
   const [kabupaten, setKabupaten] = useState<string>(
     identitas.kabupaten || 'Timor Tengah Utara'
   );
+
+  // Pengaturan Fleksibel Guru: Tahun Pelajaran, Semester, dan Kelas Spesifik Fase
+  const [tahunPelajaran, setTahunPelajaran] = useState<string>(
+    identitas.tahunPelajaran || '2026/2027'
+  );
+  const [semester, setSemester] = useState<string>(
+    identitas.semester ? String(identitas.semester).replace(/[^0-9]/g, '') || '1' : '1'
+  );
+  const availableClasses = getAvailableClassesForFase(identitas.fase);
+  const [selectedKelas, setSelectedKelas] = useState<string>(
+    identitas.kelas && availableClasses.includes(String(identitas.kelas).trim())
+      ? String(identitas.kelas).trim()
+      : availableClasses[0] || '5'
+  );
+
   const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState(false);
@@ -68,31 +102,64 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
       setLogoState(identitas.logoUrl || '');
       setKopBaris1(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA');
       setKopBaris2(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN');
-      setAlamatInstansi(identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713');
+      const isFatubaiNow = (identitas.namaSatuanPendidikan || '').toLowerCase().includes('fatubai');
+      setAlamatInstansi(identitas.alamatInstansi || (isFatubaiNow ? 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713' : ''));
+      setTempatPenetapan(
+        identitas.tempatPenetapan ||
+        (identitas.namaSatuanPendidikan ? identitas.namaSatuanPendidikan.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim() : (isFatubaiNow ? 'Fatubai' : ''))
+      );
       setKabupaten(identitas.kabupaten || 'Timor Tengah Utara');
+      setNamaGuru(identitas.namaGuru || '');
+      setNipGuru(identitas.nipGuru || '');
+      setNamaKepalaSekolah(identitas.namaKepalaSekolah || '');
+      setNipKepalaSekolah(identitas.nipKepalaSekolah || '');
+      setTahunPelajaran(identitas.tahunPelajaran || '2026/2027');
+      setSemester(identitas.semester ? String(identitas.semester).replace(/[^0-9]/g, '') || '1' : '1');
+      const classes = getAvailableClassesForFase(identitas.fase);
+      setSelectedKelas(
+        identitas.kelas && classes.includes(String(identitas.kelas).trim())
+          ? String(identitas.kelas).trim()
+          : classes[0] || '5'
+      );
     }
   }, [isOpen, identitas]);
 
   if (!isOpen) return null;
 
-  const alamatLengkap = alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
+  const alamatLengkap = alamatInstansi || (isFatubaiLocal ? 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713' : '');
 
   const handleSaveData = (customOverrides?: Partial<SchoolIdentity>) => {
     const cleanKop1 = (customOverrides?.kopBaris1 ?? kopBaris1).trim() || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
     const cleanKop2 = (customOverrides?.kopBaris2 ?? kopBaris2).trim() || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-    const cleanAlamat = (customOverrides?.alamatInstansi ?? alamatInstansi).trim() || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
+    const cleanAlamat = (customOverrides?.alamatInstansi ?? alamatInstansi).trim();
+    const cleanTempat = (customOverrides?.tempatPenetapan ?? tempatPenetapan).trim();
+    const cleanNamaGuru = (customOverrides?.namaGuru ?? namaGuru).trim() || identitas.namaGuru;
+    const cleanNipGuru = (customOverrides?.nipGuru ?? nipGuru).trim() || identitas.nipGuru || '-';
+    const cleanNamaKS = (customOverrides?.namaKepalaSekolah ?? namaKepalaSekolah).trim() || identitas.namaKepalaSekolah;
+    const cleanNipKS = (customOverrides?.nipKepalaSekolah ?? nipKepalaSekolah).trim() || identitas.nipKepalaSekolah || '-';
     const cleanLogo = customOverrides?.logoUrl !== undefined ? customOverrides.logoUrl : (logoState || undefined);
-    const cleanKop4 = cleanAlamat.toLowerCase().startsWith('alamat:') ? cleanAlamat : `Alamat: ${cleanAlamat}`;
+    const cleanKop4 = cleanAlamat ? (cleanAlamat.toLowerCase().startsWith('alamat:') ? cleanAlamat : `Alamat: ${cleanAlamat}`) : '';
+    const cleanTahun = (customOverrides?.tahunPelajaran ?? tahunPelajaran).trim() || '2026/2027';
+    const cleanSemester = (customOverrides?.semester ?? semester).trim() || '1';
+    const cleanKelas = (customOverrides?.kelas ?? selectedKelas).trim() || (availableClasses[0] || '5');
 
     const updated: SchoolIdentity = {
       ...identitas,
       logoUrl: cleanLogo,
       kopBaris1: cleanKop1,
       kopBaris2: cleanKop2,
-      kopBaris3: schoolName.toUpperCase(),
+      kopBaris3: schoolName ? schoolName.toUpperCase() : (identitas.kopBaris3 || ''),
       kopBaris4: cleanKop4,
       alamatInstansi: cleanAlamat,
+      tempatPenetapan: cleanTempat,
+      namaGuru: cleanNamaGuru,
+      nipGuru: cleanNipGuru,
+      namaKepalaSekolah: cleanNamaKS,
+      nipKepalaSekolah: cleanNipKS,
       kabupaten: (customOverrides?.kabupaten ?? kabupaten).trim() || identitas.kabupaten || 'Timor Tengah Utara',
+      tahunPelajaran: cleanTahun,
+      semester: cleanSemester,
+      kelas: cleanKelas,
       ...customOverrides,
     };
 
@@ -382,6 +449,29 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      {/* Tempat Penetapan / Kota Cetak Dokumen */}
+                      <div className="space-y-1 sm:col-span-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-bold text-slate-700 tracking-wider flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-emerald-600" />
+                            <span>Tempat Cetak Dokumen (Kota / Daerah Titimangsa)</span>
+                          </label>
+                          <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                            Bisa Edit
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          value={tempatPenetapan}
+                          onChange={(e) => setTempatPenetapan(e.target.value)}
+                          placeholder="Contoh: Fatubai, Kefamenanu, Kupang, Silaut"
+                          className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-emerald-600 transition-all shadow-2xs"
+                        />
+                        <p className="text-[10px] text-slate-500">
+                          Nama kota/daerah ini dicetak di atas tanggal tanda tangan (titimangsa dokumen resmi).
+                        </p>
+                      </div>
+
                       {/* Pemerintah Daerah (Baris 1 Kop) */}
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
@@ -420,71 +510,223 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
                         />
                       </div>
                     </div>
-
-                    <div className="flex items-center justify-end pt-1">
-                      <button
-                        type="button"
-                        onClick={() => handleSaveData()}
-                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
-                      >
-                        <Save className="w-3.5 h-3.5" />
-                        <span>Simpan Perubahan Alamat &amp; Instansi</span>
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Section: Data Penyusun Guru */}
+              {/* Section: Data Penyusun Guru (TERKUNCI OTOMATIS) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-900 border-b border-slate-200 pb-1">
                   <div className="flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Data Penyusun / Penandatangan Dokumen</span>
+                    <span>Data Guru / Penyusun (Terkunci Otomatis)</span>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5 text-amber-700" /> Terkunci Permanen
+                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300 flex items-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5" /> Terkunci Sistem
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Jabatan Guru</span>
-                    <span className="text-xs font-black text-slate-900">{identitas.peranGuru || 'Guru Kelas'}</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1">Jabatan Guru</span>
+                    <span className="text-xs font-black text-slate-900 block">{identitas.peranGuru || 'Guru Kelas'}</span>
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">NIP Guru</span>
-                    <span className="text-xs font-mono font-bold text-slate-800">{identitas.nipGuru || '-'}</span>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">NIP Guru</label>
+                      <span className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" /> Terkunci</span>
+                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value={identitas.nipGuru || '-'}
+                      className="w-full px-2.5 py-1 text-xs font-mono font-bold text-slate-700 bg-slate-100/90 rounded-lg border border-slate-200 cursor-not-allowed select-none"
+                    />
                   </div>
-                  <div className="sm:col-span-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Nama Guru (beserta Gelar)</span>
-                    <span className="text-sm font-black text-slate-900">{identitas.namaGuru || 'Roni Hariyanto Bhidju, S.Pd'}</span>
+                  <div className="sm:col-span-2 p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+                        Nama Guru (beserta Gelar Resmi)
+                      </label>
+                      <span className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" /> Terkunci</span>
+                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value={identitas.namaGuru || '-'}
+                      className="w-full px-2.5 py-1.5 text-xs font-black text-slate-800 bg-slate-100/90 rounded-lg border border-slate-200 cursor-not-allowed select-none"
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Section: Kepala Satuan Pendidikan */}
+              {/* Section: Kepala Satuan Pendidikan (TERKUNCI OTOMATIS) */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-900 border-b border-slate-200 pb-1">
                   <div className="flex items-center gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5 text-rose-600" />
-                    <span>Kepala Satuan Pendidikan (Pimpinan)</span>
+                    <span>Kepala Satuan Pendidikan (Terkunci Otomatis)</span>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded flex items-center gap-1">
-                    <Lock className="w-2.5 h-2.5 text-amber-700" /> Terkunci Permanen
+                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300 flex items-center gap-0.5">
+                    <Lock className="w-2.5 h-2.5" /> Terkunci Sistem
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Nama Kepala Sekolah</span>
-                    <span className="text-xs font-black text-slate-900">{identitas.namaKepalaSekolah || 'Darius Kusi, S.Pd.'}</span>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+                        Nama Kepala Sekolah
+                      </label>
+                      <span className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" /> Terkunci</span>
+                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value={identitas.namaKepalaSekolah || '-'}
+                      className="w-full px-2.5 py-1 text-xs font-black text-slate-800 bg-slate-100/90 rounded-lg border border-slate-200 cursor-not-allowed select-none"
+                    />
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">NIP Kepala Sekolah</span>
-                    <span className="text-xs font-mono font-bold text-slate-800">{identitas.nipKepalaSekolah || '-'}</span>
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+                        NIP Kepala Sekolah
+                      </label>
+                      <span className="text-[9px] font-bold text-slate-500 flex items-center gap-0.5"><Lock className="w-2.5 h-2.5" /> Terkunci</span>
+                    </div>
+                    <input
+                      type="text"
+                      disabled
+                      value={identitas.nipKepalaSekolah || '-'}
+                      className="w-full px-2.5 py-1 text-xs font-mono font-bold text-slate-700 bg-slate-100/90 rounded-lg border border-slate-200 cursor-not-allowed select-none"
+                    />
                   </div>
                 </div>
+                <p className="text-[10.5px] text-slate-500 italic">
+                  * Nama sekolah, guru, dan kepala sekolah dikunci secara otomatis demi keabsahan data kedinasan. Perubahan nama hanya dapat dilakukan melalui panel Administrator.
+                </p>
+              </div>
+
+              {/* Section: Pengaturan Fleksibel Guru (Tahun Pelajaran, Semester, dan Pemilihan Kelas) */}
+              <div className="space-y-3 pt-2 border-t-2 border-indigo-100">
+                <div className="flex items-center justify-between text-xs font-bold text-slate-900 border-b border-slate-200 pb-1">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Penetapan Tahun Pelajaran, Semester &amp; Pemilihan Kelas</span>
+                  </div>
+                  <span className="text-[9.5px] font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300 flex items-center gap-0.5">
+                    <PenLine className="w-2.5 h-2.5" /> Fleksibel Guru
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {/* Pilihan Tahun Pelajaran */}
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-700 tracking-wider block">
+                      Tahun Pelajaran
+                    </label>
+                    <select
+                      value={tahunPelajaran}
+                      onChange={(e) => setTahunPelajaran(e.target.value)}
+                      className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:border-emerald-600 focus:outline-hidden shadow-2xs cursor-pointer"
+                    >
+                      <option value="2026/2027">2026/2027 (Tahun Aktif)</option>
+                      <option value="2027/2028">2027/2028</option>
+                      <option value="2025/2026">2025/2026</option>
+                      <option value="2028/2029">2028/2029</option>
+                    </select>
+                    <p className="text-[10px] text-slate-500">
+                      Otomatis diterapkan ke cover, tabel titimangsa, dan lembar pengesahan.
+                    </p>
+                  </div>
+
+                  {/* Pilihan Semester */}
+                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                    <label className="text-[10px] uppercase font-bold text-slate-700 tracking-wider block">
+                      Semester Pembelajaran
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSemester('1')}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs transition-all border cursor-pointer text-center ${
+                          semester === '1'
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        Semester 1 (Ganjil)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSemester('2')}
+                        className={`py-1.5 px-2 rounded-lg font-bold text-xs transition-all border cursor-pointer text-center ${
+                          semester === '2'
+                            ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        Semester 2 (Genap)
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-slate-500">
+                      Menentukan semester aktif pada Promes, Modul Ajar, dan Bank Soal.
+                    </p>
+                  </div>
+
+                  {/* Pemilihan Kelas dalam 1 Fase yang Dipilih (WAJIB DIPILIH GURU) */}
+                  <div className="sm:col-span-2 p-3.5 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 rounded-xl border-2 border-indigo-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-black text-indigo-950 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-indigo-600" />
+                        <span>Pemilihan Kelas Aktif (Fase Terdaftar: {identitas.fase || 'Fase C'})</span>
+                      </label>
+                      <span className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-full border border-indigo-200">
+                        Wajib Dipilih
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-indigo-900 leading-snug">
+                      Saat registrasi, Anda terdaftar sebagai pengampu <strong>{identitas.fase || 'Fase C'}</strong>. Sesuai Kurikulum Merdeka, fase ini menaungi beberapa tingkatan kelas di bawah ini. Silakan pilih kelas spesifik yang Anda ampu saat ini:
+                    </p>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-1">
+                      {availableClasses.map((cls) => {
+                        const isSelected = selectedKelas === cls;
+                        return (
+                          <button
+                            key={cls}
+                            type="button"
+                            onClick={() => setSelectedKelas(cls)}
+                            className={`py-2 px-3 rounded-xl font-black text-xs transition-all border-2 flex items-center justify-center gap-2 cursor-pointer shadow-xs ${
+                              isSelected
+                                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-700 ring-2 ring-blue-300 scale-[1.02]'
+                                : 'bg-white text-slate-800 border-slate-300 hover:border-indigo-400 hover:bg-slate-50'
+                            }`}
+                          >
+                            <span>Kelas {cls}</span>
+                            {isSelected && <CheckCircle2 className="w-4 h-4 text-white" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-indigo-800/80 italic">
+                      * Setelah disimpan, seluruh dokumen aktif (Bedah CP ke TP, ATP, KKTP, PROTA, PROMES, Modul/RPP, Kisi-kisi, Naskah Soal, dan Pedoman Penskoran) otomatis menggunakan Kelas {selectedKelas} tanpa perlu diatur ulang di setiap halaman!
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Bar: Simpan Seluruh Identitas */}
+              <div className="pt-3 border-t border-slate-200 flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={() => handleSaveData()}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white rounded-xl text-xs font-black transition-all shadow-md hover:shadow-lg cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Simpan Profil Sekolah &amp; Guru &amp; Perbarui Seluruh Dokumen</span>
+                </button>
               </div>
 
               {/* Section: Tahun Pelajaran & Alokasi Waktu */}

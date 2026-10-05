@@ -70,10 +70,16 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
     loadSavedPDFLayout(defaultOrientation || 'portrait')
   );
 
+  const schoolName = identitas.namaSatuanPendidikan || identitas.namaSekolah || '';
+  const isFatubaiLocal = schoolName.toLowerCase().includes('fatubai');
+
   // Default values for Titimangsa
+  const defaultExtractedTempat = schoolName
+    ? schoolName.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim()
+    : (isFatubaiLocal ? 'Fatubai' : '');
+
   const [tempat, setTempat] = useState<string>(
-    identitas.tempatPenetapan || 
-    (identitas.namaSatuanPendidikan ? identitas.namaSatuanPendidikan.replace(/SD Negeri |SDN |SD |SMP |SMA |SMK /, '') : 'Fatubai')
+    identitas.tempatPenetapan || defaultExtractedTempat || (isFatubaiLocal ? 'Fatubai' : '')
   );
   
   const [tanggal, setTanggal] = useState<string>(
@@ -86,9 +92,8 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
   );
 
   // Alamat Instansi & Kop Dokumen Konfirmasi (Bisa Diedit Sesuai Instruksi User)
-  const [alamatInstansi, setAlamatInstansi] = useState<string>(
-    identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713'
-  );
+  const defaultAlamat = identitas.alamatInstansi || (isFatubaiLocal ? 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713' : '');
+  const [alamatInstansi, setAlamatInstansi] = useState<string>(defaultAlamat);
   const [kopBaris1, setKopBaris1] = useState<string>(
     identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'
   );
@@ -97,6 +102,11 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
   );
   const [showKopDetails, setShowKopDetails] = useState<boolean>(false);
 
+  // Identitas Guru & Kepala Sekolah (Wajib Mengikuti Inputan Guru, Bukan Bawaan Sistem)
+  const [namaGuru, setNamaGuru] = useState<string>(identitas.namaGuru || '');
+  const [nipGuru, setNipGuru] = useState<string>(identitas.nipGuru || '');
+  const [namaKepalaSekolah, setNamaKepalaSekolah] = useState<string>(identitas.namaKepalaSekolah || '');
+  const [nipKepalaSekolah, setNipKepalaSekolah] = useState<string>(identitas.nipKepalaSekolah || '');
   const [wordBlockedError, setWordBlockedError] = useState<string | null>(null);
   const isWordDisabled = exportType === 'WORD' && isWordExportDisabled();
 
@@ -105,18 +115,23 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
       setWordBlockedError(null);
       setSelectedKelas(defaultSelectedKelas || 'all');
       setPdfLayout(loadSavedPDFLayout(defaultOrientation || 'portrait'));
-      setTempat(
-        identitas.tempatPenetapan || 
-        (identitas.namaSatuanPendidikan ? identitas.namaSatuanPendidikan.replace(/SD Negeri |SDN |SD |SMP |SMA |SMK /, '') : 'Fatubai')
-      );
+      const isFatubaiNow = (identitas.namaSatuanPendidikan || '').toLowerCase().includes('fatubai');
+      const extracted = identitas.namaSatuanPendidikan
+        ? identitas.namaSatuanPendidikan.replace(/UPTD?\s*|SD\s*Negeri\s*|SDN\s*|SD\s*|SMP\s*Negeri\s*|SMP\s*|SMA\s*|SMK\s*|Swasta\s*/gi, '').trim()
+        : (isFatubaiNow ? 'Fatubai' : '');
+      setTempat(identitas.tempatPenetapan || extracted || (isFatubaiNow ? 'Fatubai' : ''));
       setTanggal(
         identitas.tanggalPenetapan || 
         new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
       );
       setTahunPelajaran(identitas.tahunPelajaran || '2026/2027');
-      setAlamatInstansi(identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713');
+      setAlamatInstansi(identitas.alamatInstansi || (isFatubaiNow ? 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713' : ''));
       setKopBaris1(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA');
       setKopBaris2(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN');
+      setNamaGuru(identitas.namaGuru || '');
+      setNipGuru(identitas.nipGuru || '');
+      setNamaKepalaSekolah(identitas.namaKepalaSekolah || '');
+      setNipKepalaSekolah(identitas.nipKepalaSekolah || '');
       setShowKopDetails(false);
     }
   }, [
@@ -130,18 +145,26 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
     identitas.alamatInstansi,
     identitas.kopBaris1,
     identitas.kopBaris2,
+    identitas.namaGuru,
+    identitas.nipGuru,
+    identitas.namaKepalaSekolah,
+    identitas.nipKepalaSekolah,
   ]);
 
   if (!isOpen) return null;
 
-  const resolvedTempat = tempat.trim() || identitas.tempatPenetapan || 'Fatubai';
+  const resolvedTempat = tempat.trim() || identitas.tempatPenetapan || defaultExtractedTempat || (isFatubaiLocal ? 'Fatubai' : '');
   const resolvedTanggal = tanggal.trim() || identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const resolvedTP = tahunPelajaran.trim() || identitas.tahunPelajaran || '2026/2027';
-  const resolvedAlamat = alamatInstansi.trim() || identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
+  const resolvedAlamat = alamatInstansi.trim() || identitas.alamatInstansi || '';
   const resolvedKop1 = kopBaris1.trim() || identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
   const resolvedKop2 = kopBaris2.trim() || identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
-  const resolvedKop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
-  const resolvedKop4 = resolvedAlamat.toLowerCase().startsWith('alamat:') ? resolvedAlamat : `Alamat: ${resolvedAlamat}`;
+  const resolvedKop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || schoolName || '').toUpperCase();
+  const resolvedKop4 = resolvedAlamat ? (resolvedAlamat.toLowerCase().startsWith('alamat:') ? resolvedAlamat : `Alamat: ${resolvedAlamat}`) : (identitas.kopBaris4 || '');
+  const resolvedNamaGuru = namaGuru.trim() || identitas.namaGuru || '';
+  const resolvedNipGuru = nipGuru.trim() || identitas.nipGuru || '-';
+  const resolvedNamaKS = namaKepalaSekolah.trim() || identitas.namaKepalaSekolah || '';
+  const resolvedNipKS = nipKepalaSekolah.trim() || identitas.nipKepalaSekolah || '-';
 
   const handleSaveOnly = () => {
     if (onUpdateIdentitas) {
@@ -155,6 +178,10 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
         kopBaris2: resolvedKop2,
         kopBaris3: resolvedKop3,
         kopBaris4: resolvedKop4,
+        namaGuru: resolvedNamaGuru,
+        nipGuru: resolvedNipGuru,
+        namaKepalaSekolah: resolvedNamaKS,
+        nipKepalaSekolah: resolvedNipKS,
         kelas: (showClassSelector && classList.length > 0)
           ? (selectedKelas === 'all' ? (classList.length > 1 ? `${classList[0]} & ${classList[1]}` : identitas.kelas) : selectedKelas)
           : identitas.kelas,
@@ -187,6 +214,10 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
         kopBaris2: resolvedKop2,
         kopBaris3: resolvedKop3,
         kopBaris4: resolvedKop4,
+        namaGuru: resolvedNamaGuru,
+        nipGuru: resolvedNipGuru,
+        namaKepalaSekolah: resolvedNamaKS,
+        nipKepalaSekolah: resolvedNipKS,
         kelas: (showClassSelector && classList.length > 0)
           ? (selectedKelas === 'all' ? (classList.length > 1 ? `${classList[0]} & ${classList[1]}` : identitas.kelas) : selectedKelas)
           : identitas.kelas,
@@ -557,7 +588,40 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
             )}
           </div>
 
-          {/* 5. Class Selection Filter (Fase vs Single Class) if applicable */}
+          {/* 5. Identitas Penandatangan Dokumen (Nama Guru & Kepala Sekolah Wajib Sesuai Inputan) */}
+          <div className="space-y-1.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-800">
+                <GraduationCap className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span>Identitas Penandatangan (Guru &amp; Kepala Sekolah)</span>
+              </div>
+              <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-amber-700" /> Terkunci Sesuai Profil
+              </span>
+            </div>
+
+            <div className="text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-200 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Guru Penyusun:</span>
+                <span className="font-bold text-slate-900">{resolvedNamaGuru || 'Belum diisi'}</span>
+                {resolvedNipGuru && resolvedNipGuru !== '-' && (
+                  <span className="text-[10px] text-slate-500 font-mono block">NIP: {resolvedNipGuru}</span>
+                )}
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-500 uppercase block">Kepala Sekolah:</span>
+                <span className="font-bold text-slate-900">{resolvedNamaKS || 'Belum diisi'}</span>
+                {resolvedNipKS && resolvedNipKS !== '-' && (
+                  <span className="text-[10px] text-slate-500 font-mono block">NIP: {resolvedNipKS}</span>
+                )}
+              </div>
+            </div>
+            <p className="text-[10px] text-slate-500 italic">
+              *Nama Guru dan Kepala Sekolah di atas terkunci secara otomatis dari Menu Profil Sekolah &amp; Guru demi keutuhan data dokumen.
+            </p>
+          </div>
+
+          {/* 6. Class Selection Filter (Fase vs Single Class) if applicable */}
           {showClassSelector && classList && classList.length > 0 && (
             <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border-2 border-slate-200">
               <div className="flex items-center justify-between">

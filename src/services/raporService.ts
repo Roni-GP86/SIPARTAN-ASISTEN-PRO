@@ -668,17 +668,19 @@ export function generateRaporAnalysisPDF(options: {
   currentY += 5.2;
 
   doc.setFontSize(13.5);
-  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
+  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase();
   doc.text(schoolName, pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.5;
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - TTU');
-  doc.text(`${alamat} • NPSN: 50304381`, pageWidth / 2, currentY, {
-    align: 'center',
-  });
-  currentY += 3.5;
+  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : '');
+  if (alamat) {
+    doc.text(alamat, pageWidth / 2, currentY, {
+      align: 'center',
+    });
+    currentY += 3.5;
+  }
 
   doc.text(
     'Sistem Informasi Pembelajaran & Asesmen Terpadu (SIPARTAN) • Tahun Ajaran 2026/2027',
@@ -936,34 +938,34 @@ export function generateRaporAnalysisPDF(options: {
   // Kiri: Kepala Sekolah
   doc.text('Mengetahui,', leftX, currentY);
   doc.text('Kepala Satuan Pendidikan', leftX, currentY + 4.5);
-  doc.text(identitas.namaSatuanPendidikan || 'SD Negeri Fatubai', leftX, currentY + 9);
+  doc.text(identitas.namaSatuanPendidikan || 'Satuan Pendidikan', leftX, currentY + 9);
 
   // Kanan: Guru Kelas
-  const kota = identitas.kabupaten || 'Fatubai';
+  const kota = identitas.tempatPenetapan || identitas.kabupaten || '...................';
   const tglStr = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
   doc.text(`${kota}, ${tglStr}`, rightX, currentY);
-  doc.text('Guru Kelas VI Pengampu,', rightX, currentY + 4.5);
+  doc.text('Guru Kelas Pengampu,', rightX, currentY + 4.5);
 
   const signSpace = 18;
   currentY += signSpace + 9;
 
   // Nama & NIP Kiri
   doc.setFont('times', 'bold');
-  const kepsekNama = identitas.namaKepalaSekolah || 'Yulius Foni, S.Pd';
+  const kepsekNama = identitas.namaKepalaSekolah || '...........................................';
   doc.text(kepsekNama, leftX, currentY);
   doc.setFont('times', 'normal');
-  doc.text(`NIP. ${identitas.nipKepalaSekolah || '19750812 200212 1 004'}`, leftX, currentY + 4);
+  doc.text(`NIP. ${identitas.nipKepalaSekolah ? identitas.nipKepalaSekolah : '...........................................'}`, leftX, currentY + 4);
 
   // Nama & NIP Kanan
   doc.setFont('times', 'bold');
-  const guruNama = identitas.namaGuru || 'Yohanes Pantola, S.Pd.SD';
+  const guruNama = identitas.namaGuru || '...........................................';
   doc.text(guruNama, rightX, currentY);
   doc.setFont('times', 'normal');
-  doc.text(`NIP. ${identitas.nipGuru || '19880415 201101 1 007'}`, rightX, currentY + 4);
+  doc.text(`NIP. ${identitas.nipGuru ? identitas.nipGuru : '...........................................'}`, rightX, currentY + 4);
 
   // Download PDF
   const filename = `Laporan_Analisis_Rapor_${settings.mataPelajaran}_${settings.kelas}_${settings.semester}.pdf`.replace(
@@ -1242,17 +1244,19 @@ export function generateIndividualStudentRaporPDF(options: {
   currentY += 5;
 
   doc.setFontSize(13);
-  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
+  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase();
   doc.text(schoolName, pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.3;
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8);
-  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - TTU');
-  doc.text(`${alamat} • NPSN: 50304381`, pageWidth / 2, currentY, {
-    align: 'center',
-  });
-  currentY += 3.5;
+  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : '');
+  if (alamat) {
+    doc.text(alamat, pageWidth / 2, currentY, {
+      align: 'center',
+    });
+    currentY += 3.5;
+  }
 
   doc.setFont('times', 'italic');
   doc.text(
@@ -1494,7 +1498,7 @@ export function generateIndividualStudentRaporPDF(options: {
   const col2X = marginX + signColWidth;
   const col3X = marginX + signColWidth * 2;
 
-  const kota = identitas.kabupaten || 'Fatubai';
+  const kota = identitas.tempatPenetapan || identitas.kabupaten || '...................';
   const tglStr = new Date().toLocaleDateString('id-ID', {
     day: 'numeric',
     month: 'long',
@@ -1510,7 +1514,7 @@ export function generateIndividualStudentRaporPDF(options: {
 
   // Kolom 2: Guru Kelas
   doc.text(`${kota}, ${tglStr}`, col2X + 4, currentY);
-  doc.text('Guru Kelas VI Pengampu,', col2X + 4, currentY + 4.5);
+  doc.text('Guru Kelas Pengampu,', col2X + 4, currentY + 4.5);
 
   // Kolom 3: Kepala Sekolah
   doc.text('Mengetahui,', col3X + 4, currentY);
@@ -1527,20 +1531,20 @@ export function generateIndividualStudentRaporPDF(options: {
   // Guru Kelas
   doc.setFont('times', 'bold');
   doc.setFontSize(8.5);
-  const guruNama = identitas.namaGuru || 'Yohanes Pantola, S.Pd.SD';
+  const guruNama = identitas.namaGuru || '...........................................';
   doc.text(guruNama, col2X + 4, currentY);
   doc.setFont('times', 'normal');
   doc.setFontSize(7.5);
-  doc.text(`NIP. ${identitas.nipGuru || '19880415 201101 1 007'}`, col2X + 4, currentY + 3.5);
+  doc.text(`NIP. ${identitas.nipGuru ? identitas.nipGuru : '...........................................'}`, col2X + 4, currentY + 3.5);
 
   // Kepala Sekolah
   doc.setFont('times', 'bold');
   doc.setFontSize(8.5);
-  const kepsekNama = identitas.namaKepalaSekolah || 'Yulius Foni, S.Pd';
+  const kepsekNama = identitas.namaKepalaSekolah || '...........................................';
   doc.text(kepsekNama, col3X + 4, currentY);
   doc.setFont('times', 'normal');
   doc.setFontSize(7.5);
-  doc.text(`NIP. ${identitas.nipKepalaSekolah || '19750812 200212 1 004'}`, col3X + 4, currentY + 3.5);
+  doc.text(`NIP. ${identitas.nipKepalaSekolah ? identitas.nipKepalaSekolah : '...........................................'}`, col3X + 4, currentY + 3.5);
 
   // Download PDF
   const cleanName = student.nama.replace(/[^a-zA-Z0-9]/g, '_');

@@ -284,7 +284,17 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
 
     const existing = mapByCode.get(cleanCode);
     if (existing) {
-      mapByCode.set(cleanCode, {
+      // Pastikan koreksi NIP Venidora Tefi diterapkan jika data cloud masih memakai NIP lama yang salah
+      const resolvedNipGuru = (cleanCode === 'GP-VT05' && r.nipGuru === '199209082023022035')
+        ? '19920908 202321 2 035'
+        : (r.nipGuru || existing.nipGuru);
+
+      // Pastikan pilihan kelas Chandrawati Tunliu adalah kelas 6 jika cloud masih '5 & 6'
+      const resolvedKelas = (cleanCode === 'GP-CT03' && (r.kelas === '5 & 6' || !r.kelas))
+        ? '6'
+        : (r.kelas || existing.kelas);
+
+      const mergedRecord: AccessRecord = {
         ...existing,
         ...r,
         isPermanent: Boolean(existing.isPermanent || r.isPermanent),
@@ -293,10 +303,21 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
         status: (r.isActive ?? existing.isActive) ? ('active' as const) : ('inactive' as const),
         namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah || existing.namaSatuanPendidikan,
         namaGuru: r.namaGuru || existing.namaGuru,
-        nipGuru: r.nipGuru || existing.nipGuru,
+        nipGuru: resolvedNipGuru,
+        kelas: resolvedKelas,
         namaKepalaSekolah: r.namaKepalaSekolah || existing.namaKepalaSekolah,
         nipKepalaSekolah: r.nipKepalaSekolah || existing.nipKepalaSekolah,
-      });
+      };
+
+      mapByCode.set(cleanCode, mergedRecord);
+
+      // Jika data cloud masih salah, simpan koreksinya secara asynchronous ke Firestore
+      if (cleanCode === 'GP-VT05' && r.nipGuru === '199209082023022035') {
+        saveAccessRecordToFirestore(mergedRecord).catch(() => {});
+      }
+      if (cleanCode === 'GP-CT03' && r.kelas === '5 & 6') {
+        saveAccessRecordToFirestore(mergedRecord).catch(() => {});
+      }
     } else {
       mapByCode.set(cleanCode, {
         ...r,
@@ -304,6 +325,15 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
         status: (r.isActive ?? true) ? ('active' as const) : ('inactive' as const),
         namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah,
       });
+    }
+  });
+
+  // Pastikan akun permanen baru otomatis tersinkronisasi ke Cloud Firestore jika belum ada
+  DEFAULT_PERMANENT_RECORDS.forEach((defRec) => {
+    const code = defRec.kodeAkses.toUpperCase().trim();
+    const foundInCloud = cloudRecords.some((cr) => cr.kodeAkses?.toUpperCase().trim() === code);
+    if (!foundInCloud) {
+      saveAccessRecordToFirestore(defRec).catch(() => {});
     }
   });
 
@@ -430,7 +460,11 @@ export function subscribeToSingleAccessCode(
           };
           onRecordUpdated(rec);
         } else {
-          onRecordUpdated(findAccessRecordInFirestore(clean) as any);
+          findAccessRecordInFirestore(clean).then((res) => {
+            if (active) onRecordUpdated(res);
+          }).catch(() => {
+            if (active) onRecordUpdated(null);
+          });
         }
       },
       (err) => {

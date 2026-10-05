@@ -2152,16 +2152,16 @@ export const BankSoalView: React.FC<BankSoalViewProps> = ({
                 )}
                 <div>
                   <div className="text-[12pt] font-bold uppercase tracking-wider text-black">
-                    {identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}
+                    {identitas.kopBaris1 || (identitas.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH')}
                   </div>
                   <div className="text-[13pt] font-bold uppercase tracking-wider text-black">
                     {identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}
                   </div>
                   <div className="text-[15pt] font-black uppercase tracking-wide text-black mt-0.5">
-                    {identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SD NEGERI FATUBAI'}
+                    {(identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase()}
                   </div>
                   <div className="text-[10pt] font-normal italic text-slate-800">
-                    {identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah'}
+                    {identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : '')}
                   </div>
                 </div>
               </div>
@@ -2554,16 +2554,16 @@ export const BankSoalView: React.FC<BankSoalViewProps> = ({
               )}
               <div>
                 <h4 className="text-[11px] sm:text-xs font-bold text-slate-800 uppercase tracking-wider">
-                  {identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}
+                  {identitas.kopBaris1 || (identitas.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH')}
                 </h4>
                 <h4 className="text-[11px] sm:text-xs font-bold text-slate-800 uppercase tracking-wider">
                   {identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}
                 </h4>
                 <h3 className="text-sm sm:text-base font-black text-slate-900 uppercase tracking-wide">
-                  {identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SD NEGERI FATUBAI'}
+                  {(identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase()}
                 </h3>
                 <p className="text-[10px] sm:text-[11px] text-slate-600 font-medium">
-                  {identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah'}
+                  {identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : '')}
                 </p>
               </div>
             </div>
@@ -2926,16 +2926,16 @@ export const BankSoalView: React.FC<BankSoalViewProps> = ({
                 )}
                 <div>
                   <div className="text-[11.5pt] font-bold uppercase tracking-wider text-black">
-                    {identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}
+                    {identitas.kopBaris1 || (identitas.kabupaten ? `PEMERINTAH KABUPATEN ${identitas.kabupaten.toUpperCase()}` : 'PEMERINTAH DAERAH')}
                   </div>
                   <div className="text-[12.5pt] font-bold uppercase tracking-wider text-black">
                     {identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}
                   </div>
                   <div className="text-[14pt] font-black uppercase tracking-wide text-black mt-0.5">
-                    {identitas.kopBaris3 || identitas.namaSatuanPendidikan?.toUpperCase() || 'SD NEGERI FATUBAI'}
+                    {(identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SATUAN PENDIDIKAN').toUpperCase()}
                   </div>
                   <div className="text-[9.5pt] font-normal italic text-slate-800">
-                    {identitas.kopBaris4 || identitas.alamatInstansi || 'ALAMAT: FATUBAI DESA Oehalo, kecamatan Insana Tengah'}
+                    {identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : '')}
                   </div>
                 </div>
               </div>
