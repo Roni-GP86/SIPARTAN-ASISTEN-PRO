@@ -2043,8 +2043,8 @@ export default function App() {
       case 'soal':
         return {
           icon: '📝',
-          title: 'Perancangan Kisi-Kisi & Naskah Soal Asesmen Sumatif Kurikulum Merdeka',
-          badge: soalDocument ? `${soalDocument.konfigurasi.jenisAsesmen} • ${soalDocument.naskahSoal.totalButirSoal} Soal` : 'BSKAP Standard',
+          title: 'Perancangan Kisi-Kisi & Naskah Soal',
+          badge: 'Tahap 9',
           badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-400/60',
         };
       case 'saved':
@@ -2336,23 +2336,6 @@ export default function App() {
               {headerMeta.badge}
             </span>
 
-            {/* Quick Switch Subject Trigger Pill */}
-            <button
-              id="header-subject-picker-btn"
-              type="button"
-              onClick={() => setIsSubjectPickerOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0E1B38] hover:bg-[#14264e] border-2 border-amber-500/50 hover:border-amber-400 text-amber-300 text-xs font-black shadow-xs transition-all cursor-pointer shrink-0"
-              title="Ganti Mata Pelajaran (Dokumen TP, ATP, PROTA & PROMES tetap aman tersimpan!)"
-            >
-              <span className="text-sm">{getSubjectEmoticon(identitas.mataPelajaran)}</span>
-              <span className="truncate max-w-[85px] sm:max-w-[140px] text-white font-bold">
-                {identitas.mataPelajaran}
-              </span>
-              <span className="hidden sm:inline text-[10px] font-mono px-1 py-0.2 bg-amber-400/20 text-amber-300 rounded border border-amber-400/40 font-bold">
-                {identitas.fase}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-            </button>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">

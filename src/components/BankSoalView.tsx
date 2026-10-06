@@ -680,7 +680,7 @@ export const BankSoalView: React.FC<BankSoalViewProps> = ({
                 </span>
               </div>
               <p className="text-[11.5px] text-slate-500 font-medium mt-0.5">
-                Perancangan Kisi-Kisi &amp; Naskah Soal Asesmen Sumatif Kurikulum Merdeka (Ulangan Harian, STS, SAS)
+                Perancangan Kisi-Kisi &amp; Naskah Soal Asesmen Sumatif Kurikulum Merdeka
               </p>
             </div>
           </div>
