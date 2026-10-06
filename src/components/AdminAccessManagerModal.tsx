@@ -458,14 +458,17 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
 
     try {
       const isMapel = editJabatan === 'Guru Mata Pelajaran';
+      const selectedFase = isMapel ? (editFase || 'Fase C') : editFase;
+      const selectedKelas = isMapel ? '1 - 6' : (editKelas.trim() || (editFase === 'Fase A' ? '1' : editFase === 'Fase B' ? '3' : '5'));
+
       const res = await updateAccessRecordAsync(editingRecord.kodeAkses, {
         namaGuru: editNamaGuru.trim(),
         nipGuru: editNipGuru.trim() || '-',
         namaSekolah: editNamaSekolah.trim(),
         namaSatuanPendidikan: editNamaSekolah.trim(),
         jabatan: editJabatan,
-        fase: isMapel ? 'Fase C' : editFase,
-        kelas: isMapel ? '1 - 6' : (editKelas.trim() || (editFase === 'Fase A' ? '1' : editFase === 'Fase B' ? '3' : '5')),
+        fase: selectedFase,
+        kelas: selectedKelas,
         mataPelajaran: isMapel ? editMataPelajaran.trim() : (editingRecord.mataPelajaran || 'Matematika'),
         namaKepalaSekolah: editNamaKS.trim() || '-',
         nipKepalaSekolah: editNipKS.trim() || '-',
@@ -480,22 +483,27 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
         setRecords((prev) =>
           prev.map((item) => (item.id === res.record!.id || item.kodeAkses === res.record!.kodeAkses ? res.record! : item))
         );
-        setEditSuccessMsg(
-          `✅ Identitas ${res.record.namaGuru} (${res.record.kodeAkses}) berhasil diperbarui dan dikunci permanen di akun pengguna!`
-        );
+
+        const successText = `✅ Identitas ${res.record.namaGuru} (${res.record.kodeAkses}) Kelas ${res.record.kelas} (${res.record.fase}) berhasil diperbarui dan tersimpan permanen!`;
+        setEditSuccessMsg(successText);
         setNotification({
           type: 'success',
-          text: `Identitas ${res.record.namaGuru} (${res.record.kodeAkses}) berhasil diperbarui dan tersimpan permanen di Cloud Firestore. Pengguna kini terkunci dengan data baru ini.`,
+          text: `Identitas ${res.record.namaGuru} (${res.record.kodeAkses}) Kelas ${res.record.kelas} (${res.record.fase}) berhasil tersimpan permanen di Cloud Firestore & perangkat. Tampilan RPP/RPM pengguna otomatis disesuaikan!`,
         });
         if (onDataChanged) onDataChanged();
+
+        setIsSavingEdit(false);
         setTimeout(() => {
           setEditingRecord(null);
-        }, 1200);
+        }, 1000);
       } else {
         setEditErrorMsg(res.error || 'Gagal menyimpan perubahan ke Cloud Firestore.');
+        setIsSavingEdit(false);
       }
     } catch (err: any) {
+      console.error('[Admin] Error saving edit:', err);
       setEditErrorMsg(err?.message || 'Terjadi kesalahan sistem saat menyimpan data.');
+      setIsSavingEdit(false);
     } finally {
       setIsSavingEdit(false);
     }
@@ -1891,12 +1899,13 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
 
         {/* Modal Sub: Terbitkan Manual */}
         {showAddModal && (
-          <div className="absolute inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[125] bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
             <form
               onSubmit={handleCreateManualCode}
-              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 space-y-4 animate-in fade-in zoom-in-95"
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 flex flex-col animate-in fade-in zoom-in-95 my-auto max-h-[95vh] overflow-y-auto"
             >
-              <div className="flex items-center justify-between border-b pb-3">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b pb-3 shrink-0">
                 <div className="flex items-center gap-2">
                   <KeyRound className="w-5 h-5 text-blue-600" />
                   <h3 className="text-base font-bold text-slate-900">Terbitkan Kode Akses Manual</h3>
@@ -1904,221 +1913,249 @@ export const AdminAccessManagerModal: React.FC<AdminAccessManagerModalProps> = (
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="text-slate-400 hover:text-slate-600 font-bold"
+                  className="text-slate-400 hover:text-slate-600 font-bold p-1 rounded-lg hover:bg-slate-100"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Tombol Cepat Tempel Format WhatsApp Guru */}
-              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-emerald-900 text-xs">
-                  <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="font-semibold">Punya pesan pendaftaran dari WhatsApp guru?</span>
+              {/* Scrollable Fields Wrapper */}
+              <div className="flex-1 overflow-y-auto pr-1.5 py-4 space-y-4 text-xs max-h-[62vh]">
+                {/* Tombol Cepat Tempel Format WhatsApp Guru */}
+                <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-emerald-900 text-xs">
+                    <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-semibold">Punya pesan pendaftaran dari WhatsApp guru?</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowWaPasteInput(!showWaPasteInput)}
+                    className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shrink-0 cursor-pointer"
+                  >
+                    {showWaPasteInput ? 'Tutup Tempel' : 'Tempel Teks WA'}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowWaPasteInput(!showWaPasteInput)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shrink-0 cursor-pointer"
-                >
-                  {showWaPasteInput ? 'Tutup Tempel' : 'Tempel Teks WA'}
-                </button>
-              </div>
 
-              {showWaPasteInput && (
-                <div className="p-3 bg-emerald-100/60 border border-emerald-300 rounded-xl space-y-2 text-xs">
-                  <p className="text-emerald-950 font-medium text-[11px]">
-                    Tempel pesan WhatsApp yang dikirimkan guru (yang berisi Nama, NIP, Satuan Pendidikan, No WA, dll), lalu klik &quot;Ekstrak Otomatis&quot;:
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={waPasteInput}
-                    onChange={(e) => setWaPasteInput(e.target.value)}
-                    placeholder="Contoh format pesan WA:
+                {showWaPasteInput && (
+                  <div className="p-3 bg-emerald-100/60 border border-emerald-300 rounded-xl space-y-2 text-xs">
+                    <p className="text-emerald-950 font-medium text-[11px]">
+                      Tempel pesan WhatsApp yang dikirimkan guru (yang berisi Nama, NIP, Satuan Pendidikan, No WA, dll), lalu klik &quot;Ekstrak Otomatis&quot;:
+                    </p>
+                    <textarea
+                      rows={4}
+                      value={waPasteInput}
+                      onChange={(e) => setWaPasteInput(e.target.value)}
+                      placeholder="Contoh format pesan WA:
 Nama Lengkap: Yeni Ellu, S.Pd.
 NIP: 19860520...
 Jabatan: Guru Kelas (Fase C)
 Satuan Pendidikan: SDN Fatubai
 Nomor WA: 081234567890
 Kepala Sekolah: Gusmardi, S.Pd."
-                    className="w-full p-2 border border-emerald-400 rounded-lg bg-white text-slate-900 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
-                  />
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowWaPasteInput(false)}
-                      className="px-2.5 py-1 rounded-lg border border-emerald-300 bg-white text-emerald-800 text-xs font-semibold"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleParseWaPaste}
-                      className="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs cursor-pointer"
-                    >
-                      Ekstrak Otomatis ke Form
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-800 mb-1">
-                    1. Nama Lengkap Guru (dengan Gelar) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newNamaGuru}
-                    onChange={(e) => setNewNamaGuru(e.target.value)}
-                    placeholder="Contoh: Yeni Ellu, S.Pd."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">2. NIP Guru</label>
-                  <input
-                    type="text"
-                    value={newNipGuru}
-                    onChange={(e) => setNewNipGuru(e.target.value)}
-                    placeholder="18 digit atau -"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">3. Jabatan Guru</label>
-                  <select
-                    value={newJabatan}
-                    onChange={(e) => setNewJabatan(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
-                  >
-                    <option value="Guru Kelas">Guru Kelas</option>
-                    <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
-                  </select>
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-800 mb-1">
-                    4. Nama Satuan Pendidikan (Sekolah) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={newNamaSekolah}
-                    onChange={(e) => setNewNamaSekolah(e.target.value)}
-                    placeholder="Contoh: UPT SD Negeri 1 Silaut"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between">
-                    <span className="flex items-center gap-1.5">
-                      <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                      Nomor WhatsApp Guru (Wajib Aktif) <span className="text-red-500">*</span>
-                    </span>
-                    <span className="text-[10px] text-emerald-700 font-bold">
-                      Untuk Kirim Kode via WhatsApp
-                    </span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    value={newNomorWA}
-                    onChange={(e) => setNewNomorWA(e.target.value)}
-                    placeholder="Contoh: 081234567890"
-                    className="w-full px-3 py-2 border border-emerald-400 rounded-lg focus:border-emerald-600 focus:outline-none bg-emerald-50/20 text-black font-bold placeholder:text-slate-400"
-                  />
-                </div>
-
-                {newJabatan === 'Guru Mata Pelajaran' ? (
-                  <div className="sm:col-span-2 p-3 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-1.5">
-                    <label className="block font-bold text-indigo-950 mb-1">
-                      5. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={newMataPelajaran}
-                      onChange={(e) => setNewMataPelajaran(e.target.value)}
-                      className="w-full px-3 py-2 border border-indigo-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold text-xs"
-                    >
-                      {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="text-[10.5px] text-indigo-900 leading-tight">
-                      ✨ <strong>Hak Akses Kelas 1 s.d. 6:</strong> Guru Mata Pelajaran otomatis berhak mengakses seluruh Fase A, B, C (Kelas 1 s.d. 6) khusus mata pelajaran yang dipilih.
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <label className="block font-bold text-slate-800 mb-1">5. Fase</label>
-                      <select
-                        value={newFase}
-                        onChange={(e) => {
-                          const f = e.target.value as any;
-                          setNewFase(f);
-                          setNewKelas(f === 'Fase A' ? '1 & 2' : f === 'Fase B' ? '3 & 4' : '5 & 6');
-                        }}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                      className="w-full p-2 border border-emerald-400 rounded-lg bg-white text-slate-900 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                    />
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowWaPasteInput(false)}
+                        className="px-2.5 py-1 rounded-lg border border-emerald-300 bg-white text-emerald-800 text-xs font-semibold"
                       >
-                        <option value="Fase C">Fase C (Kelas 5 & 6)</option>
-                        <option value="Fase B">Fase B (Kelas 3 & 4)</option>
-                        <option value="Fase A">Fase A (Kelas 1 & 2)</option>
-                      </select>
+                        Batal
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleParseWaPaste}
+                        className="px-3 py-1 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs cursor-pointer"
+                      >
+                        Ekstrak Otomatis ke Form
+                      </button>
                     </div>
-
-                    <div>
-                      <label className="block font-bold text-slate-800 mb-1">Kelas</label>
-                      <input
-                        type="text"
-                        value={newKelas}
-                        onChange={(e) => setNewKelas(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                      />
-                    </div>
-                  </>
+                  </div>
                 )}
 
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">6. Nama Kepala Sekolah</label>
-                  <input
-                    type="text"
-                    value={newNamaKS}
-                    onChange={(e) => setNewNamaKS(e.target.value)}
-                    placeholder="Contoh: Gusmardi, S.Pd."
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                  />
-                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-800 mb-1">
+                      1. Nama Lengkap Guru (dengan Gelar) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newNamaGuru}
+                      onChange={(e) => setNewNamaGuru(e.target.value)}
+                      placeholder="Contoh: Yeni Ellu, S.Pd."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
 
-                <div>
-                  <label className="block font-bold text-slate-800 mb-1">7. NIP Kepala Sekolah</label>
-                  <input
-                    type="text"
-                    value={newNipKS}
-                    onChange={(e) => setNewNipKS(e.target.value)}
-                    placeholder="18 digit atau -"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
-                  />
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">2. NIP Guru</label>
+                    <input
+                      type="text"
+                      value={newNipGuru}
+                      onChange={(e) => setNewNipGuru(e.target.value)}
+                      placeholder="18 digit atau -"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">3. Jabatan Guru</label>
+                    <select
+                      value={newJabatan}
+                      onChange={(e) => {
+                        const j = e.target.value as any;
+                        setNewJabatan(j);
+                        if (j === 'Guru Kelas') {
+                          setNewKelas(newFase === 'Fase A' ? '1' : newFase === 'Fase B' ? '3' : '5');
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                    >
+                      <option value="Guru Kelas">Guru Kelas</option>
+                      <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-800 mb-1">
+                      4. Nama Satuan Pendidikan (Sekolah) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newNamaSekolah}
+                      onChange={(e) => setNewNamaSekolah(e.target.value)}
+                      placeholder="Contoh: UPT SD Negeri 1 Silaut"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="block font-bold text-slate-800 mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        Nomor WhatsApp Guru (Wajib Aktif) <span className="text-red-500">*</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-700 font-bold">
+                        Untuk Kirim Kode via WhatsApp
+                      </span>
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      value={newNomorWA}
+                      onChange={(e) => setNewNomorWA(e.target.value)}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full px-3 py-2 border border-emerald-400 rounded-lg focus:border-emerald-600 focus:outline-none bg-emerald-50/20 text-black font-bold placeholder:text-slate-400"
+                    />
+                  </div>
+
+                  {newJabatan === 'Guru Mata Pelajaran' ? (
+                    <div className="sm:col-span-2 p-3 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-1.5">
+                      <label className="block font-bold text-indigo-950 mb-1">
+                        5. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={newMataPelajaran}
+                        onChange={(e) => setNewMataPelajaran(e.target.value)}
+                        className="w-full px-3 py-2 border border-indigo-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold text-xs"
+                      >
+                        {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10.5px] text-indigo-900 leading-tight">
+                        ✨ <strong>Hak Akses Kelas 1 s.d. 6:</strong> Guru Mata Pelajaran otomatis berhak mengakses seluruh Fase A, B, C (Kelas 1 s.d. 6) khusus mata pelajaran yang dipilih.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">5. Fase</label>
+                        <select
+                          value={newFase}
+                          onChange={(e) => {
+                            const f = e.target.value as any;
+                            setNewFase(f);
+                            setNewKelas(f === 'Fase A' ? '1' : f === 'Fase B' ? '3' : '5');
+                          }}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                        >
+                          <option value="Fase C">Fase C (Kelas 5 & 6)</option>
+                          <option value="Fase B">Fase B (Kelas 3 & 4)</option>
+                          <option value="Fase A">Fase A (Kelas 1 & 2)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-800 mb-1">Kelas <span className="text-red-500">*</span></label>
+                        <select
+                          value={newKelas}
+                          onChange={(e) => setNewKelas(e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-blue-600 focus:outline-none font-semibold"
+                        >
+                          {newFase === 'Fase A' && (
+                            <>
+                              <option value="1">Kelas 1</option>
+                              <option value="2">Kelas 2</option>
+                            </>
+                          )}
+                          {newFase === 'Fase B' && (
+                            <>
+                              <option value="3">Kelas 3</option>
+                              <option value="4">Kelas 4</option>
+                            </>
+                          )}
+                          {newFase === 'Fase C' && (
+                            <>
+                              <option value="5">Kelas 5</option>
+                              <option value="6">Kelas 6</option>
+                            </>
+                          )}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">6. Nama Kepala Sekolah</label>
+                    <input
+                      type="text"
+                      value={newNamaKS}
+                      onChange={(e) => setNewNamaKS(e.target.value)}
+                      placeholder="Contoh: Gusmardi, S.Pd."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-bold text-slate-800 mb-1">7. NIP Kepala Sekolah</label>
+                    <input
+                      type="text"
+                      value={newNipKS}
+                      onChange={(e) => setNewNipKS(e.target.value)}
+                      placeholder="18 digit atau -"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400 font-medium"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t">
+              {/* Sticky Footer */}
+              <div className="flex items-center justify-end gap-2 pt-3.5 border-t shrink-0">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-3.5 py-2 rounded-xl border text-xs font-semibold hover:bg-slate-100"
+                  className="px-3.5 py-2 rounded-xl border text-xs font-semibold hover:bg-slate-100 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   Terbitkan Kode (GP-XXXX)
@@ -2130,10 +2167,10 @@ Kepala Sekolah: Gusmardi, S.Pd."
 
         {/* Modal Sub: Edit Data Guru & Penugasan Mapel */}
         {editingRecord && (
-          <div className="absolute inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-[125] bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
             <form
               onSubmit={handleSaveEdit}
-              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 space-y-4 animate-in fade-in zoom-in-95 my-auto max-h-[92vh] overflow-y-auto"
+              className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg p-6 space-y-4 animate-in fade-in zoom-in-95 my-auto max-h-[95vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between border-b pb-3">
                 <div className="flex items-center gap-2">
@@ -2252,7 +2289,7 @@ Kepala Sekolah: Gusmardi, S.Pd."
                         onChange={(e) => {
                           const f = e.target.value as any;
                           setEditFase(f);
-                          setEditKelas(f === 'Fase A' ? '1 & 2' : f === 'Fase B' ? '3 & 4' : '5 & 6');
+                          setEditKelas(f === 'Fase A' ? '1' : f === 'Fase B' ? '3' : '5');
                         }}
                         className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold"
                       >
@@ -2263,13 +2300,31 @@ Kepala Sekolah: Gusmardi, S.Pd."
                     </div>
 
                     <div>
-                      <label className="block font-bold text-slate-800 mb-1">Kelas</label>
-                      <input
-                        type="text"
+                      <label className="block font-bold text-slate-800 mb-1">Kelas <span className="text-red-500">*</span></label>
+                      <select
                         value={editKelas}
                         onChange={(e) => setEditKelas(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:border-indigo-600 focus:outline-none bg-white text-slate-900 font-medium"
-                      />
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-900 focus:border-indigo-600 focus:outline-none font-semibold"
+                      >
+                        {editFase === 'Fase A' && (
+                          <>
+                            <option value="1">Kelas 1</option>
+                            <option value="2">Kelas 2</option>
+                          </>
+                        )}
+                        {editFase === 'Fase B' && (
+                          <>
+                            <option value="3">Kelas 3</option>
+                            <option value="4">Kelas 4</option>
+                          </>
+                        )}
+                        {editFase === 'Fase C' && (
+                          <>
+                            <option value="5">Kelas 5</option>
+                            <option value="6">Kelas 6</option>
+                          </>
+                        )}
+                      </select>
                     </div>
                   </>
                 )}

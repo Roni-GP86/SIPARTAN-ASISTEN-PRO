@@ -661,21 +661,21 @@ export function generateRaporAnalysisPDF(options: {
 
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
-  doc.text('PEMERINTAH KABUPATEN TIMOR TENGAH UTARA', pageWidth / 2, currentY, { align: 'center' });
+  doc.text(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA', pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.8;
 
-  doc.text('DINAS PENDIDIKAN DAN KEBUDAYAAN', pageWidth / 2, currentY, { align: 'center' });
+  doc.text(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN', pageWidth / 2, currentY, { align: 'center' });
   currentY += 5.2;
 
   doc.setFontSize(13.5);
-  const schoolName = (identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
+  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
   doc.text(schoolName, pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.5;
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  const alamat = identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - TTU';
-  doc.text(`Alamat: ${alamat} • NPSN: 50304381`, pageWidth / 2, currentY, {
+  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - TTU');
+  doc.text(`${alamat} • NPSN: 50304381`, pageWidth / 2, currentY, {
     align: 'center',
   });
   currentY += 3.5;
@@ -1235,21 +1235,21 @@ export function generateIndividualStudentRaporPDF(options: {
 
   doc.setFont('times', 'bold');
   doc.setFontSize(10.5);
-  doc.text('PEMERINTAH KABUPATEN TIMOR TENGAH UTARA', pageWidth / 2, currentY, { align: 'center' });
+  doc.text(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA', pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.5;
 
-  doc.text('DINAS PENDIDIKAN DAN KEBUDAYAAN', pageWidth / 2, currentY, { align: 'center' });
+  doc.text(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN', pageWidth / 2, currentY, { align: 'center' });
   currentY += 5;
 
   doc.setFontSize(13);
-  const schoolName = (identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
+  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
   doc.text(schoolName, pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.3;
 
   doc.setFont('times', 'normal');
   doc.setFontSize(8);
-  const alamat = identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - TTU';
-  doc.text(`Alamat: ${alamat} • NPSN: 50304381`, pageWidth / 2, currentY, {
+  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - TTU');
+  doc.text(`${alamat} • NPSN: 50304381`, pageWidth / 2, currentY, {
     align: 'center',
   });
   currentY += 3.5;

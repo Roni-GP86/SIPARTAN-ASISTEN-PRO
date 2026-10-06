@@ -85,6 +85,18 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
     identitas.tahunPelajaran || '2026/2027'
   );
 
+  // Alamat Instansi & Kop Dokumen Konfirmasi (Bisa Diedit Sesuai Instruksi User)
+  const [alamatInstansi, setAlamatInstansi] = useState<string>(
+    identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713'
+  );
+  const [kopBaris1, setKopBaris1] = useState<string>(
+    identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'
+  );
+  const [kopBaris2, setKopBaris2] = useState<string>(
+    identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'
+  );
+  const [showKopDetails, setShowKopDetails] = useState<boolean>(false);
+
   const [wordBlockedError, setWordBlockedError] = useState<string | null>(null);
   const isWordDisabled = exportType === 'WORD' && isWordExportDisabled();
 
@@ -102,6 +114,10 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
         new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
       );
       setTahunPelajaran(identitas.tahunPelajaran || '2026/2027');
+      setAlamatInstansi(identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713');
+      setKopBaris1(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA');
+      setKopBaris2(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN');
+      setShowKopDetails(false);
     }
   }, [
     isOpen,
@@ -111,6 +127,9 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
     identitas.tanggalPenetapan,
     identitas.tahunPelajaran,
     identitas.namaSatuanPendidikan,
+    identitas.alamatInstansi,
+    identitas.kopBaris1,
+    identitas.kopBaris2,
   ]);
 
   if (!isOpen) return null;
@@ -118,6 +137,11 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
   const resolvedTempat = tempat.trim() || identitas.tempatPenetapan || 'Fatubai';
   const resolvedTanggal = tanggal.trim() || identitas.tanggalPenetapan || new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
   const resolvedTP = tahunPelajaran.trim() || identitas.tahunPelajaran || '2026/2027';
+  const resolvedAlamat = alamatInstansi.trim() || identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
+  const resolvedKop1 = kopBaris1.trim() || identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
+  const resolvedKop2 = kopBaris2.trim() || identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
+  const resolvedKop3 = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
+  const resolvedKop4 = resolvedAlamat.toLowerCase().startsWith('alamat:') ? resolvedAlamat : `Alamat: ${resolvedAlamat}`;
 
   const handleSaveOnly = () => {
     if (onUpdateIdentitas) {
@@ -126,6 +150,11 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
         tempatPenetapan: resolvedTempat,
         tanggalPenetapan: resolvedTanggal,
         tahunPelajaran: resolvedTP,
+        alamatInstansi: resolvedAlamat,
+        kopBaris1: resolvedKop1,
+        kopBaris2: resolvedKop2,
+        kopBaris3: resolvedKop3,
+        kopBaris4: resolvedKop4,
         kelas: (showClassSelector && classList.length > 0)
           ? (selectedKelas === 'all' ? (classList.length > 1 ? `${classList[0]} & ${classList[1]}` : identitas.kelas) : selectedKelas)
           : identitas.kelas,
@@ -153,6 +182,11 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
         tempatPenetapan: resolvedTempat,
         tanggalPenetapan: resolvedTanggal,
         tahunPelajaran: resolvedTP,
+        alamatInstansi: resolvedAlamat,
+        kopBaris1: resolvedKop1,
+        kopBaris2: resolvedKop2,
+        kopBaris3: resolvedKop3,
+        kopBaris4: resolvedKop4,
         kelas: (showClassSelector && classList.length > 0)
           ? (selectedKelas === 'all' ? (classList.length > 1 ? `${classList[0]} & ${classList[1]}` : identitas.kelas) : selectedKelas)
           : identitas.kelas,
@@ -429,7 +463,101 @@ export const ExportConfirmModal: React.FC<ExportConfirmModalProps> = ({
             </div>
           </div>
 
-          {/* 4. Class Selection Filter (Fase vs Single Class) if applicable */}
+          {/* 4. Alamat Instansi Lengkap & Kop Surat (Bisa Diedit Sesuai Satuan Pendidikan User) */}
+          <div className="space-y-1.5 p-2.5 rounded-xl bg-white border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <label htmlFor="input-alamat" className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                <span>Alamat Instansi Lengkap Satuan Pendidikan</span>
+                <span className="text-rose-500 font-black">*</span>
+              </label>
+              <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 flex items-center gap-0.5">
+                <PenLine className="w-2.5 h-2.5" /> Bisa Diedit
+              </span>
+            </div>
+            <textarea
+              id="input-alamat"
+              rows={2}
+              required
+              value={alamatInstansi}
+              onChange={(e) => setAlamatInstansi(e.target.value)}
+              placeholder="Contoh: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713"
+              className="w-full px-3 py-1.5 text-xs font-bold text-slate-900 bg-slate-50/60 rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-rose-600 focus:ring-2 focus:ring-rose-100 transition-all shadow-2xs resize-none"
+            />
+            <div className="flex items-center justify-between pt-0.5">
+              <p className="text-[10px] text-slate-500">
+                Alamat ini otomatis tercetak pada baris keempat kop surat &amp; cover dokumen.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowKopDetails(!showKopDetails)}
+                className="text-[10px] font-bold text-indigo-700 hover:text-indigo-900 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>{showKopDetails ? '▲ Sembunyikan Detail Kop' : '▼ Sesuaikan Kop (Pemerintah/Dinas)'}</span>
+              </button>
+            </div>
+
+            {/* Detail Baris Kop (Pemerintah Daerah & Dinas) */}
+            {showKopDetails && (
+              <div className="pt-2 mt-2 border-t border-slate-200 space-y-2 bg-slate-50/70 p-2.5 rounded-lg animate-in fade-in">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase font-bold text-slate-600">
+                      Baris 1 Kop: Pemerintah Daerah
+                    </label>
+                    <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 rounded border border-blue-200">
+                      Bisa Edit
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={kopBaris1}
+                    onChange={(e) => setKopBaris1(e.target.value)}
+                    placeholder="PEMERINTAH KABUPATEN TIMOR TENGAH UTARA"
+                    className="w-full px-2.5 py-1 text-xs font-bold text-slate-900 bg-white rounded border border-slate-300 focus:border-blue-600 uppercase shadow-2xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase font-bold text-slate-600">
+                      Baris 2 Kop: Dinas / Lembaga Pembina
+                    </label>
+                    <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 rounded border border-blue-200">
+                      Bisa Edit
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={kopBaris2}
+                    onChange={(e) => setKopBaris2(e.target.value)}
+                    placeholder="DINAS PENDIDIKAN DAN KEBUDAYAAN"
+                    className="w-full px-2.5 py-1 text-xs font-bold text-slate-900 bg-white rounded border border-slate-300 focus:border-blue-600 uppercase shadow-2xs"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] uppercase font-bold text-slate-600">
+                      Baris 3 Kop: Nama Satuan Pendidikan
+                    </label>
+                    <span className="text-[9px] font-bold text-amber-800 bg-amber-100 px-1 rounded border border-amber-300 flex items-center gap-0.5">
+                      <Lock className="w-2 h-2" /> Terkunci Sesuai Profil
+                    </span>
+                  </div>
+                  <input
+                    type="text"
+                    value={(identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase()}
+                    disabled
+                    readOnly
+                    className="w-full px-2.5 py-1 text-xs font-black text-slate-600 bg-slate-200/70 rounded border border-slate-300 uppercase cursor-not-allowed select-none shadow-2xs"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 5. Class Selection Filter (Fase vs Single Class) if applicable */}
           {showClassSelector && classList && classList.length > 0 && (
             <div className="space-y-1.5 p-3 rounded-xl bg-slate-50 border-2 border-slate-200">
               <div className="flex items-center justify-between">

@@ -143,6 +143,14 @@ export interface ATPDocument {
   rasionalPenyusunan?: string;
 }
 
+export interface AsesmenPertemuanItem {
+  jenisAsesmen: string; // e.g. "Asesmen Diagnostik (Awal) & Formatif (Proses)" | "Asesmen Formatif (Proses)" | "Asesmen Formatif (Presentasi) & Asesmen Sumatif (Lingkup TP)"
+  teknikDanBentuk: string; // e.g. "Observasi Kinerja Diskusi & Tanya Jawab Lisan"
+  instrumen: string; // e.g. "Lembar Observasi Aktivitas & LKPD Aktivitas Pertemuan ke-1"
+  buktiBelajar: string; // e.g. "Respon lisan siswa terhadap pertanyaan pemantik serta catatan isian awal kelompok pada LKPD"
+  tindakLanjut?: string; // e.g. "Bimbingan perancah langsung bagi siswa yang masih ragu, pengayaan konsep bagi siswa mahir"
+}
+
 export interface PertemuanModul {
   pertemuanKe: number;
   alokasiWaktu: string;
@@ -159,6 +167,7 @@ export interface PertemuanModul {
     alokasiMenit?: string;
   }[];
   penutup: string[];
+  asesmenPertemuan?: AsesmenPertemuanItem;
 }
 
 export interface RubrikKriteria {
@@ -265,12 +274,21 @@ export interface LangkahPembelajaranRPMRow {
 export interface AsesmenTeknikSumber {
   bentukTeknik: string;
   caraSumber: string;
+  waktuPelaksanaan?: string;
+  daftarInstrumen?: string[];
 }
 
 export interface AsesmenPembelajaranRPM {
   diagnostik: AsesmenTeknikSumber;
   formatif: AsesmenTeknikSumber;
   sumatif: AsesmenTeknikSumber;
+  rincianPerPertemuan?: {
+    pertemuanKe: number;
+    jenisAsesmen: string;
+    fokusAktivitas: string;
+    teknikBentuk: string;
+    buktiBelajar: string;
+  }[];
 }
 
 export interface RubrikPenilaianRPMItem {
@@ -289,6 +307,16 @@ export interface LKPDLangkahKerjaItem {
   hasilJawabanPlaceholder?: string;
 }
 
+export interface LKPDSubAktivitasPertemuan {
+  pertemuanKe: number;
+  judulAktivitas: string;
+  fokusTarget: string;
+  petunjukAktivitas: string[];
+  langkahKerja: LKPDLangkahKerjaItem[];
+  pertanyaanPemantik?: string;
+  refleksiSesi?: string;
+}
+
 export interface LKPDDokumenRPM {
   judulLKPD: string;
   petunjuk: string[];
@@ -297,6 +325,7 @@ export interface LKPDDokumenRPM {
   kegiatanKelompokInstruksi: string;
   pertanyaanAnalisis: { nomor: number; pertanyaan: string; hasilPlaceholder?: string }[];
   refleksiDiriKelompok: { nomor: number; pertanyaan: string; hasilPlaceholder?: string }[];
+  aktivitasPerPertemuan?: LKPDSubAktivitasPertemuan[];
 }
 
 export interface SoalEvaluasiRPMItem {

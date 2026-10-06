@@ -11,6 +11,8 @@
  * 3. Kegiatan Inti dan Kegiatan Akhir berkembang secara bertahap dari pertemuan pertama hingga pertemuan terakhir.
  */
 
+import { AsesmenPertemuanItem, LKPDSubAktivitasPertemuan, LKPDItem } from '../types';
+
 export type ModelPembelajaranType =
   | 'PBL'
   | 'PJBL'
@@ -95,6 +97,7 @@ export interface PedagogicalMeetingPlan {
   pendahuluan: string[];
   kegiatanInti: ModelSyntaxItem[];
   penutup: string[];
+  asesmenPertemuan?: AsesmenPertemuanItem;
 }
 
 /**
@@ -1366,6 +1369,7 @@ export function buildPedagogicalMeetingPlan(
   // Susun Kegiatan Awal & Kegiatan Akhir yang bervariasi untuk pertemuan ke-m
   const pendahuluan = buildVariedKegiatanAwal(m, total, safeTopic, stageName, model, tpText, options);
   const penutup = buildVariedKegiatanAkhir(m, total, safeTopic, secondaryMedia, deviceStr);
+  const asesmenPertemuan = buildMeetingAssessmentPlan(m, total, safeTopic, model, stageName);
 
   return {
     stageName,
@@ -1373,5 +1377,312 @@ export function buildPedagogicalMeetingPlan(
     pendahuluan,
     kegiatanInti,
     penutup,
+    asesmenPertemuan,
   };
+}
+
+/**
+ * Menyusun Rencana Asesmen Konkret & Valid untuk Pertemuan ke-m dari N Pertemuan
+ * Berdasarkan Prinsip Kurikulum Merdeka (PPA BSKAP):
+ * - Jika total = 1: Paket Lengkap Diagnostik (Awal), Formatif (Proses), & Sumatif (Lingkup TP)
+ * - Jika total > 1:
+ *   - Pertemuan 1: Asesmen Diagnostik (Awal) & Asesmen Formatif (Proses)
+ *   - Pertemuan 2..(total - 1): Asesmen Formatif Berkelanjutan (Proses & LKPD)
+ *   - Pertemuan total: Asesmen Formatif (Presentasi/Refleksi) & Asesmen Sumatif (Lingkup TP)
+ */
+export function buildMeetingAssessmentPlan(
+  m: number,
+  total: number,
+  topic: string,
+  model: string,
+  stageName: string
+): AsesmenPertemuanItem {
+  if (total === 1) {
+    return {
+      jenisAsesmen: 'Asesmen Diagnostik (Awal), Formatif (Proses) & Sumatif (Lingkup TP)',
+      teknikDanBentuk: 'Tanya Jawab Pemantik Lisan (Diagnostik) + Observasi Kinerja Kelompok pada LKPD (Formatif) + Tes Evaluasi Mandiri Tertulis HOTS (Sumatif)',
+      instrumen: `Pertanyaan Pemantik Apersepsi, Lembar Observasi Kinerja Diskusi, LKPD Eksplorasi ${topic}, dan Paket Soal Evaluasi Penalaran HOTS Lingkup TP`,
+      buktiBelajar: `Respon lisan siswa terhadap apersepsi pemantik, hasil kerja kelompok pada LKPD, dan lembar jawaban tes evaluasi individu`,
+      tindakLanjut: 'Memetakan kesiapan awal murid, memberikan bimbingan perancah saat diskusi, dan menetapkan ketercapaian Tujuan Pembelajaran (KKTP) untuk catatan rapor.',
+    };
+  }
+
+  if (m === 1) {
+    return {
+      jenisAsesmen: 'Asesmen Diagnostik (Awal) & Asesmen Formatif (Proses)',
+      teknikDanBentuk: 'Tanya Jawab Pemantik Lisan & Observasi Kesiapan Awal + Lembar Observasi Diskusi Kelompok',
+      instrumen: `Pertanyaan Pemantik Apersepsi, Panduan Observasi Kesiapan Belajar, dan Lembar Kerja Peserta Didik (LKPD Aktivitas Pertemuan 1: Orientasi Masalah ${topic})`,
+      buktiBelajar: `Respon lisan siswa terhadap pertanyaan pemantik serta catatan isian awal kelompok pada LKPD Aktivitas Pertemuan 1`,
+      tindakLanjut: 'Memetakan kesiapan belajar murid (kelompok butuh perancah bimbingan langsung vs kelompok mandiri) dan memberikan bimbingan awal kontekstual.',
+    };
+  }
+
+  if (m === total) {
+    return {
+      jenisAsesmen: 'Asesmen Formatif (Presentasi & Refleksi) & Asesmen Sumatif (Lingkup TP)',
+      teknikDanBentuk: 'Rubrik Penilaian Unjuk Kerja / Presentasi Karya Kelompok + Tes Evaluasi Mandiri Tertulis (HOTS) & Refleksi Diri',
+      instrumen: `Rubrik Presentasi Kelompok, Lembar Refleksi Diri/Antarteman (LKPD Aktivitas Pertemuan ${m}), dan Paket Tes Sumatif Akhir TP (5 Butir Soal Penalaran Mendalam + Kunci Jawaban)`,
+      buktiBelajar: `Performa unjuk kerja presentasi kelompok, lembar refleksi bermakna siswa, dan lembar jawaban tes sumatif individual`,
+      tindakLanjut: 'Menetapkan ketercapaian Tujuan Pembelajaran (KKTP) untuk catatan rapor serta merancang pengayaan bagi yang tuntas dan remedial bagi yang belum tuntas.',
+    };
+  }
+
+  // Pertemuan 2 s.d. total - 1 (Proses Berkelanjutan)
+  const activityFocus = m === 2
+    ? 'Penyelidikan Mandiri & Pengumpulan Data Konkret'
+    : m === 3
+    ? 'Pengolahan Data & Analisis Solusi Kelompok'
+    : m === 4
+    ? 'Perancangan Produk Solutif & Draf Karya'
+    : m === 5
+    ? 'Uji Coba Karya, Validasi & Umpan Balik Antarkelompok'
+    : `Pendalaman Konsep & Pemantapan Solusi Tahap ${m}`;
+
+  return {
+    jenisAsesmen: 'Asesmen Formatif (Proses Pembelajaran)',
+    teknikDanBentuk: 'Observasi Kinerja Kolaborasi & Penilaian Aktivitas Kelompok pada LKPD',
+    instrumen: `Lembar Observasi Sikap Gotong Royong / Bernalar Kritis dan LKPD Aktivitas Pertemuan ${m} (${activityFocus} ${topic})`,
+    buktiBelajar: `Hasil pengisian tabel/langkah kerja pada LKPD Aktivitas Pertemuan ${m} dan keaktifan diskusi kelompok`,
+    tindakLanjut: 'Guru memberikan umpan balik langsung (descriptive feedback) saat berkeliling membimbing kelompok tanpa memberi vonis nilai angka.',
+  };
+}
+
+/**
+ * Menyusun Rangkaian Lembar Kerja Peserta Didik (LKPD) Bertahap & Modular Per Pertemuan
+ * Memastikan aktivitas di setiap pertemuan konkret, relevan, bertingkat, dan tidak membias.
+ */
+export function buildModularLKPDActivities(
+  totalMeetings: number,
+  topic: string,
+  model: string
+): LKPDSubAktivitasPertemuan[] {
+  const activities: LKPDSubAktivitasPertemuan[] = [];
+  const safeTopic = topic || 'Materi Pembelajaran';
+
+  for (let m = 1; m <= totalMeetings; m++) {
+    if (m === 1) {
+      activities.push({
+        pertemuanKe: 1,
+        judulAktivitas: `Aktivitas Pertemuan 1: Orientasi Fenomena & Eksplorasi Awal ${safeTopic}`,
+        fokusTarget: `Mengamati fenomena kontekstual, mengidentifikasi pertanyaan kunci, dan memahami konsep dasar ${safeTopic}.`,
+        petunjukAktivitas: [
+          'Berdoalah bersama kelompokmu sebelum memulai kegiatan.',
+          `Cermati gambar, benda konkret, atau media stimulus yang disajikan guru mengenai ${safeTopic}.`,
+          'Diskusikan dan catat 2 hal penting yang kalian amati bersama teman sekelompok.',
+        ],
+        langkahKerja: [
+          {
+            nomor: 1,
+            langkahKerja: `Amati stimulus/benda nyata di mejamu yang berhubungan dengan ${safeTopic}. Tuliskan apa yang kalian lihat:`,
+            hasilJawabanPlaceholder: 'Tuliskan hasil pengamatan awal kelompok di sini...',
+          },
+          {
+            nomor: 2,
+            langkahKerja: `Rumuskan 1 pertanyaan penting yang ingin kelompokmu selidiki mengenai ${safeTopic}:`,
+            hasilJawabanPlaceholder: 'Pertanyaan penyelidikan kelompok kami adalah...',
+          },
+        ],
+        pertanyaanPemantik: `Mengapa menurut kalian materi ${safeTopic} ini penting dalam kehidupan kita sehari-hari?`,
+        refleksiSesi: 'Apa hal paling menarik yang kalian temukan pada pertemuan pertama ini?',
+      });
+    } else if (m === totalMeetings) {
+      activities.push({
+        pertemuanKe: m,
+        judulAktivitas: `Aktivitas Pertemuan ${m}: Penyempurnaan Karya, Presentasi & Refleksi Pembelajaran Bermakna`,
+        fokusTarget: `Menyajikan hasil karya/laporan akhir pemecahan masalah ${safeTopic}, saling memberi tanggapan santun, dan merefleksikan proses belajar.`,
+        petunjukAktivitas: [
+          'Periksa kembali kelengkapan hasil kerja kelompok sebelum dipresentasikan di depan kelas.',
+          'Bagi peran secara adil (siapa yang membuka presentasi, menjelaskan materi, dan mencatat masukan).',
+          'Simak presentasi kelompok lain dan tuliskan masukan yang membangun dengan santun.',
+        ],
+        langkahKerja: [
+          {
+            nomor: 1,
+            langkahKerja: `Tuliskan poin-poin utama simpulan akhir penyelidikan kelompok mengenai ${safeTopic}:`,
+            hasilJawabanPlaceholder: 'Simpulan akhir kelompok kami adalah...',
+          },
+          {
+            nomor: 2,
+            langkahKerja: 'Catat tanggapan, pertanyaan, atau masukan berharga dari kelompok lain saat presentasi:',
+            hasilJawabanPlaceholder: 'Masukan dari teman: ...',
+          },
+        ],
+        pertanyaanPemantik: `Bagaimana pemahaman kelompokmu tentang ${safeTopic} setelah menyelesaikan seluruh rangkaian pertemuan ini?`,
+        refleksiSesi: 'Perasaan dan pembelajaran bermakna apa yang kalian dapatkan setelah belajar bersama kelompok?',
+      });
+    } else {
+      // Pertemuan 2 s.d. total - 1
+      const isSecond = m === 2;
+      const isThird = m === 3;
+      const isFourth = m === 4;
+      const actTitle = isSecond
+        ? `Aktivitas Pertemuan ${m}: Penyelidikan Mandiri & Pengumpulan Fakta ${safeTopic}`
+        : isThird
+        ? `Aktivitas Pertemuan ${m}: Pengolahan Data & Analisis Solusi ${safeTopic}`
+        : isFourth
+        ? `Aktivitas Pertemuan ${m}: Perancangan Solusi & Draf Karya ${safeTopic}`
+        : `Aktivitas Pertemuan ${m}: Uji Coba Karya & Umpan Balik Antarkelompok ${safeTopic}`;
+
+      const actFocus = isSecond
+        ? `Mengumpulkan informasi/data pengamatan konkret terkait ${safeTopic} secara bergotong royong.`
+        : isThird
+        ? `Menganalisis hubungan sebab-akibat dan merumuskan temuan pemecahan masalah ${safeTopic}.`
+        : isFourth
+        ? `Mendesain produk/solusi konkret dan menyusun draf karya bersama rekan kelompok.`
+        : `Melakukan simulasi dan menguji kelayakan karya solusi bersama rekan kelompok.`;
+
+      activities.push({
+        pertemuanKe: m,
+        judulAktivitas: actTitle,
+        fokusTarget: actFocus,
+        petunjukAktivitas: [
+          'Gunakan alat, bahan pengamatan, atau media ajar yang telah disediakan guru.',
+          'Bekerjalah dengan teliti, jujur dalam mencatat data, dan saling membantu antarteman.',
+          'Diskusikan setiap temuan sebelum menuliskannya pada lembar kerja.',
+        ],
+        langkahKerja: [
+          {
+            nomor: 1,
+            langkahKerja: `Lakukan langkah penyelidikan/eksplorasi konsep ${safeTopic} sesuai instruksi kerja. Catat data/hasil temuan:`,
+            hasilJawabanPlaceholder: 'Tabel/data hasil penyelidikan kelompok...',
+          },
+          {
+            nomor: 2,
+            langkahKerja: `Berdasarkan data di atas, diskusikan bersama kelompok mengapa hasil tersebut dapat terjadi:`,
+            hasilJawabanPlaceholder: 'Alasan atau penjelasan ilmiah/logis kelompok kami...',
+          },
+        ],
+        pertanyaanPemantik: `Apakah ada kendala yang kalian hadapi saat melakukan aktivitas ini, dan bagaimana cara kalian mengatasinya?`,
+        refleksiSesi: 'Sikap positif apa yang paling menonjol dari kelompokmu pada pertemuan ini?',
+      });
+    }
+  }
+
+  return activities;
+}
+
+/**
+ * Menyusun Rangkaian Lembar Kerja Peserta Didik (LKPDItem) Standar untuk Setiap Pertemuan
+ * Digunakan pada modul.lkpd dan ekspor dokumen resmi.
+ */
+export function buildStandardLKPDList(
+  totalMeetings: number,
+  topic: string,
+  model: string = 'Problem Based Learning (PBL)'
+): LKPDItem[] {
+  const safeTopic = topic || 'Materi Pembelajaran';
+  const total = Math.max(1, totalMeetings);
+  const list: LKPDItem[] = [];
+
+  for (let m = 1; m <= total; m++) {
+    if (total === 1) {
+      list.push({
+        judulLKPD: `LKPD Terpadu: Penyelidikan & Pemecahan Masalah ${safeTopic}`,
+        tujuanKegiatan: `Melalui serangkaian kegiatan pengamatan, diskusi kelompok, dan analisis terbimbing, peserta didik mampu memahami esensi konsep ${safeTopic} serta menerapkannya dalam memecahkan masalah kontekstual secara gotong royong.`,
+        alatBahan: [
+          `Media ajar / benda konkret / gambar kontekstual ${safeTopic}`,
+          'Buku siswa, lembar catatan, dan alat tulis',
+          'Spidol dan kertas plano untuk rangkuman kelompok',
+        ],
+        langkahKerja: [
+          `Amati dengan teliti media ajar atau fenomena nyata yang disajikan guru mengenai ${safeTopic}.`,
+          'Catat 2 hal menarik atau pola yang kalian temukan bersama kelompok pada kolom hasil pengamatan.',
+          `Diskusikan langkah penyelesaian dan analisis hubungan konsep ${safeTopic} bersama teman sekelompok.`,
+          'Rumuskan simpulan akhir kelompok dan bersiap mempresentasikannya di depan kelas.',
+        ],
+        pertanyaanDiskusi: [
+          `Mengapa konsep ${safeTopic} ini sangat penting kita pahami dalam aktivitas sehari-hari? Berikan 2 contoh konkretnya!`,
+          'Bagaimana kelompok kalian membagi tugas agar penyelidikan dapat diselesaikan secara tepat dan kompak?',
+        ],
+        kesimpulanPrompt: `Berdasarkan kegiatan hari ini, kami menyimpulkan bahwa ${safeTopic} dapat dipahami dan diterapkan melalui langkah-langkah yang sistematis dan kerja sama yang baik.`,
+      });
+    } else if (m === 1) {
+      list.push({
+        judulLKPD: `LKPD Pertemuan 1: Orientasi Fenomena & Eksplorasi Awal ${safeTopic}`,
+        tujuanKegiatan: `Melalui pengamatan fenomena kontekstual dan apersepsi terbimbing, peserta didik mampu mengenali konsep dasar, mengidentifikasi pertanyaan kunci, dan menunjukkan kesiapan belajar aktif terkait ${safeTopic}.`,
+        alatBahan: [
+          `Benda nyata / gambar ilustrasi kontekstual ${safeTopic}`,
+          'Buku peserta didik dan alat tulis',
+          'Lembar Kerja Peserta Didik (LKPD Pertemuan 1)',
+        ],
+        langkahKerja: [
+          `Cermati stimulus gambar / benda konkret mengenai ${safeTopic} yang disiapkan di meja belajarmu.`,
+          'Diskusikan bersama kelompok: benda atau peristiwa apa saja yang kalian amati dari stimulus tersebut?',
+          `Rumuskan minimal 1 pertanyaan penting mengenai hal yang ingin kalian selidiki lebih lanjut tentang ${safeTopic}.`,
+          'Tuliskan hasil pengamatan dan pertanyaan kelompokmu pada kolom yang tersedia.',
+        ],
+        pertanyaanDiskusi: [
+          `Hal apa yang paling menarik perhatian kelompokmu dari pengamatan awal materi ${safeTopic}?`,
+          'Menurut pendapat kelompokmu, apa manfaat mempelajari materi ini bagi kehidupan sehari-hari?',
+        ],
+        kesimpulanPrompt: `Kesimpulan Pertemuan 1: Kelompok kami berhasil mengidentifikasi konsep awal dan pertanyaan kunci mengenai ${safeTopic}.`,
+      });
+    } else if (m === total) {
+      list.push({
+        judulLKPD: `LKPD Pertemuan ${m}: Penyempurnaan Karya, Presentasi & Refleksi Pembelajaran Bermakna`,
+        tujuanKegiatan: `Melalui penyusunan draf akhir, presentasi di depan kelas, dan refleksi mendalam, peserta didik mampu mengomunikasikan hasil pemecahan masalah ${safeTopic} secara runtut, santun, dan bertanggung jawab.`,
+        alatBahan: [
+          `Hasil karya / draf laporan pemecahan masalah ${safeTopic} dari pertemuan sebelumnya`,
+          'Kertas pajangan / lembar presentasi kelompok',
+          'Lembar umpan balik dan refleksi diri/kelompok',
+        ],
+        langkahKerja: [
+          'Periksa kembali kelengkapan hasil kerja kelompok sebelum dipresentasikan di depan kelas.',
+          'Bagi peran dalam kelompok: siapa yang menjadi moderator, penyaji materi, dan pencatat masukan teman.',
+          'Sajikan karya kelompok di depan kelas dengan suara jelas, santun, dan percaya diri.',
+          'Catat masukan atau saran yang membangun dari kelompok lain serta berikan apresiasi kepada teman.',
+          'Isi lembar refleksi bermakna mengenai pengalaman belajar yang paling berkesan.',
+        ],
+        pertanyaanDiskusi: [
+          `Bagaimana tanggapan dan masukan dari teman-teman terhadap karya kelompok kalian mengenai ${safeTopic}?`,
+          'Pembelajaran berharga dan sikap positif apa yang paling berkembang selama belajar bersama kelompok?',
+        ],
+        kesimpulanPrompt: `Kesimpulan Akhir (Pertemuan ${m}): Seluruh rangkaian pembelajaran ${safeTopic} telah tuntas dipelajari dan disimpulkan dengan pemahaman mendalam.`,
+      });
+    } else {
+      // Pertemuan 2..(total - 1)
+      const isSecond = m === 2;
+      const isThird = m === 3;
+      const isFourth = m === 4;
+      const actTitle = isSecond
+        ? `LKPD Pertemuan ${m}: Penyelidikan Mandiri & Pengumpulan Data Konkret ${safeTopic}`
+        : isThird
+        ? `LKPD Pertemuan ${m}: Pengolahan Data & Analisis Solusi Masalah ${safeTopic}`
+        : isFourth
+        ? `LKPD Pertemuan ${m}: Perancangan Karya Solutif & Draf Produk ${safeTopic}`
+        : `LKPD Pertemuan ${m}: Uji Coba Solusi & Umpan Balik Antarkelompok ${safeTopic}`;
+
+      const actTujuan = isSecond
+        ? `Melalui pengamatan langsung dan investigasi kelompok, peserta didik mampu mengumpulkan data/informasi konkret terkait ${safeTopic} secara teliti dan bergotong royong.`
+        : isThird
+        ? `Melalui diskusi terarah, peserta didik mampu mengolah data hasil penyelidikan, menganalisis hubungan konsep, dan menemukan pemecahan masalah ${safeTopic}.`
+        : isFourth
+        ? `Melalui kerja sama tim, peserta didik mampu merancang solusi nyata atau menyusun draf karya pemecahan masalah ${safeTopic} secara sistematis.`
+        : `Melalui simulasi dan uji coba, peserta didik mampu menguji kelayakan karya solusi ${safeTopic} dan menyempurnakannya berdasarkan masukan antarkelompok.`;
+
+      list.push({
+        judulLKPD: actTitle,
+        tujuanKegiatan: actTujuan,
+        alatBahan: [
+          `Alat peraga / bahan percobaan / instrumen penyelidikan ${safeTopic}`,
+          'Tabel pengamatan dan alat tulis',
+          `Lembar Kerja Peserta Didik (LKPD Pertemuan ${m})`,
+        ],
+        langkahKerja: [
+          `Siapkan instrumen atau bahan pengamatan ${safeTopic} bersama teman satu kelompok.`,
+          'Lakukan pengamatan atau perhitungan sesuai petunjuk kerja secara berurutan dan cermat.',
+          'Catat setiap data atau informasi penting ke dalam tabel/format yang disediakan.',
+          'Diskusikan bersama kelompok pola atau temuan apa yang muncul dari data tersebut.',
+          'Tuliskan simpulan sementara dari kegiatan penyelidikan pertemuan ini.',
+        ],
+        pertanyaanDiskusi: [
+          `Pola atau fakta penting apa yang kelompok kalian temukan saat melakukan aktivitas pertemuan ke-${m} ini?`,
+          'Kendala apa yang dihadapi selama kegiatan dan bagaimana kelompok kalian mengatasinya secara bersama-sama?',
+        ],
+        kesimpulanPrompt: `Kesimpulan Pertemuan ${m}: Kami menemukan bahwa data dan penyelidikan pada tahap ini memperjelas pemahaman kami tentang ${safeTopic}.`,
+      });
+    }
+  }
+
+  return list;
 }

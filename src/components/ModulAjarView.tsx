@@ -3,6 +3,7 @@ import { ExportConfirmModal } from './ExportConfirmModal';
 import { ModulAjarDocument, SchoolIdentity, PDFLayoutOptions } from '../types';
 import { exportModulAjarToWord, exportModulAjarToPDF, getResolvedMeetings } from '../utils/exportUtils';
 import { normalizeRPMData, cleanMeetingAlokasi, cleanMeetingFokus, parseTotalJPAndCount, calculateMeetingTimeAllocation, cleanActivityText } from '../utils/rpmUtils';
+import { buildStandardLKPDList } from '../utils/modelSyntaxEngine';
 import { getClassesForFase } from '../utils/classFilterUtils';
 import { isWordExportDisabled } from '../services/accessCodeService';
 import { WordDownloadBlockedModal } from './WordDownloadBlockedModal';
@@ -10,6 +11,9 @@ import { RPMDocumentSection } from './RPMDocumentSection';
 import { RPMCanvasView } from './RPMCanvasView';
 import { executePrintWithLayout, loadSavedPDFLayout } from '../utils/printLayoutUtils';
 import { Download, Printer, Check, BookOpen, ShieldCheck, FileSpreadsheet, ArrowLeft, HelpCircle, FileText, Edit2, Lock, Sparkles, Award, Layers, Users, Laptop, CheckCircle2, LayoutTemplate, Plus, X } from 'lucide-react';
+import { LKPDVisualPromptModal } from './LKPDVisualPromptModal';
+import { generateLKPDVisualPrompt, generateFullModuleLKPDVisualPrompt } from '../utils/lkpdPromptGenerator';
+import { getLKPDMeetingStyle } from '../utils/lkpdStyleUtils';
 
 interface ModulAjarViewProps {
   modul: ModulAjarDocument;
@@ -66,6 +70,12 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
   const [newStandarPlatform, setNewStandarPlatform] = useState('');
   const [newStandarPerangkat, setNewStandarPerangkat] = useState('');
   const [newStandarMedia, setNewStandarMedia] = useState('');
+
+  // Modal State Generator Prompt Visual LKPD AI
+  const [promptModalOpen, setPromptModalOpen] = useState(false);
+  const [promptModalTitle, setPromptModalTitle] = useState('');
+  const [promptModalText, setPromptModalText] = useState('');
+  const [promptModalPertemuan, setPromptModalPertemuan] = useState<number | undefined>();
 
   useEffect(() => {
     setJudulModul(modul.judulModul || 'RENCANA PEMBELAJARAN MENDALAM');
@@ -125,8 +135,34 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
 
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isWordBlockedModalOpen, setIsWordBlockedModalOpen] = useState(false);
+  const [isDirectIdentityEditOpen, setIsDirectIdentityEditOpen] = useState(false);
+  const [editIdentitasForm, setEditIdentitasForm] = useState<SchoolIdentity>({ ...modul.identitas });
   const [exportType, setExportType] = useState<'WORD' | 'PDF'>('WORD');
   const [activeTab, setActiveTab] = useState<'semua' | 'inti' | 'asesmen' | 'lkpd'>('semua');
+
+  useEffect(() => {
+    setEditIdentitasForm({ ...modul.identitas });
+  }, [modul.identitas]);
+
+  const handleOpenIdentityEditor = () => {
+    setEditIdentitasForm({ ...effectiveModul.identitas });
+    setIsDirectIdentityEditOpen(true);
+  };
+
+  const handleSaveDirectIdentity = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const updated = { ...effectiveModul.identitas, ...editIdentitasForm };
+    if (onUpdateIdentitas) {
+      onUpdateIdentitas(updated);
+    }
+    if (onUpdateModul) {
+      onUpdateModul({
+        ...effectiveModul,
+        identitas: updated,
+      });
+    }
+    setIsDirectIdentityEditOpen(false);
+  };
 
   const handlePrint = () => {
     executePrintWithLayout(loadSavedPDFLayout('portrait'));
@@ -204,17 +240,15 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
             </div>
           </div>
 
-          {onOpenEditIdentity && (
-            <button
-              type="button"
-              onClick={onOpenEditIdentity}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border-2 border-amber-400 transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
-              title="Edit Profil Sekolah, Penyusun, dan Kepala Sekolah"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-amber-700" />
-              <span>Edit Profil &amp; Penyusun</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onOpenEditIdentity || handleOpenIdentityEditor}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-amber-950 bg-amber-50 hover:bg-amber-100 border-2 border-amber-400 transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
+            title="Edit Profil Sekolah, Guru, Kepala Sekolah, dan Titimangsa"
+          >
+            <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+            <span>Edit Profil &amp; Identitas Modul</span>
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2.5 pt-0.5">
@@ -477,6 +511,7 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
           onPrint={handlePrint}
           onDownloadWord={handleDownloadWord}
           onDownloadPDF={handleDownloadPDF}
+          onOpenEditIdentity={onOpenEditIdentity || handleOpenIdentityEditor}
           onUpdateIdentitas={onUpdateIdentitas}
           onUpdatePemanfaatanTeknologi={handleUpdatePemanfaatanTeknologi}
         />
@@ -501,6 +536,7 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
               semester={semester}
               setSemester={setSemester}
               activeTab={activeTab}
+              onOpenEditIdentity={onOpenEditIdentity || handleOpenIdentityEditor}
               onUpdateIdentitas={onUpdateIdentitas}
               onUpdatePemanfaatanTeknologi={handleUpdatePemanfaatanTeknologi}
             />
@@ -521,20 +557,19 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
 
             {/* I. INFORMASI UMUM */}
             <section id="modul-info-umum" className={`space-y-4 ${activeTab === 'semua' || activeTab === 'inti' ? 'block' : 'hidden print:block'}`}>
-              <div className="flex items-center justify-between bg-slate-100 p-2 rounded border-l-4 border-slate-800">
+              <div className="flex items-center justify-between bg-slate-100 p-2.5 rounded border-l-4 border-slate-800">
                 <h3 className="text-[12pt] font-bold uppercase tracking-wider text-slate-900">
                   I. Informasi Umum
                 </h3>
-                {onOpenEditIdentity && (
-                  <button
-                    type="button"
-                    onClick={onOpenEditIdentity}
-                    className="no-print px-2.5 py-1 rounded bg-white hover:bg-slate-200 text-slate-800 text-xs font-semibold flex items-center gap-1 border border-slate-300 transition-colors cursor-pointer"
-                  >
-                    <Edit2 className="w-3 h-3 text-blue-600" />
-                    <span>Edit Data Modul</span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={onOpenEditIdentity || handleOpenIdentityEditor}
+                  className="no-print px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 text-xs font-bold flex items-center gap-1.5 border border-amber-300 transition-colors cursor-pointer shadow-2xs"
+                  title="Edit Identitas Sekolah, Guru, Kepala Sekolah, dan Kelas"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Edit Profil &amp; Penyusun</span>
+                </button>
               </div>
 
               {/* Identitas Tabel Standar Akademik */}
@@ -976,30 +1011,142 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                 </h3>
               </div>
 
-              {/* Diagnostik */}
-              <div className="p-3.5 bg-white rounded border border-slate-300 text-[12pt] space-y-1.5 leading-[1.5]">
-                <h4 className="font-bold text-slate-900">
-                  1. Asesmen Diagnostik (Awal Pembelajaran):
-                </h4>
-                <p className="text-slate-700">Teknik: <span className="font-semibold text-slate-900">{modul.asesmen?.diagnostik?.teknik || '-'}</span></p>
-                <ul className="list-decimal list-inside space-y-1 text-slate-800 pl-1">
-                  {(modul.asesmen?.diagnostik?.daftarPertanyaan || []).map((q, idx) => (
-                    <li key={idx} className="text-justify break-words">{q}</li>
-                  ))}
-                </ul>
+              {/* RENCANA ASESMEN LENGKAP PER PERTEMUAN */}
+              <div className="p-4 bg-white rounded border border-slate-300 text-[12pt] space-y-4 leading-[1.5]">
+                <div className="border-b border-slate-200 pb-2 flex items-center justify-between">
+                  <h4 className="font-bold text-slate-900 text-base">
+                    1. Rencana Asesmen Komprehensif Per Pertemuan
+                  </h4>
+                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
+                    Struktur Per Pertemuan Sesuai Kurikulum Merdeka
+                  </span>
+                </div>
+
+                <div className="space-y-4">
+                  {resolvedMeetings.map((pert, pIdx) => {
+                    const isFirst = pIdx === 0;
+                    const isLast = pIdx === resolvedMeetings.length - 1;
+                    const totalM = resolvedMeetings.length;
+                    const defaultPlan = pert.asesmenPertemuan || {
+                      jenisAsesmen: totalM === 1 ? 'Asesmen Diagnostik (Awal), Formatif (Proses) & Sumatif (Lingkup TP)' : isFirst ? 'Asesmen Diagnostik (Awal) & Formatif (Proses)' : isLast ? 'Asesmen Formatif (Presentasi) & Sumatif (Lingkup TP)' : 'Asesmen Formatif (Proses)',
+                      teknikDanBentuk: isFirst ? 'Tanya Jawab Pemantik Lisan & Observasi Kesiapan Awal + Lembar Observasi Diskusi' : isLast ? 'Rubrik Presentasi Karya Kelompok & Tes Evaluasi Mandiri Tertulis (HOTS)' : 'Penilaian Kinerja Kelompok pada LKPD & Observasi Diskusi',
+                      instrumen: `Lembar Kerja Peserta Didik (LKPD Aktivitas Pertemuan ${pIdx + 1}) & Lembar Observasi Sikap`,
+                      buktiBelajar: `Catatan pengisian LKPD Aktivitas Pertemuan ${pIdx + 1} dan keaktifan proses belajar`,
+                      tindakLanjut: 'Memberikan bimbingan langsung dan umpan balik deskriptif bagi siswa.',
+                    };
+
+                    return (
+                      <div key={pIdx} className="p-3.5 bg-slate-50/80 rounded-lg border border-slate-300 space-y-2.5">
+                        <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200 pb-1.5">
+                          <h5 className="font-bold text-slate-900 uppercase tracking-wide text-[11pt]">
+                            {pIdx + 1}. ASESMEN PERTEMUAN {pIdx + 1} ({pert.alokasiWaktu || `${(pert as any).alokasiJP || 2} JP`}):
+                          </h5>
+                          <span className="text-[10pt] font-bold text-indigo-900 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-200">
+                            {defaultPlan.jenisAsesmen}
+                          </span>
+                        </div>
+
+                        {totalM === 1 ? (
+                          /* Pertemuan Tunggal (1 Pertemuan) */
+                          <div className="space-y-2.5 pl-2 text-slate-800">
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">a. Asesmen Diagnostik (Awal Pembelajaran):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Tanya Jawab Lisan Pemantik &amp; Observasi Kesiapan Awal</li>
+                                <li><strong>Instrumen Asesmen:</strong> Daftar Pertanyaan Apersepsi Konseptual &amp; Catatan Awal Guru</li>
+                                <li><strong>Bukti Belajar:</strong> Respon lisan aktif dan pemahaman prasyarat murid</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">b. Asesmen Formatif (Proses Pembelajaran):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Observasi Kinerja Kelompok pada LKPD &amp; Umpan Balik Langsung</li>
+                                <li><strong>Instrumen Asesmen:</strong> Lembar Kerja Peserta Didik (LKPD Terpadu) &amp; Rubrik Ketercapaian TP</li>
+                                <li><strong>Bukti Belajar:</strong> Hasil pengerjaan lembar kerja dan keaktifan diskusi gotong royong</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">c. Asesmen Sumatif (Lingkup Tujuan Pembelajaran):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Tes Mandiri Tertulis (HOTS) &amp; Refleksi Akhir TP</li>
+                                <li><strong>Instrumen Asesmen:</strong> Lembar Soal Penalaran Konseptual (Pilihan Ganda &amp; Uraian)</li>
+                                <li><strong>Bukti Belajar:</strong> Skor lembar evaluasi mandiri siswa</li>
+                                <li><strong>Tindak Lanjut:</strong> Pemetaan ketuntasan KKTP untuk pengayaan/remedial</li>
+                              </ul>
+                            </div>
+                          </div>
+                        ) : isFirst ? (
+                          /* Pertemuan 1: Diagnostik + Formatif */
+                          <div className="space-y-2.5 pl-2 text-slate-800">
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">a. Asesmen Diagnostik (Awal Pembelajaran):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Tanya Jawab Pemantik Apersepsi Lisan &amp; Pengamatan Minat Belajar</li>
+                                <li><strong>Instrumen Asesmen:</strong> {modul.asesmen?.diagnostik?.teknik ? `Pertanyaan Pemantik: ${modul.asesmen.diagnostik.teknik}` : '3 Butir Pertanyaan Apersepsi Kontekstual & Catatan Kesiapan Murid'}</li>
+                                <li><strong>Bukti Belajar:</strong> Respon lisan langsung murid dalam menanggapi stimulus materi</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">b. Asesmen Formatif (Proses Pembelajaran):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Observasi Keterlibatan Diskusi &amp; Penilaian Kinerja Eksplorasi Awal</li>
+                                <li><strong>Instrumen Asesmen:</strong> LKPD Aktivitas Pertemuan 1 (Orientasi Masalah &amp; Eksplorasi Konsep) &amp; Lembar Observasi Sikap</li>
+                                <li><strong>Bukti Belajar:</strong> Hasil pengisian lembar kerja kelompok Pertemuan 1 dan catatan pengamatan guru</li>
+                                <li><strong>Tindak Lanjut:</strong> Memetakan kelompok butuh perancah bimbingan langsung vs kelompok mandiri</li>
+                              </ul>
+                            </div>
+                          </div>
+                        ) : isLast ? (
+                          /* Pertemuan Terakhir: Formatif Presentasi + Sumatif */
+                          <div className="space-y-2.5 pl-2 text-slate-800">
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">a. Asesmen Formatif (Presentasi &amp; Refleksi):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Unjuk Kerja Presentasi Kelompok &amp; Lembar Refleksi Pembelajaran Bermakna</li>
+                                <li><strong>Instrumen Asesmen:</strong> Rubrik Penilaian Presentasi Karya &amp; Lembar Refleksi Diri Siswa</li>
+                                <li><strong>Bukti Belajar:</strong> Performa presentasi santun, karya laporan kelompok, dan lembar refleksi bermakna</li>
+                              </ul>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">b. Asesmen Sumatif (Lingkup Tujuan Pembelajaran):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Tes Tertulis Evaluasi Mandiri (Penalaran Tingkat Tinggi / HOTS)</li>
+                                <li><strong>Instrumen Asesmen:</strong> Paket Tes Evaluasi Akhir TP (Pilihan Ganda &amp; Uraian Pemecahan Masalah)</li>
+                                <li><strong>Bukti Belajar:</strong> Lembar jawaban tes evaluasi mandiri murid</li>
+                                <li><strong>Tindak Lanjut:</strong> Menetapkan ketercapaian KKTP rapor, pengayaan bagi yang tuntas, dan remedial bagi yang belum tuntas</li>
+                              </ul>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Pertemuan 2 s.d. N-1: Formatif Proses */
+                          <div className="space-y-2 pl-2 text-slate-800">
+                            <div className="space-y-1">
+                              <p className="font-bold text-slate-900">a. Asesmen Formatif (Proses Pembelajaran Berkelanjutan):</p>
+                              <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                                <li><strong>Teknik &amp; Bentuk:</strong> Penilaian Kinerja Kolaboratif &amp; Observasi Penyelidikan Mandiri</li>
+                                <li><strong>Instrumen Asesmen:</strong> LKPD Aktivitas Pertemuan {pIdx + 1} (Penyelidikan / Pengolahan Solusi) &amp; Lembar Ceklis Diskusi</li>
+                                <li><strong>Bukti Belajar:</strong> Catatan data temuan penyelidikan pada LKPD Pertemuan {pIdx + 1} dan keaktifan interaksi kelompok</li>
+                                <li><strong>Tindak Lanjut:</strong> Umpan balik deskriptif (descriptive feedback) seketika dari guru saat pendampingan</li>
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              {/* Formatif & Rubrik Penilaian */}
+              {/* Rubrik Penilaian Formatif */}
               <div className="p-3.5 bg-white rounded border border-slate-300 text-[12pt] space-y-2.5 leading-[1.5]">
                 <h4 className="font-bold text-slate-900">
-                  2. Asesmen Formatif (Proses Pembelajaran):
+                  2. Rubrik Penilaian Formatif (Kriteria Ketercapaian Tujuan Pembelajaran - KKTP):
                 </h4>
                 <p className="text-slate-800 text-justify break-words">
-                  <strong>Teknik:</strong> <span className="font-semibold">{modul.asesmen?.formatif?.teknik || '-'}</span> — {modul.asesmen?.formatif?.deskripsi || '-'}
+                  <strong>Teknik Utama:</strong> <span className="font-semibold">{modul.asesmen?.formatif?.teknik || 'Observasi Unjuk Kerja & Penilaian Portofolio LKPD'}</span> — {modul.asesmen?.formatif?.deskripsi || 'Digunakan untuk memantau kemajuan belajar murid secara berkelanjutan.'}
                 </p>
 
-                <h5 className="font-bold text-slate-900 pt-1">Rubrik Penilaian Formatif (Kriteria Ketercapaian):</h5>
-                <div className="border border-slate-400 rounded overflow-hidden">
+                <div className="border border-slate-400 rounded overflow-hidden mt-2">
                   <table className="w-full text-left text-[11pt] sm:text-[12pt] border-collapse table-fixed">
                     <thead>
                       <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-400 text-center">
@@ -1099,41 +1246,53 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
 
             {/* Lembar Pengesahan Format Standar Resmi Kedinasan (Setelah Asesmen, Sebelum Lampiran LKPD) */}
             <div className="pt-8 border-t-2 border-slate-400 page-avoid-break text-[12pt] leading-[1.5]">
-              {onUpdateIdentitas && (
-                <div className="no-print mb-4 flex items-center justify-end gap-2 text-xs font-sans">
-                  <span className="text-slate-600 font-medium">Jabatan Penandatangan:</span>
-                  <div className="inline-flex p-0.5 bg-slate-100 border border-slate-300 rounded-md">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Kelas' })
-                      }
-                      className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                        (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Kelas'
-                          ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Klik untuk memilih Guru Kelas"
-                    >
-                      Guru Kelas
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Mata Pelajaran' })
-                      }
-                      className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                        (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Mata Pelajaran'
-                          ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                      title="Klik untuk memilih Guru Mata Pelajaran"
-                    >
-                      Guru Mata Pelajaran
-                    </button>
+              <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-sans">
+                <button
+                  type="button"
+                  onClick={onOpenEditIdentity || handleOpenIdentityEditor}
+                  className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  title="Edit Profil Sekolah, Guru, Kepala Sekolah, dan Titimangsa"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Edit Data Penandatangan &amp; Titimangsa</span>
+                </button>
+
+                {onUpdateIdentitas && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600 font-medium">Jabatan Penandatangan:</span>
+                    <div className="inline-flex p-0.5 bg-slate-100 border border-slate-300 rounded-md">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Kelas' })
+                        }
+                        className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                          (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Kelas'
+                            ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                        title="Klik untuk memilih Guru Kelas"
+                      >
+                        Guru Kelas
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Mata Pelajaran' })
+                        }
+                        className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                          (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Mata Pelajaran'
+                            ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                        title="Klik untuk memilih Guru Mata Pelajaran"
+                      >
+                        Guru Mata Pelajaran
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               <table className="w-full border-collapse border-none text-[12pt] leading-[1.5] text-slate-900">
                 <tbody>
@@ -1213,65 +1372,178 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
 
             {/* III. LAMPIRAN LKPD & BAHAN BACAAN */}
             <section id="modul-lampiran" className={`space-y-4 ${activeTab === 'semua' || activeTab === 'lkpd' ? 'block' : 'hidden print:block'}`}>
-              <div className="flex items-center justify-between bg-slate-100 p-2 rounded border-l-4 border-slate-800">
+              <div className="flex items-center justify-between bg-slate-100 p-2 rounded border-l-4 border-slate-800 flex-wrap gap-2">
                 <h3 className="text-[12pt] font-bold uppercase tracking-wider text-slate-900">
-                  III. Lampiran: Lembar Kerja Murid (LKPD) &amp; Bahan Ajar
+                  III. Lampiran: Lembar Kerja Murid (LKPD Berkelompok) &amp; Bahan Ajar
                 </h3>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const resolvedLKPDList = Array.isArray(modul.lkpd) && modul.lkpd.length >= resolvedMeetings.length && modul.lkpd.length > 0
+                      ? modul.lkpd
+                      : buildStandardLKPDList(resolvedMeetings.length, topikMateri || modul.identitas.mataPelajaran, modul.modelPembelajaran);
+
+                    const fullPrompt = generateFullModuleLKPDVisualPrompt(
+                      resolvedLKPDList.length,
+                      topikMateri,
+                      modul.identitas.mataPelajaran,
+                      modul.identitas.kelas,
+                      modul.identitas.fase,
+                      modul.modelPembelajaran || 'Problem Based Learning (PBL)',
+                      resolvedLKPDList.map((l, idx) => ({
+                        judulAktivitas: l.judulLKPD || `Aktivitas Pertemuan ${idx + 1}`,
+                        pertemuanKe: idx + 1,
+                        topikMateri,
+                        mataPelajaran: modul.identitas.mataPelajaran,
+                        kelas: modul.identitas.kelas,
+                        fase: modul.identitas.fase,
+                        modelPembelajaran: modul.modelPembelajaran || 'Problem Based Learning (PBL)',
+                        fokusTarget: l.tujuanKegiatan || `Eksplorasi konsep ${topikMateri}`,
+                        petunjukAktivitas: l.langkahKerja,
+                        langkahKerja: (l.pertanyaanDiskusi || []).map((p, pIdx) => ({ nomor: pIdx + 1, langkahKerja: p })),
+                        pertanyaanPemantik: l.kesimpulanPrompt,
+                        refleksiSesi: 'Refleksi kerja sama kelompok',
+                        namaSekolah: modul.identitas.namaSatuanPendidikan,
+                      }))
+                    );
+                    setPromptModalTitle(`Paket Prompt Desain Visual LKPD (${resolvedLKPDList.length} Pertemuan)`);
+                    setPromptModalText(fullPrompt);
+                    setPromptModalPertemuan(undefined);
+                    setPromptModalOpen(true);
+                  }}
+                  className="no-print px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-700 to-purple-800 hover:from-indigo-800 hover:to-purple-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  title="Salin Prompt Desain Grafis LKPD untuk Google Gemini / Gems / Canva"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>✨ Prompt Desain Visual LKPD (Gemini AI / Gems)</span>
+                </button>
               </div>
 
-              {/* LKPD Cards */}
+              {/* LKPD Cards (Modular Per Pertemuan) */}
               <div className="space-y-4">
-                {(modul.lkpd || []).map((l, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded border border-slate-400 bg-white space-y-3 text-[12pt] leading-[1.5]"
-                  >
-                    <div className="text-center pb-2 border-b border-slate-300">
-                      <span className="px-2.5 py-0.5 rounded text-[11pt] font-bold bg-slate-100 text-slate-900 uppercase border border-slate-300">
-                        Lembar Kerja Murid (LKPD)
-                      </span>
-                      <h4 className="text-[13pt] font-bold text-slate-900 mt-2">
-                        LKPD {idx + 1}: {l.judulLKPD}
-                      </h4>
-                      <p className="text-[11pt] text-slate-700 mt-0.5 text-justify break-words">
-                        <strong>Tujuan Pembelajaran:</strong> {l.tujuanKegiatan}
+                {(() => {
+                  const resolvedLKPDList = Array.isArray(modul.lkpd) && modul.lkpd.length >= resolvedMeetings.length && modul.lkpd.length > 0
+                    ? modul.lkpd
+                    : buildStandardLKPDList(resolvedMeetings.length, topikMateri || modul.identitas.mataPelajaran, modul.modelPembelajaran);
+
+                  return resolvedLKPDList.map((l, idx) => {
+                    const pertNo = idx + 1;
+                    const theme = getLKPDMeetingStyle(pertNo, modul.identitas.mataPelajaran);
+                    return (
+                    <div
+                      key={idx}
+                      className={theme.cardContainerClass}
+                    >
+                      <div className="flex items-center justify-between border-b-2 border-slate-800 pb-2 flex-wrap gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold bg-slate-900 text-white px-3 py-1 rounded flex items-center gap-1 font-sans">
+                            <span>{theme.icon}</span>
+                            <span>LKPD Pertemuan {pertNo}</span>
+                          </span>
+                          <h4 className="text-[14pt] font-bold text-slate-900 font-serif">
+                            {l.judulLKPD}
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const pText = generateLKPDVisualPrompt({
+                              judulAktivitas: l.judulLKPD,
+                              pertemuanKe: pertNo,
+                              topikMateri,
+                              mataPelajaran: modul.identitas.mataPelajaran,
+                              kelas: modul.identitas.kelas,
+                              fase: modul.identitas.fase,
+                              modelPembelajaran: modul.modelPembelajaran || 'Problem Based Learning (PBL)',
+                              fokusTarget: l.tujuanKegiatan || `Eksplorasi konsep ${topikMateri}`,
+                              petunjukAktivitas: l.langkahKerja,
+                              langkahKerja: (l.pertanyaanDiskusi || []).map((p, pIdx) => ({ nomor: pIdx + 1, langkahKerja: p })),
+                              pertanyaanPemantik: l.kesimpulanPrompt,
+                              refleksiSesi: 'Refleksi kerja sama kelompok',
+                              namaSekolah: modul.identitas.namaSatuanPendidikan,
+                            });
+                            setPromptModalTitle(`Prompt Visual LKPD Pertemuan ${pertNo}`);
+                            setPromptModalText(pText);
+                            setPromptModalPertemuan(pertNo);
+                            setPromptModalOpen(true);
+                          }}
+                          className="no-print px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs font-sans"
+                          title="Salin Prompt AI untuk Lembar Kerja Pertemuan Ini"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Prompt Visual Pertemuan {pertNo}</span>
+                        </button>
+                      </div>
+
+                      {/* Box Identitas Kelompok Resmi (Maksimal 6 Siswa) */}
+                      <div className="p-3.5 bg-slate-50/50 rounded border border-slate-400 text-[11pt] space-y-1.5 font-serif text-left shadow-2xs">
+                        <div className="flex items-center justify-between pb-1 border-b border-slate-300 font-bold text-slate-900">
+                          <span>IDENTITAS KELOMPOK PERTEMUAN {pertNo} (MAKSIMAL 6 SISWA)</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 pb-1 border-b border-slate-300 text-slate-900 font-medium">
+                          <div><strong>Nama Kelompok:</strong> ........................................</div>
+                          <div><strong>Hari / Tanggal:</strong> ........................................</div>
+                          <div><strong>Mata Pelajaran:</strong> {modul.identitas.mataPelajaran}</div>
+                          <div><strong>Kelas / Pertemuan:</strong> Kelas {modul.identitas.kelas} (Pertemuan Ke-{pertNo})</div>
+                        </div>
+                        <div className="pt-0.5 text-slate-900">
+                          <strong className="block mb-1 text-[11pt]">Anggota Kelompok (Maksimal 6 Siswa):</strong>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1 text-slate-800 text-[11pt]">
+                            <div>1. ................................ <strong>(Ketua)</strong></div>
+                            <div>4. ................................</div>
+                            <div>2. ................................</div>
+                            <div>5. ................................</div>
+                            <div>3. ................................</div>
+                            <div>6. ................................</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <p className="text-[11pt] text-slate-800 text-justify break-words">
+                        <strong>Tujuan Pembelajaran Kelompok:</strong> {l.tujuanKegiatan}
                       </p>
-                    </div>
 
-                    {l.alatBahan && l.alatBahan.length > 0 && (
-                      <div className="text-[12pt]">
-                        <span className="font-bold text-slate-900">Alat &amp; Bahan: </span>
-                        <span className="text-slate-800">{l.alatBahan.join(', ')}</span>
+                      {l.alatBahan && l.alatBahan.length > 0 && (
+                        <div className="text-[12pt]">
+                          <span className="font-bold text-slate-900">Alat &amp; Bahan Kelompok: </span>
+                          <span className="text-slate-800">{l.alatBahan.join(', ')}</span>
+                        </div>
+                      )}
+
+                      <div className="text-[12pt] space-y-1">
+                        <h5 className="font-bold text-slate-900">Langkah Kegiatan Kelompok:</h5>
+                        <ol className="list-decimal list-inside space-y-1 text-slate-800 pl-2">
+                          {(l.langkahKerja || []).map((lk, lkIdx) => (
+                            <li key={lkIdx} className="text-justify break-words">{lk}</li>
+                          ))}
+                        </ol>
                       </div>
-                    )}
 
-                    <div className="text-[12pt] space-y-1">
-                      <h5 className="font-bold text-slate-900">Langkah Kegiatan:</h5>
-                      <ol className="list-decimal list-inside space-y-1 text-slate-800 pl-2">
-                        {(l.langkahKerja || []).map((lk, lkIdx) => (
-                          <li key={lkIdx} className="text-justify break-words">{lk}</li>
-                        ))}
-                      </ol>
-                    </div>
-
-                    <div className="text-[12pt] space-y-1 pt-1">
-                      <h5 className="font-bold text-slate-900">Pertanyaan Diskusi:</h5>
-                      <ol className="list-decimal list-inside space-y-1 text-slate-800 pl-2">
-                        {(l.pertanyaanDiskusi || []).map((pd, pdIdx) => (
-                          <li key={pdIdx} className="font-medium text-slate-900 text-justify break-words">
-                            {pd}
-                          </li>
-                        ))}
-                      </ol>
-                    </div>
-
-                    {l.kesimpulanPrompt && (
-                      <div className="p-3 bg-slate-50 rounded border border-slate-300 text-[12pt] text-slate-800 italic leading-[1.5] break-words">
-                        <strong>Kesimpulan:</strong> {l.kesimpulanPrompt}
+                      <div className="text-[12pt] space-y-2 pt-2">
+                        <h5 className="font-bold text-slate-900 font-serif">Pertanyaan Diskusi Kelompok:</h5>
+                        <ol className="list-decimal list-inside space-y-3 text-slate-800 pl-2">
+                          {(l.pertanyaanDiskusi || []).map((pd, pdIdx) => (
+                            <li key={pdIdx} className="font-medium text-slate-900 text-justify break-words space-y-1.5">
+                              <span>{pd}</span>
+                              <div className="p-3 bg-white rounded-lg border border-slate-300 text-slate-500 font-serif text-[11pt] mt-2 space-y-2 min-h-[110px] shadow-3xs">
+                                <span className="text-[10pt] text-slate-400 font-sans block mb-1">Lembar Jawaban Kelompok:</span>
+                                <div className="text-slate-400 border-b border-dotted border-slate-300 pb-1 mb-1"></div>
+                                <div className="text-slate-400 border-b border-dotted border-slate-300 pb-1 mb-1"></div>
+                                <div className="text-slate-400 border-b border-dotted border-slate-300 pb-1"></div>
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {l.kesimpulanPrompt && (
+                        <div className="p-3 bg-slate-50 rounded border border-slate-300 text-[12pt] text-slate-800 italic leading-[1.5] break-words">
+                          <strong>Kesimpulan Kelompok:</strong> {l.kesimpulanPrompt}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });})()}
               </div>
 
               {/* Bahan Bacaan Guru & Siswa */}
@@ -1345,6 +1617,191 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
         </button>
       </div>
 
+      {/* Quick Direct Identity Edit Modal for Modul Ajar */}
+      {isDirectIdentityEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs no-print overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full border-2 border-slate-300 overflow-hidden my-8 animate-in fade-in zoom-in duration-200">
+            <div className="bg-[#0B1528] text-white p-4.5 sm:p-5 flex items-center justify-between border-b-2 border-amber-400">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                  <Edit2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base text-white">Edit Identitas &amp; Profil Modul Ajar</h3>
+                  <p className="text-xs text-amber-200">Perbarui Nama Sekolah, Guru, Kepala Sekolah, dan Titimangsa</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsDirectIdentityEditOpen(false)}
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDirectIdentity} className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                {/* Nama Satuan Pendidikan */}
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="font-bold text-slate-800">Nama Satuan Pendidikan (Sekolah):</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.namaSatuanPendidikan || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, namaSatuanPendidikan: e.target.value })}
+                    placeholder="Contoh: SD Negeri Fatubai"
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                    required
+                  />
+                </div>
+
+                {/* Nama Guru */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Nama Guru / Penyusun:</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.namaGuru || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, namaGuru: e.target.value })}
+                    placeholder="Nama Lengkap & Gelar"
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                    required
+                  />
+                </div>
+
+                {/* NIP Guru */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">NIP Guru:</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.nipGuru || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, nipGuru: e.target.value })}
+                    placeholder="198603012020121005 atau - "
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                  />
+                </div>
+
+                {/* Peran Guru */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Jabatan Guru:</label>
+                  <select
+                    value={editIdentitasForm.peranGuru || 'Guru Kelas'}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, peranGuru: e.target.value as any })}
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium bg-white"
+                  >
+                    <option value="Guru Kelas">Guru Kelas</option>
+                    <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
+                  </select>
+                </div>
+
+                {/* Kelas Target */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Kelas Target Modul ({editIdentitasForm.fase || modul.identitas.fase}):</label>
+                  <select
+                    value={editIdentitasForm.kelas || '5'}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, kelas: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium bg-white"
+                  >
+                    {getClassesForFase(editIdentitasForm.fase || modul.identitas.fase).map((cls) => (
+                      <option key={cls} value={cls}>Kelas {cls}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Nama Kepala Sekolah */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Nama Kepala Sekolah:</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.namaKepalaSekolah || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, namaKepalaSekolah: e.target.value })}
+                    placeholder="Nama Lengkap & Gelar Kepala Sekolah"
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                    required
+                  />
+                </div>
+
+                {/* NIP Kepala Sekolah */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">NIP Kepala Sekolah:</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.nipKepalaSekolah || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, nipKepalaSekolah: e.target.value })}
+                    placeholder="196709192008011008 atau - "
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                  />
+                </div>
+
+                {/* Tempat Penetapan */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Tempat Penetapan (Kota/Kab/Desa):</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.tempatPenetapan || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, tempatPenetapan: e.target.value })}
+                    placeholder="Contoh: Fatubai / Jakarta"
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                  />
+                </div>
+
+                {/* Tanggal Penetapan */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Tanggal Penetapan:</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.tanggalPenetapan || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, tanggalPenetapan: e.target.value })}
+                    placeholder="Contoh: 15 Juli 2024"
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                  />
+                </div>
+
+                {/* Tahun Pelajaran & Semester */}
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Tahun Pelajaran:</label>
+                  <input
+                    type="text"
+                    value={editIdentitasForm.tahunPelajaran || ''}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, tahunPelajaran: e.target.value })}
+                    placeholder="Contoh: 2026/2027"
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-800">Semester:</label>
+                  <select
+                    value={editIdentitasForm.semester || '1'}
+                    onChange={(e) => setEditIdentitasForm({ ...editIdentitasForm, semester: e.target.value })}
+                    className="w-full px-3 py-2 border-2 border-slate-300 rounded-lg focus:outline-hidden focus:border-blue-600 font-medium bg-white"
+                  >
+                    <option value="1">Semester 1 (Ganjil)</option>
+                    <option value="2">Semester 2 (Genap)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsDirectIdentityEditOpen(false)}
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Simpan Perubahan Identitas</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <ExportConfirmModal
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
@@ -1363,6 +1820,17 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
         onClose={() => setIsWordBlockedModalOpen(false)}
         onDownloadPDFInstead={handleDownloadPDF}
         documentTitle={`Modul Ajar: ${modul.identitas.mataPelajaran}`}
+      />
+
+      {/* Modal Generator Prompt Visual LKPD AI */}
+      <LKPDVisualPromptModal
+        isOpen={promptModalOpen}
+        onClose={() => setPromptModalOpen(false)}
+        title={promptModalTitle}
+        pertemuanKe={promptModalPertemuan}
+        promptText={promptModalText}
+        topikMateri={topikMateri}
+        mataPelajaran={modul.identitas.mataPelajaran}
       />
     </div>
   );

@@ -57,24 +57,24 @@ export function generateStudentExamReportPDF(data: StudentExamReportData): void 
   // Baris 1: Pemerintah Kabupaten
   doc.setFont('times', 'bold');
   doc.setFontSize(11);
-  doc.text('PEMERINTAH KABUPATEN TIMOR TENGAH UTARA', pageWidth / 2, currentY, { align: 'center' });
+  doc.text(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA', pageWidth / 2, currentY, { align: 'center' });
   currentY += 5;
 
   // Baris 2: Dinas Pendidikan dan Kebudayaan
-  doc.text('DINAS PENDIDIKAN DAN KEBUDAYAAN', pageWidth / 2, currentY, { align: 'center' });
+  doc.text(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN', pageWidth / 2, currentY, { align: 'center' });
   currentY += 6;
 
   // Baris 3: Nama Satuan Pendidikan
   doc.setFontSize(14);
-  const schoolName = (identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
+  const schoolName = (identitas.kopBaris3 || identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI').toUpperCase();
   doc.text(schoolName, pageWidth / 2, currentY, { align: 'center' });
   currentY += 4.5;
 
   // Baris 4: Alamat Lengkap Instansi
   doc.setFont('times', 'normal');
   doc.setFontSize(8.5);
-  const alamat = identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
-  doc.text(`Alamat: ${alamat}`, pageWidth / 2, currentY, { align: 'center' });
+  const alamat = identitas.kopBaris4 || (identitas.alamatInstansi ? (identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? identitas.alamatInstansi : `Alamat: ${identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713');
+  doc.text(alamat, pageWidth / 2, currentY, { align: 'center' });
   currentY += 3.5;
   doc.text('Laman Resmi Asesmen CBT: SIPARTAN TTU • Tahun Ajaran 2026/2027', pageWidth / 2, currentY, { align: 'center' });
   currentY += 3;

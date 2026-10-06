@@ -249,7 +249,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200 my-auto flex flex-col animate-in fade-in zoom-in-95 duration-200 max-h-[95vh] overflow-y-auto">
         {/* Header Ribbon */}
         <div className="bg-linear-to-r from-slate-900 via-blue-950 to-slate-900 px-6 py-5 text-white flex items-center justify-between border-b border-blue-900/50 shrink-0">
           <div className="flex items-center gap-3">
@@ -687,206 +687,216 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
               </div>
             ) : (
               /* Actual Registration Form */
-              <form onSubmit={handleRegisterSubmit} className="space-y-4">
-                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-950 space-y-1">
-                  <div className="font-bold flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-blue-600" />
-                    Formulir Permohonan Kode Akses Resmi SIPARTAN
-                  </div>
-                  <p className="text-[11px] text-blue-900 leading-relaxed">
-                    Data yang Anda masukkan di bawah ini akan <strong>dikunci permanen</strong> pada cover dokumen, lembar ATP, dan Modul Ajar.
-                    Setelah diajukan, Administrator SIPARTAN (Bapak Roni / WA: {ADMIN_WA_DISPLAY}) akan memverifikasi dan mengaktifkan kode akses Anda.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  {/* 1. Nama Lengkap Guru */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      1. Nama Lengkap Guru (beserta Gelar) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={regNamaGuru}
-                      onChange={(e) => setRegNamaGuru(e.target.value)}
-                      placeholder="Contoh: Yeni Ellu, S.Pd."
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
-                    />
+              <form onSubmit={handleRegisterSubmit} className="flex flex-col flex-1">
+                {/* Scrollable Fields Wrapper */}
+                <div className="flex-1 pr-1.5 space-y-4">
+                  <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-950 space-y-1">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-blue-600" />
+                      Formulir Permohonan Kode Akses Resmi SIPARTAN
+                    </div>
+                    <p className="text-[11px] text-blue-900 leading-relaxed">
+                      Data yang Anda masukkan di bawah ini akan <strong>dikunci permanen</strong> pada cover dokumen, lembar ATP, dan Modul Ajar.
+                      Setelah diajukan, Administrator SIPARTAN (Bapak Roni / WA: {ADMIN_WA_DISPLAY}) akan memverifikasi dan mengaktifkan kode akses Anda.
+                    </p>
                   </div>
 
-                  {/* 2. NIP Guru */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      2. NIP Guru (atau - jika Non-PNS)
-                    </label>
-                    <input
-                      type="text"
-                      value={regNipGuru}
-                      onChange={(e) => setRegNipGuru(e.target.value)}
-                      placeholder="Contoh: 19860610 200902 2 004 atau -"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* 1. Nama Lengkap Guru */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        1. Nama Lengkap Guru (beserta Gelar) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={regNamaGuru}
+                        onChange={(e) => setRegNamaGuru(e.target.value)}
+                        placeholder="Contoh: Yeni Ellu, S.Pd."
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
+                      />
+                    </div>
 
-                  {/* 3. Jabatan Guru */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      3. Jabatan Guru <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={regJabatan}
-                      onChange={(e) => setRegJabatan(e.target.value as any)}
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
-                    >
-                      <option value="Guru Kelas">Guru Kelas</option>
-                      <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
-                    </select>
-                  </div>
+                    {/* 2. NIP Guru */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        2. NIP Guru (atau - jika Non-PNS)
+                      </label>
+                      <input
+                        type="text"
+                        value={regNipGuru}
+                        onChange={(e) => setRegNipGuru(e.target.value)}
+                        placeholder="Contoh: 19860610 200902 2 004 atau -"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
+                      />
+                    </div>
 
-                  {/* 4. Nama Satuan Pendidikan (Sekolah) */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      4. Nama Satuan Pendidikan (Nama Sekolah) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={regNamaSekolah}
-                      onChange={(e) => setRegNamaSekolah(e.target.value)}
-                      placeholder="Contoh: UPT SD Negeri 1 Silaut"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
-                    />
-                  </div>
-
-                  {/* WhatsApp Guru Input (Wajib) */}
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5">
-                        <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
-                        5. Nomor WhatsApp Guru (Wajib Aktif) <span className="text-red-500">*</span>
-                      </span>
-                      <span className="text-[10px] text-emerald-700 font-bold">
-                        Untuk Menerima Aktivasi dari Admin
-                      </span>
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      value={regNomorWA}
-                      onChange={(e) => setRegNomorWA(e.target.value)}
-                      placeholder="Contoh: 081234567890 atau 0821xxxxxxxx"
-                      className="w-full px-3 py-2 text-xs border border-emerald-400 rounded-lg focus:border-emerald-600 focus:outline-none bg-emerald-50/20 text-black placeholder:text-slate-400 font-bold"
-                    />
-                    <span className="text-[10px] text-slate-500 mt-1 block">
-                      *Setelah kode Anda diaktifkan oleh Admin, Admin akan menghubungi dan mengirimkan kode via WhatsApp ke nomor ini.
-                    </span>
-                  </div>
-
-                  {/* 6. Penugasan Berdasarkan Jabatan: Guru Mata Pelajaran vs Guru Kelas */}
-                  {regJabatan === 'Guru Mata Pelajaran' ? (
-                    <div className="sm:col-span-2 p-3.5 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-2">
-                      <label className="block text-xs font-bold text-indigo-950 mb-1">
-                        6. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
+                    {/* 3. Jabatan Guru */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        3. Jabatan Guru <span className="text-red-500">*</span>
                       </label>
                       <select
-                        value={regMataPelajaran}
-                        onChange={(e) => setRegMataPelajaran(e.target.value)}
-                        className="w-full px-3 py-2 text-xs border border-indigo-300 rounded-lg bg-white text-black focus:border-indigo-600 focus:outline-none font-bold"
+                        value={regJabatan}
+                        onChange={(e) => {
+                          const j = e.target.value as any;
+                          setRegJabatan(j);
+                          if (j === 'Guru Kelas') {
+                            setRegKelas(regFase === 'Fase A' ? '1' : regFase === 'Fase B' ? '3' : '5');
+                          }
+                        }}
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
                       >
-                        {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
+                        <option value="Guru Kelas">Guru Kelas</option>
+                        <option value="Guru Mata Pelajaran">Guru Mata Pelajaran</option>
                       </select>
-                      <div className="text-[11px] text-indigo-900 leading-relaxed bg-white/70 p-2 rounded-lg border border-indigo-200/60">
-                        ✨ <strong>Akses Penuh Kelas 1 s.d. 6 (Fase A, B, dan C):</strong> Sebagai Guru Mata Pelajaran, Anda tidak dibatasi fase. Anda berhak mengajar dan menghasilkan seluruh dokumen modul ajar &amp; perangkat untuk <strong>semua tingkatan kelas 1 s.d. 6</strong> khusus pada mata pelajaran yang dipilih.
-                      </div>
                     </div>
-                  ) : (
-                    <>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-800 mb-1">
-                          6. Fase yang Diampu <span className="text-red-500">*</span>
+
+                    {/* 4. Nama Satuan Pendidikan (Sekolah) */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        4. Nama Satuan Pendidikan (Nama Sekolah) <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={regNamaSekolah}
+                        onChange={(e) => setRegNamaSekolah(e.target.value)}
+                        placeholder="Contoh: UPT SD Negeri 1 Silaut"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
+                      />
+                    </div>
+
+                    {/* WhatsApp Guru Input (Wajib) */}
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-800 mb-1 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-600" />
+                          5. Nomor WhatsApp Guru (Wajib Aktif) <span className="text-red-500">*</span>
+                        </span>
+                        <span className="text-[10px] text-emerald-700 font-bold">
+                          Untuk Menerima Aktivasi dari Admin
+                        </span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={regNomorWA}
+                        onChange={(e) => setRegNomorWA(e.target.value)}
+                        placeholder="Contoh: 081234567890"
+                        className="w-full px-3 py-2 text-xs border border-emerald-400 rounded-lg focus:border-emerald-600 focus:outline-none bg-emerald-50/20 text-black placeholder:text-slate-400 font-bold"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        *Setelah kode Anda diaktifkan oleh Admin, Admin akan menghubungi dan mengirimkan kode via WhatsApp ke nomor ini.
+                      </span>
+                    </div>
+
+                    {/* 6. Penugasan Berdasarkan Jabatan: Guru Mata Pelajaran vs Guru Kelas */}
+                    {regJabatan === 'Guru Mata Pelajaran' ? (
+                      <div className="sm:col-span-2 p-3.5 bg-indigo-50/80 border-2 border-indigo-200 rounded-xl space-y-2">
+                        <label className="block text-xs font-bold text-indigo-950 mb-1">
+                          6. Mata Pelajaran yang Diampu <span className="text-red-500">*</span>
                         </label>
                         <select
-                          value={regFase}
-                          onChange={(e) => {
-                            const f = e.target.value as any;
-                            setRegFase(f);
-                            setRegKelas(f === 'Fase A' ? '1' : f === 'Fase B' ? '3' : '5');
-                          }}
-                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
+                          value={regMataPelajaran}
+                          onChange={(e) => setRegMataPelajaran(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-indigo-300 rounded-lg bg-white text-black focus:border-indigo-600 focus:outline-none font-bold"
                         >
-                          <option value="Fase C">Fase C (SD Kelas 5 & 6)</option>
-                          <option value="Fase B">Fase B (SD Kelas 3 & 4)</option>
-                          <option value="Fase A">Fase A (SD Kelas 1 & 2)</option>
+                          {GURU_MAPEL_SUBJECT_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>
+                              {opt}
+                            </option>
+                          ))}
                         </select>
+                        <div className="text-[11px] text-indigo-900 leading-relaxed bg-white/70 p-2 rounded-lg border border-indigo-200/60">
+                          ✨ <strong>Akses Penuh Kelas 1 s.d. 6 (Fase A, B, dan C):</strong> Sebagai Guru Mata Pelajaran, Anda tidak dibatasi fase. Anda berhak mengajar dan menghasilkan seluruh dokumen modul ajar &amp; perangkat untuk <strong>semua tingkatan kelas 1 s.d. 6</strong> khusus pada mata pelajaran yang dipilih.
+                        </div>
                       </div>
+                    ) : (
+                      <>
+                        <div>
+                          <label className="block text-xs font-bold text-slate-800 mb-1">
+                            6. Fase yang Diampu <span className="text-red-500">*</span>
+                          </label>
+                          <select
+                            value={regFase}
+                            onChange={(e) => {
+                              const f = e.target.value as any;
+                              setRegFase(f);
+                              setRegKelas(f === 'Fase A' ? '1' : f === 'Fase B' ? '3' : '5');
+                            }}
+                            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
+                          >
+                            <option value="Fase C">Fase C (SD Kelas 5 & 6)</option>
+                            <option value="Fase B">Fase B (SD Kelas 3 & 4)</option>
+                            <option value="Fase A">Fase A (SD Kelas 1 & 2)</option>
+                          </select>
+                        </div>
 
-                      <div>
-                        <label className="block text-xs font-bold text-slate-800 mb-1">
-                          Pilihan Kelas Target
-                        </label>
-                        <select
-                          value={regKelas}
-                          onChange={(e) => setRegKelas(e.target.value)}
-                          className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
-                        >
-                          {regFase === 'Fase A' && (
-                            <>
-                              <option value="1">Kelas 1</option>
-                              <option value="2">Kelas 2</option>
-                            </>
-                          )}
-                          {regFase === 'Fase B' && (
-                            <>
-                              <option value="3">Kelas 3</option>
-                              <option value="4">Kelas 4</option>
-                            </>
-                          )}
-                          {regFase === 'Fase C' && (
-                            <>
-                              <option value="5">Kelas 5</option>
-                              <option value="6">Kelas 6</option>
-                            </>
-                          )}
-                        </select>
-                      </div>
-                    </>
-                  )}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-800 mb-1">
+                            Pilihan Kelas Target
+                          </label>
+                          <select
+                            value={regKelas}
+                            onChange={(e) => setRegKelas(e.target.value)}
+                            className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white text-black focus:border-blue-600 focus:outline-none font-bold"
+                          >
+                            {regFase === 'Fase A' && (
+                              <>
+                                <option value="1">Kelas 1</option>
+                                <option value="2">Kelas 2</option>
+                              </>
+                            )}
+                            {regFase === 'Fase B' && (
+                              <>
+                                <option value="3">Kelas 3</option>
+                                <option value="4">Kelas 4</option>
+                              </>
+                            )}
+                            {regFase === 'Fase C' && (
+                              <>
+                                <option value="5">Kelas 5</option>
+                                <option value="6">Kelas 6</option>
+                              </>
+                            )}
+                          </select>
+                        </div>
+                      </>
+                    )}
 
-                  {/* 7. Nama Kepala Sekolah */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      7. Nama Kepala Sekolah (beserta Gelar)
-                    </label>
-                    <input
-                      type="text"
-                      value={regNamaKS}
-                      onChange={(e) => setRegNamaKS(e.target.value)}
-                      placeholder="Contoh: Gusmardi, S.Pd."
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
-                    />
-                  </div>
+                    {/* 7. Nama Kepala Sekolah */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        7. Nama Kepala Sekolah (beserta Gelar)
+                      </label>
+                      <input
+                        type="text"
+                        value={regNamaKS}
+                        onChange={(e) => setRegNamaKS(e.target.value)}
+                        placeholder="Contoh: Gusmardi, S.Pd."
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
+                      />
+                    </div>
 
-                  {/* 8. NIP Kepala Sekolah */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-800 mb-1">
-                      8. NIP Kepala Sekolah
-                    </label>
-                    <input
-                      type="text"
-                      value={regNipKS}
-                      onChange={(e) => setRegNipKS(e.target.value)}
-                      placeholder="Contoh: 19700305 199312 1 001 atau -"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
-                    />
+                    {/* 8. NIP Kepala Sekolah */}
+                    <div>
+                      <label className="block text-xs font-bold text-slate-800 mb-1">
+                        8. NIP Kepala Sekolah
+                      </label>
+                      <input
+                        type="text"
+                        value={regNipKS}
+                        onChange={(e) => setRegNipKS(e.target.value)}
+                        placeholder="Contoh: 19700305 199312 1 001 atau -"
+                        className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:border-blue-600 focus:outline-none bg-white text-black placeholder:text-slate-400 font-bold"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+                {/* Sticky Actions Footer */}
+                <div className="pt-3 border-t border-slate-200 flex items-center justify-between shrink-0 bg-white mt-2">
                   <button
                     type="button"
                     onClick={() => setActiveTab('login')}
@@ -898,7 +908,7 @@ export const AccessGateModal: React.FC<AccessGateModalProps> = ({
                   <button
                     type="submit"
                     disabled={isSubmittingReg}
-                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all disabled:opacity-50 cursor-pointer animate-pulse"
                   >
                     <ClipboardCheck className="w-4 h-4" />
                     {isSubmittingReg ? 'Mengajukan Permohonan...' : 'Ajukan Permohonan Kode Akses'}

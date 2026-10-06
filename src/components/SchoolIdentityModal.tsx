@@ -20,6 +20,8 @@ import {
   FileText,
   AlertCircle,
   HelpCircle,
+  Save,
+  PenLine,
 } from 'lucide-react';
 
 interface SchoolIdentityModalProps {
@@ -43,17 +45,63 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'profil' | 'logo'>(defaultTab);
   const [logoState, setLogoState] = useState<string>(identitas.logoUrl || '');
+  const [kopBaris1, setKopBaris1] = useState<string>(
+    identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'
+  );
+  const [kopBaris2, setKopBaris2] = useState<string>(
+    identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'
+  );
+  const schoolName = identitas.namaSatuanPendidikan || 'SD Negeri Fatubai';
+  const [alamatInstansi, setAlamatInstansi] = useState<string>(
+    identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713'
+  );
+  const [kabupaten, setKabupaten] = useState<string>(
+    identitas.kabupaten || 'Timor Tengah Utara'
+  );
   const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [saveToast, setSaveToast] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setLogoState(identitas.logoUrl || '');
+      setKopBaris1(identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA');
+      setKopBaris2(identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN');
+      setAlamatInstansi(identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713');
+      setKabupaten(identitas.kabupaten || 'Timor Tengah Utara');
+    }
+  }, [isOpen, identitas]);
+
   if (!isOpen) return null;
 
-  const schoolName = identitas.namaSatuanPendidikan || 'SD Negeri Fatubai';
-  const alamatLengkap =
-    identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
-  const kabupaten = identitas.kabupaten || 'Timor Tengah Utara';
+  const alamatLengkap = alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
+
+  const handleSaveData = (customOverrides?: Partial<SchoolIdentity>) => {
+    const cleanKop1 = (customOverrides?.kopBaris1 ?? kopBaris1).trim() || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA';
+    const cleanKop2 = (customOverrides?.kopBaris2 ?? kopBaris2).trim() || 'DINAS PENDIDIKAN DAN KEBUDAYAAN';
+    const cleanAlamat = (customOverrides?.alamatInstansi ?? alamatInstansi).trim() || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713';
+    const cleanLogo = customOverrides?.logoUrl !== undefined ? customOverrides.logoUrl : (logoState || undefined);
+    const cleanKop4 = cleanAlamat.toLowerCase().startsWith('alamat:') ? cleanAlamat : `Alamat: ${cleanAlamat}`;
+
+    const updated: SchoolIdentity = {
+      ...identitas,
+      logoUrl: cleanLogo,
+      kopBaris1: cleanKop1,
+      kopBaris2: cleanKop2,
+      kopBaris3: schoolName.toUpperCase(),
+      kopBaris4: cleanKop4,
+      alamatInstansi: cleanAlamat,
+      kabupaten: (customOverrides?.kabupaten ?? kabupaten).trim() || identitas.kabupaten || 'Timor Tengah Utara',
+      ...customOverrides,
+    };
+
+    if (onSave) {
+      onSave(updated);
+    }
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 3000);
+  };
 
   const processFile = (file: File) => {
     if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) {
@@ -92,18 +140,7 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
           const isPng = file.type.includes('png');
           const dataUrl = canvas.toDataURL(isPng ? 'image/png' : 'image/jpeg', 0.92);
           setLogoState(dataUrl);
-
-          const updated: SchoolIdentity = {
-            ...identitas,
-            logoUrl: dataUrl,
-            alamatInstansi: alamatLengkap,
-            kabupaten: kabupaten,
-          };
-          if (onSave) {
-            onSave(updated);
-          }
-          setSaveToast(true);
-          setTimeout(() => setSaveToast(false), 3000);
+          handleSaveData({ logoUrl: dataUrl });
         }
       };
       img.src = e.target?.result as string;
@@ -138,17 +175,7 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
 
   const handleRemoveLogo = () => {
     setLogoState('');
-    const updated: SchoolIdentity = {
-      ...identitas,
-      logoUrl: undefined,
-      alamatInstansi: alamatLengkap,
-      kabupaten: kabupaten,
-    };
-    if (onSave) {
-      onSave(updated);
-    }
-    setSaveToast(true);
-    setTimeout(() => setSaveToast(false), 3000);
+    handleSaveData({ logoUrl: undefined });
   };
 
   return (
@@ -317,32 +344,92 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
                   </span>
                 </div>
 
-                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+                <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
-                      Nama Satuan Pendidikan / Sekolah
-                    </span>
-                    <span className="text-sm font-black text-slate-900">{schoolName}</span>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-rose-500" /> Alamat Instansi Lengkap
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
+                        Nama Satuan Pendidikan / Sekolah
                       </span>
-                      <span className="text-xs font-bold text-slate-800 leading-snug block mt-0.5">
-                        {alamatLengkap}
+                      <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded border border-amber-300 flex items-center gap-0.5">
+                        <Lock className="w-2.5 h-2.5" /> Terkunci Sesuai Data Profil
                       </span>
                     </div>
+                    <span className="text-sm font-black text-slate-900 block">{schoolName}</span>
+                  </div>
 
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">
-                        Pemerintah Daerah &amp; Dinas
-                      </span>
-                      <span className="text-xs font-bold text-slate-800 leading-snug block mt-0.5">
-                        Pemerintah Kab. {kabupaten} <br />
-                        <span className="text-[11px] font-medium text-slate-600">Dinas Pendidikan dan Kebudayaan</span>
-                      </span>
+                  <div className="pt-2 border-t border-slate-200 space-y-3 text-xs">
+                    {/* Alamat Instansi Lengkap (Bisa Diedit) */}
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] uppercase font-bold text-slate-700 tracking-wider flex items-center gap-1">
+                          <MapPin className="w-3 h-3 text-rose-500" />
+                          <span>Alamat Instansi Lengkap Satuan Pendidikan</span>
+                        </label>
+                        <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 flex items-center gap-0.5">
+                          <PenLine className="w-2.5 h-2.5" /> Bisa Diedit
+                        </span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={alamatInstansi}
+                        onChange={(e) => setAlamatInstansi(e.target.value)}
+                        placeholder="Contoh: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713"
+                        className="w-full px-3 py-1.5 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-2xs resize-none"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Alamat ini otomatis tercetak pada kop surat resmi, cover, dan seluruh dokumen perangkat ajar.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                      {/* Pemerintah Daerah (Baris 1 Kop) */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-bold text-slate-600 tracking-wider block">
+                            Pemerintah Daerah (Kop Baris 1)
+                          </label>
+                          <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                            Bisa Edit
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          value={kopBaris1}
+                          onChange={(e) => setKopBaris1(e.target.value)}
+                          placeholder="PEMERINTAH KABUPATEN TIMOR TENGAH UTARA"
+                          className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-blue-600 uppercase transition-all shadow-2xs"
+                        />
+                      </div>
+
+                      {/* Dinas Pendidikan (Baris 2 Kop) */}
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-bold text-slate-600 tracking-wider block">
+                            Dinas Pembina (Kop Baris 2)
+                          </label>
+                          <span className="text-[9px] font-bold text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                            Bisa Edit
+                          </span>
+                        </div>
+                        <input
+                          type="text"
+                          value={kopBaris2}
+                          onChange={(e) => setKopBaris2(e.target.value)}
+                          placeholder="DINAS PENDIDIKAN DAN KEBUDAYAAN"
+                          className="w-full px-2.5 py-1.5 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-blue-600 uppercase transition-all shadow-2xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleSaveData()}
+                        className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Simpan Perubahan Alamat &amp; Instansi</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -548,6 +635,137 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
                 )}
               </div>
 
+              {/* FORM PENGATURAN TEKS KOP DOKUMEN RESMI (4 BARIS) */}
+              <div className="bg-slate-50 rounded-2xl border-2 border-slate-200 p-4 space-y-3.5 shadow-2xs">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                      <PenLine className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900">
+                        Pengaturan Teks Kop Dokumen Resmi (4 Baris)
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Sesuaikan nama pemerintah daerah, dinas, dan alamat instansi agar relevan dengan satuan pendidikan Anda.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                    <Check className="w-3 h-3 text-emerald-600" /> Sinkron Seluruh Dokumen
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {/* BARIS 1: PEMERINTAH DAERAH (BISA EDIT) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black flex items-center justify-center">1</span>
+                        <span>Baris Pertama Kop: Pemerintah Daerah (Kabupaten / Kota)</span>
+                      </label>
+                      <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 flex items-center gap-0.5">
+                        <PenLine className="w-2.5 h-2.5" /> Bisa Diedit
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={kopBaris1}
+                      onChange={(e) => setKopBaris1(e.target.value)}
+                      placeholder="Contoh: PEMERINTAH KABUPATEN TIMOR TENGAH UTARA"
+                      className="w-full px-3 py-2 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-100 uppercase transition-all shadow-2xs"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      Teks baris pertama kop dokumen resmi (misal: <em>PEMERINTAH KABUPATEN TIMOR TENGAH UTARA</em>).
+                    </p>
+                  </div>
+
+                  {/* BARIS 2: DINAS PENDIDIKAN (BISA EDIT) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black flex items-center justify-center">2</span>
+                        <span>Baris Kedua Kop: Dinas / Lembaga Pembina</span>
+                      </label>
+                      <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 flex items-center gap-0.5">
+                        <PenLine className="w-2.5 h-2.5" /> Bisa Diedit
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={kopBaris2}
+                      onChange={(e) => setKopBaris2(e.target.value)}
+                      placeholder="Contoh: DINAS PENDIDIKAN DAN KEBUDAYAAN"
+                      className="w-full px-3 py-2 text-xs font-bold text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-100 uppercase transition-all shadow-2xs"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      Teks baris kedua kop dokumen resmi (misal: <em>DINAS PENDIDIKAN DAN KEBUDAYAAN</em>).
+                    </p>
+                  </div>
+
+                  {/* BARIS 3: NAMA SEKOLAH (TERKUNCI SESUAI DATA PROFIL / TIDAK BISA EDIT) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-slate-200 text-slate-700 text-[10px] font-black flex items-center justify-center">3</span>
+                        <span>Baris Ketiga Kop: Nama Satuan Pendidikan</span>
+                      </label>
+                      <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300 flex items-center gap-0.5">
+                        <Lock className="w-2.5 h-2.5" /> Terkunci Sesuai Data Profil
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={schoolName.toUpperCase()}
+                        disabled
+                        readOnly
+                        className="w-full px-3 py-2 text-xs font-black text-slate-700 bg-slate-100/90 rounded-lg border border-slate-300 uppercase cursor-not-allowed shadow-2xs select-none"
+                      />
+                      <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-2.5 pointer-events-none" />
+                    </div>
+                    <p className="text-[10px] text-amber-800/90 italic">
+                      Nama sekolah terkunci permanen sesuai profil hak akses akun guru demi integritas dokumen resmi.
+                    </p>
+                  </div>
+
+                  {/* BARIS 4: ALAMAT INSTANSI (BISA DIEDIT) */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black flex items-center justify-center">4</span>
+                        <span>Baris Keempat Kop: Alamat Instansi Lengkap</span>
+                      </label>
+                      <span className="text-[9.5px] font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 flex items-center gap-0.5">
+                        <PenLine className="w-2.5 h-2.5" /> Bisa Diedit
+                      </span>
+                    </div>
+                    <textarea
+                      rows={2}
+                      value={alamatInstansi}
+                      onChange={(e) => setAlamatInstansi(e.target.value)}
+                      placeholder="Contoh: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713"
+                      className="w-full px-3 py-2 text-xs font-medium text-slate-900 bg-white rounded-lg border border-slate-300 focus:bg-white focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-100 transition-all shadow-2xs resize-none"
+                    />
+                    <p className="text-[10px] text-slate-500">
+                      Alamat lengkap instansi yang dicetak pada baris keempat kop dan cover dokumen.
+                    </p>
+                  </div>
+
+                  {/* TOMBOL SIMPAN PENGATURAN KOP */}
+                  <div className="pt-1 flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveData()}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-700 to-indigo-800 hover:from-blue-800 hover:to-indigo-900 text-white rounded-xl text-xs font-bold transition-all shadow-sm hover:shadow-md cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Simpan Perubahan Kop Dokumen</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* LIVE PREVIEW 1: KOP SURAT RESMI */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-bold text-slate-800">
@@ -581,16 +799,16 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
                     {/* 4 Baris Kop Surat Resmi Sesuai Permintaan */}
                     <div className="space-y-0.5 text-center flex-1 max-w-lg">
                       <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-800 leading-tight">
-                        PEMERINTAH KABUPATEN TIMOR TENGAH UTARA
+                        {kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}
                       </h4>
                       <h4 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-800 leading-tight">
-                        DINAS PENDIDIKAN DAN KEBUDAYAAN
+                        {kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}
                       </h4>
                       <h3 className="text-sm sm:text-base font-black uppercase tracking-wide text-slate-950 leading-tight pt-0.5">
                         {schoolName}
                       </h3>
                       <p className="text-[10px] sm:text-[11px] font-normal text-slate-700 leading-tight pt-0.5">
-                        Alamat: {alamatLengkap}
+                        {alamatInstansi ? (alamatInstansi.toLowerCase().startsWith('alamat:') ? alamatInstansi : `Alamat: ${alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713'}
                       </p>
                     </div>
                   </div>
@@ -602,7 +820,7 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
                   </div>
 
                   <p className="text-[9.5px] font-sans text-slate-500 italic mt-1">
-                    *Tercetak otomatis pada seluruh lembar KKTP, ATP, Modul Ajar, Naskah Soal, dan Rekapitulasi CBT PDF.
+                    *Tercetak otomatis pada seluruh lembar KKTP, ATP, Modul Ajar, Prota, Promes, Naskah Soal, dan Rekapitulasi CBT PDF.
                   </p>
                 </div>
               </div>

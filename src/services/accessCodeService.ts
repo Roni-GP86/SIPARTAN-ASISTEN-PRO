@@ -643,8 +643,8 @@ export function findAccessRecord(code: string): AccessRecord | null {
     const rec = master || DEFAULT_PREMIUM_RECORD;
     return {
       ...rec,
-      namaGuru: 'Roni Hariyanto Bhidju, S.Pd',
-      nipGuru: '198603012020121005',
+      namaGuru: rec.namaGuru || 'Roni Hariyanto Bhidju, S.Pd',
+      nipGuru: rec.nipGuru || '198603012020121005',
     };
   }
 
@@ -653,8 +653,8 @@ export function findAccessRecord(code: string): AccessRecord | null {
     const rec = sim || DEFAULT_SIMULASI_RECORD;
     return {
       ...rec,
-      namaGuru: 'Roni Hariyanto Bhidju, S.Pd',
-      nipGuru: '198603012020121005',
+      namaGuru: rec.namaGuru || 'Roni Hariyanto Bhidju, S.Pd',
+      nipGuru: rec.nipGuru || '198603012020121005',
     };
   }
 
@@ -894,8 +894,16 @@ export async function createNewAccessRecordAsync(
     sumberPendaftaran: data.sumberPendaftaran || 'Input Langsung',
   };
 
-  // 1. Simpan langsung ke Cloud Firestore
+  // 1. Simpan langsung ke Cloud Firestore (access codes)
   const cloudRes = await saveAccessRecordToFirestore(newRecord);
+
+  // 1b. Inisialisasi identitas workspace user di Cloud Firestore
+  try {
+    const newIdentity = convertAccessRecordToIdentity(newRecord);
+    await updateUserWorkspaceIdentityInFirestore(newRecord.kodeAkses, newIdentity);
+  } catch (e) {
+    console.warn('Gagal inisialisasi workspace user di Cloud:', e);
+  }
 
   // 2. Simpan ke local storage
   const updatedRecords = [newRecord, ...records.filter(r => r.kodeAkses.toUpperCase().trim() !== cleanCode)];
@@ -996,18 +1004,21 @@ export async function updateAccessRecordAsync(
  * Jika ditemukan dari Firestore, otomatis disimpan ke cache gawai lokal untuk sesi cepat.
  */
 export async function findAccessRecordAsync(code: string): Promise<AccessRecord | null> {
+  if (isFirestoreOnline()) {
+    const cloud = await findAccessRecordInFirestore(code);
+    if (cloud) {
+      // Sinkronkan ke local storage gawai saat ini
+      const existing = getAllAccessRecords();
+      const cleanCloudCode = cloud.kodeAkses.toUpperCase().trim();
+      const updated = [cloud, ...existing.filter((r) => r.kodeAkses.toUpperCase().trim() !== cleanCloudCode)];
+      saveAllAccessRecords(updated);
+      return cloud;
+    }
+  }
+
   const local = findAccessRecord(code);
   if (local && local.isActive) {
     return local;
-  }
-  const cloud = await findAccessRecordInFirestore(code);
-  if (cloud) {
-    // Sinkronkan ke local storage gawai saat ini
-    const existing = getAllAccessRecords();
-    const cleanCloudCode = cloud.kodeAkses.toUpperCase().trim();
-    const updated = [cloud, ...existing.filter((r) => r.kodeAkses.toUpperCase().trim() !== cleanCloudCode)];
-    saveAllAccessRecords(updated);
-    return cloud;
   }
   return local || null;
 }
@@ -1179,9 +1190,32 @@ export function convertAccessRecordToIdentity(
     finalFase = (currentIdentity?.fase as any) || record.fase || 'Fase C';
     finalKelas = currentIdentity?.kelas || (finalFase === 'Fase A' ? '1' : finalFase === 'Fase B' ? '3' : '5');
   } else {
-    // Guru Kelas: Terkunci pada fase dan kelas yang tertera di record pendaftaran
+    // Guru Kelas: Terkunci pada fase yang tertera di record pendaftaran
     finalFase = record.fase || 'Fase C';
-    finalKelas = record.kelas || '5';
+    
+    // Guru Kelas dapat menentukan target kelas spesifik (misal 5 atau 6) untuk rancangan pembelajarannya selama dalam Fase yang sama.
+    // Hal ini agar materi dan tujuan pembelajaran relevan sesuai dengan ATP masing-masing kelas.
+    const getClassesForFaseLocal = (f?: string) => {
+      if (f === 'Fase A') return ['1', '2'];
+      if (f === 'Fase B') return ['3', '4'];
+      if (f === 'Fase C') return ['5', '6'];
+      return ['5', '6'];
+    };
+    const allowedClasses = getClassesForFaseLocal(finalFase);
+    const currentClass = String(currentIdentity?.kelas || '').trim();
+    
+    if (allowedClasses.includes(currentClass)) {
+      finalKelas = currentClass;
+    } else {
+      // Fallback ke kelas pendaftaran jika berupa angka tunggal dan cocok dengan fase
+      const recordClassTrimmed = String(record.kelas || '').trim();
+      if (allowedClasses.includes(recordClassTrimmed)) {
+        finalKelas = recordClassTrimmed;
+      } else {
+        // Fallback terakhir: ambil kelas pertama dari fase tersebut
+        finalKelas = allowedClasses[0];
+      }
+    }
   }
 
   return {

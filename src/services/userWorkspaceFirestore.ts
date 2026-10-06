@@ -257,6 +257,36 @@ export async function loadUserWorkspaceFromFirestore(
  */
 export function applyCloudWorkspaceToLocalStorage(cloudData: UserWorkspaceCloudData): void {
   try {
+    const mainId = cloudData.identitas;
+    if (mainId && mainId.namaGuru) {
+      // MIGRASI IDENTITAS: Pastikan seluruh draf dan workspace terikat permanen dengan identitas utama yang valid (dari Admin)
+      if (cloudData.currentDrafts) {
+        const d = cloudData.currentDrafts;
+        if (d.atpDocument) d.atpDocument.identitas = { ...d.atpDocument.identitas, ...mainId };
+        if (d.kktpDocument) d.kktpDocument.identitas = { ...d.kktpDocument.identitas, ...mainId };
+        if (d.protaDocument) d.protaDocument.identitas = { ...d.protaDocument.identitas, ...mainId };
+        if (d.promesDocument) d.promesDocument.identitas = { ...d.promesDocument.identitas, ...mainId };
+        if (d.modulAjarDocument) d.modulAjarDocument.identitas = { ...d.modulAjarDocument.identitas, ...mainId };
+        if (d.soalDocument) d.soalDocument.identitas = { ...d.soalDocument.identitas, ...mainId };
+      }
+      if (cloudData.workspaces) {
+        Object.keys(cloudData.workspaces).forEach((key) => {
+          const ws = cloudData.workspaces[key];
+          if (ws) {
+            ws.identitas = { ...ws.identitas, ...mainId };
+            ws.kelas = mainId.kelas || ws.kelas;
+            ws.fase = mainId.fase || ws.fase;
+            if (ws.atpDocument) ws.atpDocument.identitas = { ...ws.atpDocument.identitas, ...mainId };
+            if (ws.kktpDocument) ws.kktpDocument.identitas = { ...ws.kktpDocument.identitas, ...mainId };
+            if (ws.protaDocument) ws.protaDocument.identitas = { ...ws.protaDocument.identitas, ...mainId };
+            if (ws.promesDocument) ws.promesDocument.identitas = { ...ws.promesDocument.identitas, ...mainId };
+            if (ws.modulAjarDocument) ws.modulAjarDocument.identitas = { ...ws.modulAjarDocument.identitas, ...mainId };
+            if (ws.soalDocument) ws.soalDocument.identitas = { ...ws.soalDocument.identitas, ...mainId };
+          }
+        });
+      }
+    }
+
     // 1. Simpan Identitas ke local storage jika valid
     if (cloudData.identitas && cloudData.identitas.namaGuru) {
       saveToStorage(STORAGE_KEYS.IDENTITAS, cloudData.identitas);

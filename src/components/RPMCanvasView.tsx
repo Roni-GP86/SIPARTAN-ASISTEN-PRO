@@ -49,6 +49,7 @@ interface RPMCanvasViewProps {
   onPrint?: () => void;
   onDownloadWord?: () => void;
   onDownloadPDF?: () => void;
+  onOpenEditIdentity?: () => void;
   onUpdateIdentitas?: (updated: SchoolIdentity) => void;
   onUpdatePemanfaatanTeknologi?: (updated: {
     platformAplikasi: string[];
@@ -73,6 +74,7 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
   onPrint,
   onDownloadWord,
   onDownloadPDF,
+  onOpenEditIdentity,
   onUpdateIdentitas,
   onUpdatePemanfaatanTeknologi,
 }) => {
@@ -202,6 +204,16 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
                 <span className="text-indigo-200 font-semibold">Model Inti:</span>
                 <span className="text-emerald-300 font-bold">{dsData.praktikPedagogis.modelPembelajaran}</span>
               </div>
+              {onOpenEditIdentity && (
+                <button
+                  type="button"
+                  onClick={onOpenEditIdentity}
+                  className="w-full mt-1.5 px-2 py-1 rounded bg-amber-400/90 hover:bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
+                >
+                  <Edit2 className="w-3 h-3" />
+                  <span>Edit Profil &amp; Sekolah</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -999,7 +1011,7 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
                 <Award className="w-4 h-4" />
               </div>
               <h3 className="font-black text-slate-900 text-sm sm:text-base uppercase tracking-wide">
-                6. Asesmen Pembelajaran Mendalam
+                6. Asesmen Pembelajaran Mendalam (Per Pertemuan)
               </h3>
             </div>
             <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
@@ -1007,35 +1019,68 @@ export const RPMCanvasView: React.FC<RPMCanvasViewProps> = ({
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-              <span className="font-black text-slate-900 uppercase tracking-wider text-[11px] block">
-                1. Asesmen Diagnostik (Awal)
-              </span>
-              <p className="font-bold text-slate-900">{asData.diagnostik.bentukTeknik}</p>
-              <p className="text-slate-600 leading-relaxed text-justify">{asData.diagnostik.caraSumber}</p>
-            </div>
+          {/* Rencana Asesmen Per Pertemuan Kanvas */}
+          <div className="space-y-3">
+            {resolvedMeetings.map((pert, pIdx) => {
+              const isFirst = pIdx === 0;
+              const isLast = pIdx === resolvedMeetings.length - 1;
+              const totalM = resolvedMeetings.length;
+              const meetAsesmen = pert.asesmenPertemuan || {
+                jenisAsesmen: totalM === 1 ? 'Asesmen Diagnostik (Awal), Formatif (Proses) & Sumatif (Lingkup TP)' : isFirst ? 'Asesmen Diagnostik (Awal) & Formatif (Proses)' : isLast ? 'Asesmen Formatif (Presentasi) & Sumatif (Lingkup TP)' : 'Asesmen Formatif (Proses)',
+                teknikDanBentuk: isFirst ? 'Tanya Jawab Pemantik Lisan & Observasi Kesiapan Awal + Lembar Observasi Diskusi' : isLast ? 'Rubrik Presentasi Karya Kelompok & Tes Evaluasi Mandiri Tertulis (HOTS)' : 'Penilaian Kinerja Kelompok pada LKPD & Observasi Diskusi',
+                instrumen: `Lembar Kerja Peserta Didik (LKPD Aktivitas Pertemuan ${pIdx + 1}) & Lembar Observasi Sikap`,
+                buktiBelajar: `Catatan pengisian LKPD Aktivitas Pertemuan ${pIdx + 1} dan keaktifan proses belajar`,
+                tindakLanjut: 'Memberikan bimbingan langsung dan umpan balik deskriptif bagi siswa.',
+              };
 
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-              <span className="font-black text-slate-900 uppercase tracking-wider text-[11px] block">
-                2. Asesmen Formatif (Proses)
-              </span>
-              <p className="font-bold text-slate-900">{asData.formatif.bentukTeknik}</p>
-              <p className="text-slate-600 leading-relaxed text-justify">{asData.formatif.caraSumber}</p>
-            </div>
+              return (
+                <div key={pIdx} className="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-2 text-xs">
+                  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200 pb-1.5">
+                    <span className="font-bold text-slate-900 uppercase tracking-wide text-xs">
+                      {pIdx + 1}. ASESMEN PERTEMUAN {pIdx + 1} ({pert.alokasiWaktu || `${(pert as any).alokasiJP || 2} JP`})
+                    </span>
+                    <span className="text-[10px] font-bold text-indigo-900 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                      {meetAsesmen.jenisAsesmen}
+                    </span>
+                  </div>
 
-            <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
-              <span className="font-black text-slate-900 uppercase tracking-wider text-[11px] block">
-                3. Asesmen Sumatif (Akhir)
-              </span>
-              <p className="font-bold text-slate-900">{asData.sumatif.bentukTeknik}</p>
-              <p className="text-slate-600 leading-relaxed text-justify">{asData.sumatif.caraSumber}</p>
-            </div>
+                  <div className="text-slate-800 space-y-1 pl-1">
+                    <p>
+                      <strong className="text-slate-900">• Teknik &amp; Bentuk:</strong> {meetAsesmen.teknikDanBentuk}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900">• Instrumen Asesmen:</strong> {meetAsesmen.instrumen}
+                    </p>
+                    <p>
+                      <strong className="text-slate-900">• Bukti Belajar:</strong> {meetAsesmen.buktiBelajar}
+                    </p>
+                    {meetAsesmen.tindakLanjut && (
+                      <p className="text-slate-600 italic">
+                        <strong>• Tindak Lanjut:</strong> {meetAsesmen.tindakLanjut}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* 7. LEMBAR PENGESAHAN RESMI (TANDA TANGAN) */}
-        <div className="bg-white rounded-xl p-6 border-2 border-slate-200 text-xs text-slate-900">
+        <div className="bg-white rounded-xl p-6 border-2 border-slate-200 text-xs text-slate-900 space-y-4">
+          {onOpenEditIdentity && (
+            <div className="no-print flex items-center justify-between border-b border-slate-200 pb-2">
+              <span className="font-bold text-slate-700">Lembar Pengesahan &amp; Tanda Tangan:</span>
+              <button
+                type="button"
+                onClick={onOpenEditIdentity}
+                className="px-2.5 py-1 rounded-md bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+                <span>Edit Identitas &amp; Titimangsa</span>
+              </button>
+            </div>
+          )}
           <table className="w-full border-collapse border-none text-xs text-slate-900">
             <tbody>
               {/* Baris 1: Mengetahui & Tempat/Tanggal */}

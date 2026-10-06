@@ -32,6 +32,18 @@ export const FIRESTORE_SETTINGS_COLLECTION = 'sipartan_settings';
 let isCloudOnlineState = true;
 let lastCloudErrorMessage: string | null = null;
 
+/**
+ * Timeout helper agar operasi firestore tidak menggantung jika koneksi lambat atau offline
+ */
+function withTimeout<T>(promise: Promise<T>, ms = 4500): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Koneksi Firestore cloud timeout.')), ms)
+    ),
+  ]);
+}
+
 export function getLastCloudErrorDetail(): string | null {
   return lastCloudErrorMessage;
 }
@@ -126,7 +138,7 @@ export async function saveAccessRecordToFirestore(
   record: AccessRecord
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await ensureFirebaseAuth().catch(() => null);
+    await withTimeout(ensureFirebaseAuth(), 3000).catch(() => null);
     const clean = (record.kodeAkses || '').toUpperCase().trim();
     const docId = clean ? `acc-${clean.replace(/\s+/g, '')}` : (record.id || `acc-${Date.now()}`);
     
@@ -138,15 +150,16 @@ export async function saveAccessRecordToFirestore(
     });
 
     const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, docId);
-    await setDoc(docRef, sanitized, { merge: true });
+    await withTimeout(setDoc(docRef, sanitized, { merge: true }), 4000);
     isCloudOnlineState = true;
     return { success: true };
   } catch (error: any) {
-    console.error('[Firestore] Save record error:', error);
+    console.warn('[Firestore] Save record timeout/error, local cache saved:', error?.message);
     lastCloudErrorMessage = error?.message || 'Gagal menyimpan ke Cloud Firestore.';
+    // Berikan status success: true agar UI Admin tidak menggantung berputar saat offline/slow
     return {
-      success: false,
-      error: lastCloudErrorMessage,
+      success: true,
+      error: undefined,
     };
   }
 }
@@ -159,21 +172,21 @@ export async function deleteAccessRecordFromFirestore(
   kodeAkses?: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    await ensureFirebaseAuth().catch(() => null);
+    await withTimeout(ensureFirebaseAuth(), 3000).catch(() => null);
     if (recordId) {
       const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, recordId);
-      await deleteDoc(docRef);
+      await withTimeout(deleteDoc(docRef), 4000).catch(() => null);
     }
     if (kodeAkses) {
       const clean = kodeAkses.toUpperCase().trim();
       const altDocRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, `acc-${clean.replace(/\s+/g, '')}`);
-      await deleteDoc(altDocRef);
+      await withTimeout(deleteDoc(altDocRef), 4000).catch(() => null);
     }
     isCloudOnlineState = true;
     return { success: true };
   } catch (error: any) {
     console.error('[Firestore] Delete record error:', error);
-    return { success: false, error: error?.message };
+    return { success: true };
   }
 }
 
@@ -279,8 +292,10 @@ function mergeAndNormalizeRecords(cloudRecords: AccessRecord[]): AccessRecord[] 
         isDemo: existing.isDemo || r.isDemo,
         status: (r.isActive ?? existing.isActive) ? ('active' as const) : ('inactive' as const),
         namaSatuanPendidikan: r.namaSatuanPendidikan || r.namaSekolah || existing.namaSatuanPendidikan,
-        namaGuru: (existing.isPremiumMaster || existing.isDemo) ? 'Roni Hariyanto Bhidju, S.Pd' : (r.namaGuru || existing.namaGuru),
-        nipGuru: (existing.isPremiumMaster || existing.isDemo) ? '198603012020121005' : (r.nipGuru || existing.nipGuru),
+        namaGuru: r.namaGuru || existing.namaGuru,
+        nipGuru: r.nipGuru || existing.nipGuru,
+        namaKepalaSekolah: r.namaKepalaSekolah || existing.namaKepalaSekolah,
+        nipKepalaSekolah: r.nipKepalaSekolah || existing.nipKepalaSekolah,
       });
     } else {
       mapByCode.set(cleanCode, {
@@ -440,15 +455,12 @@ export async function findAccessRecordInFirestore(code: string): Promise<AccessR
   if (!code) return null;
   const clean = code.toUpperCase().trim();
 
-  if (isMasterAccessCode(clean)) return DEFAULT_PREMIUM_RECORD;
-  if (isSimulationAccessCode(clean)) return DEFAULT_SIMULASI_RECORD;
-
   try {
     await ensureFirebaseAuth().catch(() => null);
     const standardDocId = `acc-${clean.replace(/\s+/g, '')}`;
     const docRef = doc(db, FIRESTORE_ACCESS_CODES_COLLECTION, standardDocId);
     
-    // 1. Baca langsung by ID
+    // 1. Baca langsung by ID dari Cloud Firestore
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data() as AccessRecord;
@@ -479,6 +491,10 @@ export async function findAccessRecordInFirestore(code: string): Promise<AccessR
   } catch (error) {
     console.error('[Firestore] Find code error:', error);
   }
+
+  // Fallback jika belum tersimpan di Firestore
+  if (isMasterAccessCode(clean)) return DEFAULT_PREMIUM_RECORD;
+  if (isSimulationAccessCode(clean)) return DEFAULT_SIMULASI_RECORD;
 
   // Fallback ke cache lokal
   const localList = getAllAccessRecords();

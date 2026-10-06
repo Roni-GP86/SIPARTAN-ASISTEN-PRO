@@ -1,4 +1,4 @@
-import { ModulAjarDocument, RubrikPenilaianRPMItem, SoalEvaluasiRPMItem, LKPDDokumenRPM } from '../types';
+import { ModulAjarDocument, RubrikPenilaianRPMItem, SoalEvaluasiRPMItem, LKPDDokumenRPM, AsesmenPertemuanItem } from '../types';
 import { findOfficialElementCP, formatTPWithCode } from './curriculumCPResolver';
 import { normalizeDPLArray } from '../data/dimensiProfilLulusan';
 import {
@@ -6,6 +6,7 @@ import {
   detectModelType,
   buildPedagogicalMeetingPlan,
   sanitizeForeignPedagogicalTerms,
+  buildModularLKPDActivities,
 } from './modelSyntaxEngine';
 
 export interface NormalizedRPMData {
@@ -87,6 +88,7 @@ export function normalizeRPMData(
 ): NormalizedRPMData {
   const topikVal = extra?.topikMateri || modul.topikMateri || modul.identitas?.mataPelajaran || 'Materi Pembelajaran';
   const alokasiVal = extra?.alokasiWaktu || modul.alokasiWaktuPertemuan || modul.identitas?.alokasiWaktuModul || '2 x 35 Menit (1 Pertemuan)';
+  const { count } = parseTotalJPAndCount(modul, alokasiVal);
 
   // 1. Normalisasi Identifikasi (B)
   const rawId = (modul.identifikasiRPM as any) || {};
@@ -443,17 +445,55 @@ export function normalizeRPMData(
   const rawAs = (modul.asesmenRPM as any) || {};
   const asData = {
     diagnostik: {
-      bentukTeknik: rawAs.diagnostik?.bentukTeknik || modul.asesmen?.diagnostik?.teknik || 'Tanya Jawab Lisan & Observasi Kesiapan Belajar',
-      caraSumber: rawAs.diagnostik?.caraSumber || 'Dilakukan di awal kegiatan dengan pertanyaan pemantik dan apersepsi lisan guru.',
+      waktuPelaksanaan: rawAs.diagnostik?.waktuPelaksanaan || 'Pertemuan ke-1 (Kegiatan Awal / Apersepsi Pemantik)',
+      bentukTeknik: rawAs.diagnostik?.bentukTeknik || modul.asesmen?.diagnostik?.teknik || 'Tanya Jawab Pemantik Lisan & Observasi Kesiapan Belajar Awal',
+      caraSumber: rawAs.diagnostik?.caraSumber || 'Dilakukan di awal kegiatan pertemuan pertama dengan pertanyaan pemantik dan apersepsi lisan guru untuk memetakan kesiapan murid.',
+      daftarInstrumen: Array.isArray(rawAs.diagnostik?.daftarInstrumen) && rawAs.diagnostik.daftarInstrumen.length > 0
+        ? rawAs.diagnostik.daftarInstrumen
+        : [
+            `Pertanyaan Pemantik: "Sebutkan 2 contoh hal terkait ${topikVal} yang pernah kalian temui di sekitar rumah atau sekolah!"`,
+            'Lembar Cek Kesiapan: Memetakan pemahaman prasyarat awal murid sebelum kegiatan inti kelompok.',
+          ],
     },
     formatif: {
-      bentukTeknik: rawAs.formatif?.bentukTeknik || modul.asesmen?.formatif?.teknik || 'Observasi Diskusi, Kinerja Kelompok & Lembar Kerja (LKPD)',
-      caraSumber: rawAs.formatif?.caraSumber || 'Dilakukan selama proses kegiatan menggunakan rubrik observasi dan hasil kerja kelompok.',
+      waktuPelaksanaan: rawAs.formatif?.waktuPelaksanaan || `Pertemuan ke-1 sampai Pertemuan ke-${count} (Terpadu di setiap Kegiatan Inti & Akhir)`,
+      bentukTeknik: rawAs.formatif?.bentukTeknik || modul.asesmen?.formatif?.teknik || 'Observasi Kinerja Kolaborasi & Penilaian Aktivitas Kelompok pada LKPD',
+      caraSumber: rawAs.formatif?.caraSumber || `Dilakukan berkelanjutan selama proses kegiatan pada Pertemuan 1 s.d. ${count} menggunakan rubrik observasi dan pengerjaan LKPD per pertemuan.`,
+      rincianPerPertemuan: Array.isArray(rawAs.formatif?.rincianPerPertemuan) && rawAs.formatif.rincianPerPertemuan.length > 0
+        ? rawAs.formatif.rincianPerPertemuan
+        : Array.from({ length: count }).map((_, idx) => {
+            const m = idx + 1;
+            const focusName = m === 1
+              ? 'Eksplorasi Konsep Awal & Pengamatan Fenomena'
+              : m === count
+              ? 'Keterampilan Komunikasi, Presentasi Karya & Refleksi Diri'
+              : m === 2
+              ? 'Penyelidikan Mandiri & Pengumpulan Data Konkret'
+              : m === 3
+              ? 'Pengolahan Data & Analisis Solusi Kelompok'
+              : 'Perancangan Solusi & Uji Coba Karya';
+            return {
+              pertemuanKe: m,
+              jenisAsesmen: m === 1 ? 'Diagnostik & Formatif' : m === count ? 'Formatif & Sumatif' : 'Formatif',
+              fokusAktivitas: focusName,
+              teknikBentuk: m === count ? 'Rubrik Presentasi & Refleksi' : 'Observasi Kinerja & LKPD',
+              buktiBelajar: `Catatan isian LKPD Aktivitas Pertemuan ${m} dan keaktifan kelompok`,
+            };
+          }),
     },
     sumatif: {
-      bentukTeknik: rawAs.sumatif?.bentukTeknik || modul.asesmen?.sumatif?.teknik || 'Tes Tertulis Pemahaman Konsep (Soal Evaluasi RPM)',
-      caraSumber: rawAs.sumatif?.caraSumber || 'Dilakukan pada akhir pembelajaran/unit untuk mengukur ketercapaian tujuan pembelajaran.',
+      waktuPelaksanaan: rawAs.sumatif?.waktuPelaksanaan || `Khusus Pertemuan Terakhir (Pertemuan ke-${count}) setelah seluruh lingkup materi selesai`,
+      bentukTeknik: rawAs.sumatif?.bentukTeknik || modul.asesmen?.sumatif?.teknik || 'Tes Tertulis Mandiri Penalaran Mendalam (HOTS) & Rubrik Unjuk Kerja Produk Akhir',
+      caraSumber: rawAs.sumatif?.caraSumber || `Dilakukan pada akhir pertemuan ke-${count} setelah seluruh materi TP selesai untuk mengukur ketercapaian Tujuan Pembelajaran secara individual (KKTP).`,
+      daftarInstrumen: Array.isArray(rawAs.sumatif?.daftarInstrumen) && rawAs.sumatif.daftarInstrumen.length > 0
+        ? rawAs.sumatif.daftarInstrumen
+        : [
+            '5 Butir Soal Evaluasi Penalaran HOTS Kontekstual',
+            'Rubrik Kriteria Ketercapaian Tujuan Pembelajaran (KKTP)',
+            'Kunci Jawaban dan Pedoman Penskoran Nilai (Skala 0-100)',
+          ],
     },
+    rincianPerPertemuan: rawAs.rincianPerPertemuan || rawAs.formatif?.rincianPerPertemuan || [],
   };
 
   // 5. Normalisasi Rubrik Penilaian (F)
@@ -503,10 +543,10 @@ export function normalizeRPMData(
   const lkData: LKPDDokumenRPM = {
     judulLKPD: rawLk.judulLKPD || `LEMBAR KERJA PESERTA DIDIK (LKPD) - ${topikVal.toUpperCase()}`,
     petunjuk: Array.isArray(rawLk.petunjuk) && rawLk.petunjuk.length > 0 ? rawLk.petunjuk : [
-      'Tuliskan nama anggota kelompok pada kolom identitas yang tersedia.',
-      'Bacalah setiap petunjuk langkah kerja dengan teliti dan cermat.',
-      'Diskusikan bersama teman sekelompokmu dan bagi peran secara adil.',
-      'Tanyakan kepada guru jika menemui hal yang belum dipahami.',
+      'Tuliskan nama kelompok dan nama anggota (maksimal 6 siswa) pada kolom identitas yang tersedia.',
+      'Bacalah setiap petunjuk langkah kerja dengan cermat dan gembira bersama kelompokmu.',
+      'Diskusikan bersama teman sekelompokmu dan bagi peran kerja secara adil dan rukun.',
+      'Tanyakan kepada guru jika ada langkah kegiatan yang belum kamu pahami.',
     ],
     langkahKerjaAwal: Array.isArray(rawLk.langkahKerjaAwal) && rawLk.langkahKerjaAwal.length > 0 ? rawLk.langkahKerjaAwal : [
       { nomor: 1, langkahKerja: 'Amati bahan, gambar, atau media stimulasi yang disiapkan di meja belajarmu.', hasilJawabanPlaceholder: 'Tuliskan objek atau fenomena apa yang kalian amati bersama kelompok.' },
@@ -523,6 +563,9 @@ export function normalizeRPMData(
       { nomor: 1, pertanyaan: 'Apa hal paling berharga dan baru yang kami pelajari hari ini?', hasilPlaceholder: 'Refleksi kelompok...' },
       { nomor: 2, pertanyaan: 'Bagaimana kerjasama kelompok kami berlangsung dan apa yang perlu ditingkatkan?', hasilPlaceholder: 'Refleksi kerjasama...' },
     ],
+    aktivitasPerPertemuan: Array.isArray(rawLk.aktivitasPerPertemuan) && rawLk.aktivitasPerPertemuan.length > 0
+      ? rawLk.aktivitasPerPertemuan
+      : buildModularLKPDActivities(count, topikVal, rawDs.praktikPedagogis?.modelPembelajaran || modul.modelPembelajaran || 'Problem Based Learning (PBL)'),
   };
 
   // 7. Normalisasi Soal Evaluasi (H)
@@ -1058,6 +1101,7 @@ export function getPedagogicalStageForMeeting(
     prinsipPembelajaran: string;
   }[];
   penutup: string[];
+  asesmenPertemuan?: AsesmenPertemuanItem;
 } {
   return buildPedagogicalMeetingPlan(
     meetingNum,

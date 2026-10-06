@@ -31,6 +31,7 @@ import {
   Building
 } from 'lucide-react';
 import { getPermen13Allocation } from '../data/permendikdasmen13Data';
+import { Permen13AllocationModal } from './Permen13AllocationModal';
 import {
   getAllowedFaseForRecord,
   isDemoAccessCode,

@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { ModulAjarDocument, SchoolIdentity } from '../types';
-import { BookOpen, Users, Award, Layers, Sparkles, Laptop, CheckCircle2, Lock, Edit2, Plus, X, Check } from 'lucide-react';
+import { BookOpen, Users, Award, Layers, Sparkles, Laptop, CheckCircle2, Lock, Edit2, Plus, X, Check, FileText, Palette, Copy } from 'lucide-react';
 import { normalizeRPMData, cleanParentheses, getPrinsipBadgeInfo, getPengalamanBadgeInfo, cleanMeetingAlokasi, cleanMeetingFokus, parseTotalJPAndCount, calculateMeetingTimeAllocation, cleanActivityText } from '../utils/rpmUtils';
 import { getResolvedMeetings } from '../utils/exportUtils';
+import { LKPDVisualPromptModal } from './LKPDVisualPromptModal';
+import { generateLKPDVisualPrompt, generateFullModuleLKPDVisualPrompt } from '../utils/lkpdPromptGenerator';
+import { getLKPDMeetingStyle } from '../utils/lkpdStyleUtils';
 
 interface RPMDocumentSectionProps {
   modul: ModulAjarDocument;
@@ -17,6 +20,7 @@ interface RPMDocumentSectionProps {
   semester: string;
   setSemester: (val: string) => void;
   activeTab: string;
+  onOpenEditIdentity?: () => void;
   onUpdateIdentitas?: (updated: SchoolIdentity) => void;
   onUpdatePemanfaatanTeknologi?: (updated: {
     platformAplikasi: string[];
@@ -38,6 +42,7 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
   semester,
   setSemester,
   activeTab,
+  onOpenEditIdentity,
   onUpdateIdentitas,
   onUpdatePemanfaatanTeknologi,
 }) => {
@@ -45,6 +50,12 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
   const [newPlatformInput, setNewPlatformInput] = useState('');
   const [newPerangkatInput, setNewPerangkatInput] = useState('');
   const [newMediaInput, setNewMediaInput] = useState('');
+
+  // Modal State Generator Prompt Visual LKPD (Gemini AI / Gems / Canva)
+  const [promptModalOpen, setPromptModalOpen] = useState(false);
+  const [promptModalTitle, setPromptModalTitle] = useState('');
+  const [promptModalText, setPromptModalText] = useState('');
+  const [promptModalPertemuan, setPromptModalPertemuan] = useState<number | undefined>();
   // Robust normalization for RPM data to safely handle all array/object shapes
   const { totalJP, count, jpList, formattedIdentityAlokasi } = parseTotalJPAndCount(modul, alokasiWaktu);
   const displayAlokasi = formattedIdentityAlokasi || alokasiWaktu;
@@ -76,6 +87,16 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
             <BookOpen className="w-4 h-4 text-slate-800 no-print" />
             <span>A. Informasi Umum / Identitas Modul</span>
           </h3>
+          {onOpenEditIdentity && (
+            <button
+              type="button"
+              onClick={onOpenEditIdentity}
+              className="no-print px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center gap-1 border border-amber-300 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+              <span>Edit Identitas &amp; Guru</span>
+            </button>
+          )}
         </div>
 
         {/* Formal Academic Identitas Table - Titik Dua Sejajar Presisi dengan Isi */}
@@ -465,8 +486,11 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
             </div>
           </div>
 
-          {/* 6. Lingkungan Belajar */}
-          <div className="p-4 bg-white rounded border border-slate-300 space-y-2">
+          {/* 6. Lingkungan Belajar (Dimulai dari Halaman Baru) */}
+          <div
+            className="p-4 bg-white rounded border border-slate-300 space-y-2 print:break-before-page break-before-page"
+            style={{ pageBreakBefore: 'always', breakBefore: 'page' }}
+          >
             <h4 className="font-bold text-slate-900 text-[12pt]">
               6. Lingkungan Belajar:
             </h4>
@@ -1015,10 +1039,10 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
                   </td>
                 </tr>
 
-                {/* Kegiatan Akhir */}
+                {/* 3. Kegiatan Akhir */}
                 <tr className="align-top">
-                  <td className="p-2.5 font-bold text-slate-900 border-r border-slate-300 break-words">
-                    Kegiatan Akhir
+                  <td className="p-2.5 font-bold bg-slate-50 border-r border-slate-300 break-words">
+                    Kegiatan Akhir (Penutup)
                   </td>
                   <td className="p-2.5 text-slate-800 border-r border-slate-300 space-y-2 leading-[1.5]">
                     {lpData.kegiatanAkhir.deskripsi ? (
@@ -1052,63 +1076,178 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
           </h3>
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-3 text-[12pt] leading-[1.5]">
-          <div className="p-4 bg-white rounded border border-slate-300 space-y-1.5">
-            <h4 className="font-bold text-slate-900">1. Diagnostik (Awal):</h4>
-            <p className="text-slate-900 font-bold break-words">{asData.diagnostik.bentukTeknik}</p>
-            <p className="text-slate-800 text-[11pt] sm:text-[12pt] text-justify break-words">{asData.diagnostik.caraSumber}</p>
+        {/* 1. RENCANA ASESMEN LENGKAP PER PERTEMUAN */}
+        <div className="p-4 bg-white rounded border border-slate-300 text-[12pt] space-y-3.5 leading-[1.5]">
+          <div className="border-b border-slate-200 pb-1.5 flex items-center justify-between">
+            <h4 className="font-bold text-slate-900 text-base">
+              1. Rencana Asesmen Komprehensif Per Pertemuan
+            </h4>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 no-print">
+              Tersusun Sistematis Per Sesi
+            </span>
           </div>
 
-          <div className="p-4 bg-white rounded border border-slate-300 space-y-1.5">
-            <h4 className="font-bold text-slate-900">2. Formatif (Proses):</h4>
-            <p className="text-slate-900 font-bold break-words">{asData.formatif.bentukTeknik}</p>
-            <p className="text-slate-800 text-[11pt] sm:text-[12pt] text-justify break-words">{asData.formatif.caraSumber}</p>
-          </div>
+          <div className="space-y-3.5">
+            {resolvedMeetings.map((pert, pIdx) => {
+              const isFirst = pIdx === 0;
+              const isLast = pIdx === resolvedMeetings.length - 1;
+              const totalM = resolvedMeetings.length;
+              const defaultPlan = pert.asesmenPertemuan || {
+                jenisAsesmen: totalM === 1 ? 'Asesmen Diagnostik (Awal), Formatif (Proses) & Sumatif (Lingkup TP)' : isFirst ? 'Asesmen Diagnostik (Awal) & Formatif (Proses)' : isLast ? 'Asesmen Formatif (Presentasi) & Sumatif (Lingkup TP)' : 'Asesmen Formatif (Proses)',
+                teknikDanBentuk: isFirst ? 'Tanya Jawab Pemantik Lisan & Observasi Kesiapan Awal + Lembar Observasi Diskusi' : isLast ? 'Rubrik Presentasi Karya Kelompok & Tes Evaluasi Mandiri Tertulis (HOTS)' : 'Penilaian Kinerja Kelompok pada LKPD & Observasi Diskusi',
+                instrumen: `Lembar Kerja Peserta Didik (LKPD Aktivitas Pertemuan ${pIdx + 1}) & Lembar Observasi Sikap`,
+                buktiBelajar: `Catatan pengisian LKPD Aktivitas Pertemuan ${pIdx + 1} dan keaktifan proses belajar`,
+                tindakLanjut: 'Memberikan bimbingan langsung dan umpan balik deskriptif bagi siswa.',
+              };
 
-          <div className="p-4 bg-white rounded border border-slate-300 space-y-1.5">
-            <h4 className="font-bold text-slate-900">3. Sumatif (Akhir):</h4>
-            <p className="text-slate-900 font-bold break-words">{asData.sumatif.bentukTeknik}</p>
-            <p className="text-slate-800 text-[11pt] sm:text-[12pt] text-justify break-words">{asData.sumatif.caraSumber}</p>
+              return (
+                <div key={pIdx} className="p-3 bg-slate-50/90 rounded border border-slate-300 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-200 pb-1">
+                    <h5 className="font-bold text-slate-900 uppercase tracking-wide text-[11pt]">
+                      {pIdx + 1}. ASESMEN PERTEMUAN {pIdx + 1} ({pert.alokasiWaktu || `${(pert as any).alokasiJP || 2} JP`}):
+                    </h5>
+                    <span className="text-[10pt] font-bold text-indigo-900 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-200">
+                      {defaultPlan.jenisAsesmen}
+                    </span>
+                  </div>
+
+                  {totalM === 1 ? (
+                    <div className="space-y-2 pl-2 text-slate-800 text-[11pt]">
+                      <div>
+                        <p className="font-bold text-slate-900">a. Asesmen Diagnostik (Awal Pembelajaran):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Tanya Jawab Lisan Pemantik &amp; Observasi Kesiapan Awal</li>
+                          <li><strong>Instrumen Asesmen:</strong> Pertanyaan Pemantik Konseptual &amp; Catatan Awal Guru</li>
+                          <li><strong>Bukti Belajar:</strong> Respon lisan aktif dan pemahaman prasyarat murid</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">b. Asesmen Formatif (Proses Pembelajaran):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Observasi Kinerja Kelompok pada LKPD &amp; Umpan Balik Langsung</li>
+                          <li><strong>Instrumen Asesmen:</strong> Lembar Kerja Peserta Didik (LKPD Terpadu) &amp; Rubrik KKTP</li>
+                          <li><strong>Bukti Belajar:</strong> Hasil pengerjaan lembar kerja dan keaktifan diskusi kelompok</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">c. Asesmen Sumatif (Lingkup Tujuan Pembelajaran):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Tes Mandiri Tertulis (HOTS) &amp; Refleksi Akhir TP</li>
+                          <li><strong>Instrumen Asesmen:</strong> Lembar Soal Penalaran Konseptual (Pilihan Ganda &amp; Uraian)</li>
+                          <li><strong>Bukti Belajar:</strong> Skor lembar evaluasi mandiri siswa</li>
+                          <li><strong>Tindak Lanjut:</strong> Pemetaan ketuntasan KKTP untuk pengayaan/remedial</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : isFirst ? (
+                    <div className="space-y-2 pl-2 text-slate-800 text-[11pt]">
+                      <div>
+                        <p className="font-bold text-slate-900">a. Asesmen Diagnostik (Awal Pembelajaran):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Tanya Jawab Pemantik Apersepsi Lisan &amp; Pengamatan Minat Belajar</li>
+                          <li><strong>Instrumen Asesmen:</strong> 3 Butir Pertanyaan Apersepsi Kontekstual &amp; Catatan Kesiapan Murid</li>
+                          <li><strong>Bukti Belajar:</strong> Respon lisan langsung murid dalam menanggapi stimulus materi</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">b. Asesmen Formatif (Proses Pembelajaran):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Observasi Keterlibatan Diskusi &amp; Penilaian Kinerja Eksplorasi Awal</li>
+                          <li><strong>Instrumen Asesmen:</strong> LKPD Aktivitas Pertemuan 1 (Orientasi Masalah &amp; Eksplorasi Konsep) &amp; Lembar Observasi Sikap</li>
+                          <li><strong>Bukti Belajar:</strong> Hasil pengisian lembar kerja kelompok Pertemuan 1 dan catatan pengamatan guru</li>
+                          <li><strong>Tindak Lanjut:</strong> Memetakan kelompok butuh perancah bimbingan langsung vs kelompok mandiri</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : isLast ? (
+                    <div className="space-y-2 pl-2 text-slate-800 text-[11pt]">
+                      <div>
+                        <p className="font-bold text-slate-900">a. Asesmen Formatif (Presentasi &amp; Refleksi):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Unjuk Kerja Presentasi Kelompok &amp; Lembar Refleksi Pembelajaran Bermakna</li>
+                          <li><strong>Instrumen Asesmen:</strong> Rubrik Penilaian Presentasi Karya &amp; Lembar Refleksi Diri Siswa</li>
+                          <li><strong>Bukti Belajar:</strong> Performa presentasi santun, karya laporan kelompok, dan lembar refleksi bermakna</li>
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-900">b. Asesmen Sumatif (Lingkup Tujuan Pembelajaran):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Tes Tertulis Evaluasi Mandiri (Penalaran Tingkat Tinggi / HOTS)</li>
+                          <li><strong>Instrumen Asesmen:</strong> Paket Tes Evaluasi Akhir TP (Pilihan Ganda &amp; Uraian Pemecahan Masalah)</li>
+                          <li><strong>Bukti Belajar:</strong> Lembar jawaban tes evaluasi mandiri murid</li>
+                          <li><strong>Tindak Lanjut:</strong> Menetapkan ketercapaian KKTP rapor, pengayaan bagi yang tuntas, dan remedial bagi yang belum tuntas</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 pl-2 text-slate-800 text-[11pt]">
+                      <div>
+                        <p className="font-bold text-slate-900">a. Asesmen Formatif (Proses Pembelajaran Berkelanjutan):</p>
+                        <ul className="list-disc list-inside space-y-0.5 pl-3 text-slate-700">
+                          <li><strong>Teknik &amp; Bentuk:</strong> Penilaian Kinerja Kolaboratif &amp; Observasi Penyelidikan Mandiri</li>
+                          <li><strong>Instrumen Asesmen:</strong> LKPD Aktivitas Pertemuan {pIdx + 1} (Penyelidikan / Pengolahan Solusi) &amp; Lembar Ceklis Diskusi</li>
+                          <li><strong>Bukti Belajar:</strong> Catatan data temuan penyelidikan pada LKPD Pertemuan {pIdx + 1} dan keaktifan interaksi kelompok</li>
+                          <li><strong>Tindak Lanjut:</strong> Umpan balik deskriptif (descriptive feedback) seketika dari guru saat pendampingan</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
         {/* Lembar Pengesahan / Signature Block - Standar Resmi Kedinasan (Ditempatkan Tepat Setelah Asesmen & Sebelum Lampiran) */}
         <div className="pt-8 border-t-2 border-slate-400 page-avoid-break text-[12pt] leading-[1.5]">
-          {onUpdateIdentitas && (
-            <div className="no-print mb-4 flex items-center justify-end gap-2 text-xs font-sans">
-              <span className="text-slate-600 font-medium">Jabatan Penandatangan:</span>
-              <div className="inline-flex p-0.5 bg-slate-100 border border-slate-300 rounded-md">
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Kelas' })
-                  }
-                  className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                    (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Kelas'
-                      ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Klik untuk memilih Guru Kelas"
-                >
-                  Guru Kelas
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Mata Pelajaran' })
-                  }
-                  className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
-                    (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Mata Pelajaran'
-                      ? 'bg-blue-600 text-white font-bold shadow-2xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Klik untuk memilih Guru Mata Pelajaran"
-                >
-                  Guru Mata Pelajaran
-                </button>
+          <div className="no-print mb-4 flex items-center justify-between flex-wrap gap-2 text-xs font-sans">
+            {onOpenEditIdentity && (
+              <button
+                type="button"
+                onClick={onOpenEditIdentity}
+                className="px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-amber-700" />
+                <span>Edit Identitas &amp; Titimangsa</span>
+              </button>
+            )}
+
+            {onUpdateIdentitas && (
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-slate-600 font-medium">Jabatan Penandatangan:</span>
+                <div className="inline-flex p-0.5 bg-slate-100 border border-slate-300 rounded-md">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Kelas' })
+                    }
+                    className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                      (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Kelas'
+                        ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Klik untuk memilih Guru Kelas"
+                  >
+                    Guru Kelas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onUpdateIdentitas({ ...modul.identitas, peranGuru: 'Guru Mata Pelajaran' })
+                    }
+                    className={`px-2.5 py-1 rounded transition-all cursor-pointer ${
+                      (modul.identitas.peranGuru || 'Guru Kelas') === 'Guru Mata Pelajaran'
+                        ? 'bg-blue-600 text-white font-bold shadow-2xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Klik untuk memilih Guru Mata Pelajaran"
+                  >
+                    Guru Mata Pelajaran
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           <table className="w-full border-collapse border-none text-[12pt] leading-[1.5] text-slate-900">
             <tbody>
@@ -1227,22 +1366,100 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
 
       {/* LAMPIRAN II: LKPD */}
       <section id="rpm-lkpd" className={`space-y-4 ${activeTab === 'semua' || activeTab === 'lkpd' ? 'block' : 'hidden print:block'}`}>
-        <div className="flex items-center justify-between bg-slate-100 p-2 rounded border-l-4 border-slate-800">
+        <div className="flex items-center justify-between bg-slate-100 p-2 rounded border-l-4 border-slate-800 flex-wrap gap-2">
           <h3 className="text-[12pt] font-bold uppercase tracking-wider text-slate-900">
-            Lampiran II: Lembar Kerja Murid (LKPD)
+            Lampiran II: Lembar Kerja Murid (LKPD Berkelompok)
           </h3>
+          <button
+            type="button"
+            onClick={() => {
+              const fullPrompt = generateFullModuleLKPDVisualPrompt(
+                lkData.aktivitasPerPertemuan?.length || 1,
+                topikMateri,
+                modul.identitas.mataPelajaran,
+                modul.identitas.kelas,
+                modul.identitas.fase,
+                modul.modelPembelajaran || 'Problem Based Learning (PBL)',
+                (lkData.aktivitasPerPertemuan || []).map((sub: any, idx: number) => ({
+                  judulAktivitas: sub.judulAktivitas || `Aktivitas Pertemuan ${idx + 1}`,
+                  pertemuanKe: sub.pertemuanKe || idx + 1,
+                  topikMateri,
+                  mataPelajaran: modul.identitas.mataPelajaran,
+                  kelas: modul.identitas.kelas,
+                  fase: modul.identitas.fase,
+                  modelPembelajaran: modul.modelPembelajaran || 'Problem Based Learning (PBL)',
+                  fokusTarget: sub.fokusTarget || `Mempelajari konsep ${topikMateri}`,
+                  petunjukAktivitas: sub.petunjukAktivitas,
+                  langkahKerja: sub.langkahKerja,
+                  pertanyaanPemantik: sub.pertanyaanPemantik,
+                  refleksiSesi: sub.refleksiSesi,
+                  namaSekolah: modul.identitas.namaSatuanPendidikan,
+                }))
+              );
+              setPromptModalTitle(`Paket Prompt Desain Visual LKPD (${(lkData.aktivitasPerPertemuan || []).length} Pertemuan)`);
+              setPromptModalText(fullPrompt);
+              setPromptModalPertemuan(undefined);
+              setPromptModalOpen(true);
+            }}
+            className="no-print px-3 py-1.5 rounded-lg bg-gradient-to-r from-indigo-700 to-purple-800 hover:from-indigo-800 hover:to-purple-900 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+            title="Salin Prompt Desain Grafis LKPD untuk Google Gemini / Gems / Canva"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+            <span>✨ Prompt Desain Visual LKPD (Gemini AI / Gems)</span>
+          </button>
         </div>
 
-        <div className="p-4 rounded border border-slate-400 bg-white space-y-3.5 text-[12pt] leading-[1.5]">
-          <div className="text-center pb-2.5 border-b border-slate-300 space-y-1">
-            <h4 className="text-[13pt] font-bold text-slate-900 uppercase break-words">{lkData.judulLKPD}</h4>
-            <p className="text-[11pt] text-slate-700">
-              Kelompok: ........................ | Kelas: {modul.identitas.kelas} | Anggota: 1. ................ 2. ................ 3. ................ 4. ................
-            </p>
+        <div className="p-5 rounded-xl border-2 border-slate-800 bg-white space-y-4 font-serif text-[12pt] leading-[1.6] text-slate-900 shadow-2xs">
+          <div className="text-center pb-3 border-b-2 border-slate-800 space-y-2">
+            <h4 className="text-[14pt] font-bold text-slate-900 uppercase tracking-wide font-serif leading-tight">{lkData.judulLKPD}</h4>
+            
+            {/* Box Identitas Kelompok Resmi (Maksimal 6 Siswa) */}
+            <div className="p-3.5 bg-slate-50/50 rounded-lg border border-slate-400 text-[12pt] space-y-2 font-serif text-left">
+              <div className="flex items-center justify-between border-b border-slate-300 pb-1 text-[11pt] font-bold text-slate-900">
+                <span className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-slate-800" />
+                  <span>IDENTITAS KELOMPOK BELAJAR (MAKSIMAL 6 SISWA)</span>
+                </span>
+                <span className="text-[10pt] font-normal text-slate-700 italic">
+                  Format Resmi Kertas A4
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 pb-2 border-b border-slate-300 text-slate-900">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold min-w-[130px]">Nama Kelompok:</span>
+                  <span className="text-slate-600 tracking-wider">.....................................................</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold min-w-[130px]">Hari / Tanggal:</span>
+                  <span className="text-slate-600 tracking-wider">.....................................................</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold min-w-[130px]">Mata Pelajaran:</span>
+                  <span>{modul.identitas.mataPelajaran}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold min-w-[130px]">Kelas / Fase:</span>
+                  <span>Kelas {modul.identitas.kelas} ({modul.identitas.fase})</span>
+                </div>
+              </div>
+
+              <div className="pt-0.5">
+                <span className="font-bold block mb-1 text-[11pt]">Anggota Kelompok (Maksimal 6 Siswa):</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-1 text-slate-800 text-[11pt]">
+                  <div>1. ........................................ <strong>(Ketua)</strong></div>
+                  <div>4. ........................................</div>
+                  <div>2. ........................................</div>
+                  <div>5. ........................................</div>
+                  <div>3. ........................................</div>
+                  <div>6. ........................................</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-1">
-            <span className="font-bold text-slate-900">Petunjuk Belajar:</span>
+            <span className="font-bold text-slate-900">Petunjuk Belajar Berkelompok:</span>
             <ol className="list-decimal list-inside space-y-1 text-slate-800 pl-2">
               {(lkData.petunjuk || []).map((p, idx) => (
                 <li key={idx} className="text-justify break-words">{p}</li>
@@ -1252,22 +1469,29 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
 
           {/* Bagian A: Langkah Kerja */}
           <div className="space-y-2">
-            <span className="font-bold text-slate-900">A. Langkah Kerja &amp; Pengamatan:</span>
-            <div className="border border-slate-400 rounded overflow-hidden">
-              <table className="w-full text-left text-[11pt] sm:text-[12pt] border-collapse table-fixed">
+            <span className="font-bold text-slate-900">A. Langkah Kerja &amp; Pengamatan Kelompok:</span>
+            <div className="border border-slate-500 rounded overflow-hidden">
+              <table className="w-full text-left text-[12pt] border-collapse table-fixed font-serif">
                 <thead>
-                  <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-400">
-                    <th className="p-2.5 w-[8%] text-center border-r border-slate-400">No</th>
-                    <th className="p-2.5 w-[52%] border-r border-slate-400 text-center">Instruksi Langkah Kerja</th>
-                    <th className="p-2.5 w-[40%] text-center">Hasil Pengamatan / Jawaban</th>
+                  <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-500">
+                    <th className="p-2.5 w-[8%] text-center border-r border-slate-500">No</th>
+                    <th className="p-2.5 w-[47%] border-r border-slate-500 text-center">Instruksi Langkah Kerja</th>
+                    <th className="p-2.5 w-[45%] text-center">Hasil Pengamatan / Jawaban Kelompok</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-300">
+                <tbody className="divide-y divide-slate-400">
                   {(lkData.langkahKerjaAwal || []).map((lk) => (
                     <tr key={lk.nomor} className="align-top">
-                      <td className="p-2.5 text-center font-bold border-r border-slate-300">{lk.nomor}</td>
-                      <td className="p-2.5 text-slate-900 border-r border-slate-300 text-justify break-words leading-[1.5]">{lk.langkahKerja}</td>
-                      <td className="p-2.5 text-slate-600 italic break-words leading-[1.5]">{lk.hasilJawabanPlaceholder}</td>
+                      <td className="p-2.5 text-center font-bold border-r border-slate-400">{lk.nomor}</td>
+                      <td className="p-2.5 text-slate-900 border-r border-slate-400 text-justify break-words leading-[1.6]">{lk.langkahKerja}</td>
+                      <td className="p-3 text-slate-600 italic break-words leading-[1.8] min-h-[80px]">
+                        <div>{lk.hasilJawabanPlaceholder || 'Tuliskan hasil pengamatan lengkap kelompok di sini...'}</div>
+                        <div className="pt-2 text-slate-400 border-t border-dotted border-slate-300 mt-2">
+                          ...................................................................................................................
+                          <br />
+                          ...................................................................................................................
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1278,12 +1502,21 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
           {/* Bagian B: Aktivitas Kelompok */}
           <div className="space-y-2">
             <span className="font-bold text-slate-900">B. {lkData.kegiatanKelompokJudul}:</span>
-            <p className="text-[11pt] text-slate-700 italic pl-2 text-justify break-words">{lkData.kegiatanKelompokInstruksi}</p>
-            <div className="space-y-2 pl-2">
+            <p className="text-[12pt] text-slate-800 italic pl-2 text-justify break-words">{lkData.kegiatanKelompokInstruksi}</p>
+             <div className="space-y-3 pl-2">
               {(lkData.pertanyaanAnalisis || []).map((pa, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 rounded border border-slate-300 space-y-1">
+                <div key={idx} className="p-3.5 bg-slate-50/50 rounded border border-slate-400 space-y-2">
                   <p className="font-bold text-slate-900 text-justify break-words">{idx + 1}. {pa.pertanyaan}</p>
-                  <p className="text-slate-600 italic text-[11pt] pl-3 break-words">{pa.hasilPlaceholder}</p>
+                  <div className="p-3.5 bg-white rounded-lg border border-slate-400 text-slate-600 italic text-[11pt] space-y-2 min-h-[110px] shadow-3xs">
+                    <p>Jawaban Kelompok: {pa.hasilPlaceholder}</p>
+                    <div className="text-slate-400 font-sans text-[10pt] leading-loose pt-1">
+                      ...................................................................................................................................................
+                      <br />
+                      ...................................................................................................................................................
+                      <br />
+                      ...................................................................................................................................................
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1292,15 +1525,169 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
           {/* Bagian C: Refleksi */}
           <div className="space-y-2">
             <span className="font-bold text-slate-900">C. Refleksi Diri &amp; Kelompok:</span>
-            <div className="space-y-2 pl-2">
+            <div className="space-y-2.5 pl-2">
               {(lkData.refleksiDiriKelompok || []).map((r, idx) => (
-                <div key={idx} className="p-3 bg-slate-50 rounded border border-slate-300 text-[12pt]">
+                <div key={idx} className="p-3.5 bg-slate-50/50 rounded border border-slate-400 text-[12pt] space-y-1.5">
                   <p className="font-bold text-slate-900 text-justify break-words">• {r.pertanyaan}</p>
-                  <p className="text-slate-600 italic text-[11pt] pl-3 pt-1 break-words">{r.hasilPlaceholder}</p>
+                  <div className="p-2 bg-white rounded border border-slate-300 text-slate-600 italic text-[11pt]">
+                    Tanggapan Kelompok: {r.hasilPlaceholder}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Bagian D: Rincian Aktivitas LKPD Per Pertemuan */}
+          {lkData.aktivitasPerPertemuan && lkData.aktivitasPerPertemuan.length > 0 && (
+            <div className="space-y-4 pt-4 border-t-2 border-slate-800">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="font-bold text-slate-900 text-[13pt] flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-slate-900" />
+                  <span>D. Rangkaian Lembar Kerja Peserta Didik (LKPD) Per Pertemuan ({lkData.aktivitasPerPertemuan.length} Pertemuan):</span>
+                </span>
+                <span className="text-xs font-bold text-slate-900 bg-slate-100 px-2.5 py-1 rounded border border-slate-400">
+                  Format Kertas A4 Siap Cetak
+                </span>
+              </div>
+
+              <div className="space-y-6">
+                {lkData.aktivitasPerPertemuan.map((sub: any, sIdx: number) => {
+                  const pertNo = sub.pertemuanKe || sIdx + 1;
+                  const theme = getLKPDMeetingStyle(pertNo, modul.identitas.mataPelajaran);
+                  return (
+                  <div key={sIdx} className={`${theme.cardContainerClass} page-break-inside-avoid`}>
+                    <div className="flex items-center justify-between border-b-2 border-slate-800 pb-2 flex-wrap gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold bg-slate-900 text-white px-3 py-1 rounded flex items-center gap-1">
+                          <span>{theme.icon}</span>
+                          <span>Pertemuan {pertNo}</span>
+                        </span>
+                        <h5 className="font-bold text-slate-900 text-[14pt] font-serif">
+                          {sub.judulAktivitas}
+                        </h5>
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const pText = generateLKPDVisualPrompt({
+                            judulAktivitas: sub.judulAktivitas,
+                            pertemuanKe: pertNo,
+                            topikMateri,
+                            mataPelajaran: modul.identitas.mataPelajaran,
+                            kelas: modul.identitas.kelas,
+                            fase: modul.identitas.fase,
+                            modelPembelajaran: modul.modelPembelajaran || 'Problem Based Learning (PBL)',
+                            fokusTarget: sub.fokusTarget,
+                            petunjukAktivitas: sub.petunjukAktivitas,
+                            langkahKerja: sub.langkahKerja,
+                            pertanyaanPemantik: sub.pertanyaanPemantik,
+                            refleksiSesi: sub.refleksiSesi,
+                            namaSekolah: modul.identitas.namaSatuanPendidikan,
+                          });
+                          setPromptModalTitle(`Prompt Visual LKPD Pertemuan ${pertNo}`);
+                          setPromptModalText(pText);
+                          setPromptModalPertemuan(pertNo);
+                          setPromptModalOpen(true);
+                        }}
+                        className="no-print px-2.5 py-1 rounded bg-amber-50 hover:bg-amber-100 text-amber-950 border border-amber-300 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-2xs font-sans"
+                        title="Salin Prompt AI untuk Lembar Kerja Pertemuan Ini"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-600" />
+                        <span>Prompt Visual Pertemuan {pertNo}</span>
+                      </button>
+                    </div>
+
+                    {/* Box Identitas Kelompok Pertemuan (Maksimal 6 Siswa) */}
+                    <div className="p-3 bg-slate-50/50 rounded border border-slate-400 text-[11pt] space-y-1.5 font-serif text-slate-900">
+                      <div className="flex items-center justify-between pb-1 border-b border-slate-300 font-bold">
+                        <span>IDENTITAS KELOMPOK PERTEMUAN {pertNo} (MAKSIMAL 6 SISWA)</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 pb-1 border-b border-slate-300">
+                        <div><strong>Nama Kelompok:</strong> ........................................</div>
+                        <div><strong>Hari / Tanggal:</strong> ........................................</div>
+                        <div><strong>Mata Pelajaran:</strong> {modul.identitas.mataPelajaran}</div>
+                        <div><strong>Kelas / Pertemuan:</strong> Kelas {modul.identitas.kelas} (Pertemuan Ke-{pertNo})</div>
+                      </div>
+                      <div className="pt-0.5">
+                        <strong className="block mb-1 text-[10.5pt]">Anggota Kelompok (Maksimal 6 Siswa):</strong>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-0.5 text-[10.5pt]">
+                          <div>1. ................................ <strong>(Ketua)</strong></div>
+                          <div>4. ................................</div>
+                          <div>2. ................................</div>
+                          <div>5. ................................</div>
+                          <div>3. ................................</div>
+                          <div>6. ................................</div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-[12pt] text-slate-900 space-y-2">
+                      <p>
+                        <strong>Fokus Target Pembelajaran:</strong> {sub.fokusTarget}
+                      </p>
+                      <div>
+                        <strong className="block mb-1">Petunjuk Aktivitas Kelompok (Ramah Anak):</strong>
+                        <ol className="list-decimal list-outside ml-5 space-y-1 text-slate-800">
+                          {(sub.petunjukAktivitas || []).map((pt: string, pIdx: number) => (
+                            <li key={pIdx}>{pt}</li>
+                          ))}
+                        </ol>
+                      </div>
+                    </div>
+
+                    {sub.langkahKerja && sub.langkahKerja.length > 0 && (
+                      <div className="overflow-x-auto rounded border border-slate-400">
+                        <table className="w-full text-left text-[12pt] bg-white font-serif border-collapse">
+                          <thead>
+                            <tr className="bg-slate-100 text-slate-900 font-bold border-b border-slate-400">
+                              <th className="p-2.5 w-10 text-center border-r border-slate-400">No</th>
+                              <th className="p-2.5 border-r border-slate-400">Langkah Penyelidikan Kelompok</th>
+                              <th className="p-2.5 w-1/2 text-center">Hasil Pengamatan / Jawaban Kelompok</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-300">
+                            {sub.langkahKerja.map((step: any, stIdx: number) => (
+                              <tr key={stIdx} className="align-top">
+                                <td className="p-2.5 text-center font-bold border-r border-slate-300">{step.nomor || (stIdx + 1)}</td>
+                                <td className="p-2.5 text-slate-900 border-r border-slate-300 text-justify">{step.langkahKerja}</td>
+                                <td className="p-3 text-slate-600 italic min-h-[70px]">
+                                  <div>{step.hasilJawabanPlaceholder || '................................'}</div>
+                                  <div className="pt-2 text-slate-400 border-t border-dotted border-slate-200 mt-2">
+                                    ........................................................................................
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {sub.pertanyaanPemantik && (
+                      <div className="p-3.5 bg-white rounded-xl border border-slate-400 text-[12pt] text-slate-900 space-y-2 min-h-[110px] shadow-3xs">
+                        <strong>Pertanyaan Diskusi Kelompok:</strong>
+                        <p className="italic pl-1 text-slate-800 font-serif">{sub.pertanyaanPemantik}</p>
+                        <div className="text-slate-400 font-sans text-[10pt] leading-loose pt-1">
+                          ...................................................................................................................................................
+                          <br />
+                          ...................................................................................................................................................
+                          <br />
+                          ...................................................................................................................................................
+                        </div>
+                      </div>
+                    )}
+                    {sub.refleksiSesi && (
+                      <div className="p-3 bg-slate-50/80 rounded border border-slate-300 text-[12pt] text-slate-900 space-y-1">
+                        <strong>Refleksi Pembelajaran Kelompok:</strong>
+                        <p className="italic pl-1 text-slate-800">{sub.refleksiSesi}</p>
+                      </div>
+                    )}
+                  </div>
+                );})}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -1323,6 +1710,17 @@ export const RPMDocumentSection: React.FC<RPMDocumentSectionProps> = ({
           ))}
         </div>
       </section>
+
+      {/* Modal Generator Prompt Visual LKPD AI */}
+      <LKPDVisualPromptModal
+        isOpen={promptModalOpen}
+        onClose={() => setPromptModalOpen(false)}
+        title={promptModalTitle}
+        pertemuanKe={promptModalPertemuan}
+        promptText={promptModalText}
+        topikMateri={topikMateri}
+        mataPelajaran={modul.identitas.mataPelajaran}
+      />
     </div>
   );
 };

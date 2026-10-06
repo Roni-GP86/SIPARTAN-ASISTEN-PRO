@@ -3,9 +3,10 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { isWordExportDisabled } from '../services/accessCodeService';
 import { normalizeRPMData, cleanParentheses, getPrinsipBadgeInfo, cleanMeetingAlokasi, cleanMeetingFokus, parseTotalJPAndCount, distributeJPPerMeeting, getPedagogicalStageForMeeting, calculateMeetingTimeAllocation, cleanActivityText } from './rpmUtils';
-import { isSyntaxMatchingModel } from './modelSyntaxEngine';
+import { isSyntaxMatchingModel, buildStandardLKPDList } from './modelSyntaxEngine';
 import { DELAPAN_DIMENSI_PROFIL_LULUSAN, normalizeDimensiProfilLulusan } from '../data/dimensiProfilLulusan';
 import { formatCPElemenText, resolveElemenListForATP, resolveSingleElemenForTP } from './curriculumCPResolver';
+import { getLKPDMeetingStyle } from './lkpdStyleUtils';
 
 function formatTPWithCode(kodeTP?: string, rumusanTP?: string): string {
   if (!rumusanTP) return '';
@@ -1472,6 +1473,7 @@ export function getResolvedMeetings(modul: ModulAjarDocument, overrideAlokasi?: 
         pendahuluan,
         kegiatanInti: enrichedInti,
         penutup,
+        asesmenPertemuan: existing.asesmenPertemuan || stage.asesmenPertemuan,
       });
     } else {
       // Generate dynamically from pedagogical stage
@@ -1491,6 +1493,7 @@ export function getResolvedMeetings(modul: ModulAjarDocument, overrideAlokasi?: 
         pendahuluan: stage.pendahuluan,
         kegiatanInti: stage.kegiatanInti,
         penutup: stage.penutup,
+        asesmenPertemuan: stage.asesmenPertemuan,
       });
     }
   }
@@ -1679,21 +1682,24 @@ export function exportModulAjarToWord(modul: ModulAjarDocument) {
     ${(!dsData.mitraPembelajaran.mitraInternal?.length && !dsData.mitraPembelajaran.mitraEksternal?.length) ? `<li><em>Pembelajaran mandiri di kelas (tanpa kemitraan khusus).</em></li>` : ''}
   </ol>
 
-  <h4>6. Lingkungan Belajar</h4>
-  <ul>
-    <li><strong>Lingkungan Fisik:</strong> ${(dsData.lingkunganBelajar.lingkunganFisik || []).join(', ')}</li>
-    <li><strong>Deskripsi Penataan:</strong> ${dsData.lingkunganBelajar.lingkunganFisikDeskripsi || '-'}</li>
-    <li><strong>Budaya Belajar:</strong> ${(dsData.lingkunganBelajar.budayaBelajar || []).join(', ')}</li>
-  </ul>
+  <div style="page-break-before: always; mso-break-type: page-break;">
+    <h3 style="margin-top: 0; padding-top: 0;">C. DESAIN PEMBELAJARAN (LANJUTAN)</h3>
+    <h4>6. Lingkungan Belajar</h4>
+    <ul>
+      <li><strong>Lingkungan Fisik:</strong> ${(dsData.lingkunganBelajar.lingkunganFisik || []).join(', ')}</li>
+      <li><strong>Deskripsi Penataan:</strong> ${dsData.lingkunganBelajar.lingkunganFisikDeskripsi || '-'}</li>
+      <li><strong>Budaya Belajar:</strong> ${(dsData.lingkunganBelajar.budayaBelajar || []).join(', ')}</li>
+    </ul>
 
-  ${(dsData.pemanfaatanTeknologi.platformAplikasi?.length > 0 || dsData.pemanfaatanTeknologi.perangkatDigital?.length > 0 || dsData.pemanfaatanTeknologi.mediaDigital?.length > 0) ? `
-  <h4>7. Pemanfaatan Digital</h4>
-  <ul>
-    ${dsData.pemanfaatanTeknologi.platformAplikasi?.length > 0 ? `<li><strong>Platform & Aplikasi:</strong> ${dsData.pemanfaatanTeknologi.platformAplikasi.join(', ')}</li>` : ''}
-    ${dsData.pemanfaatanTeknologi.perangkatDigital?.length > 0 ? `<li><strong>Perangkat Digital:</strong> ${dsData.pemanfaatanTeknologi.perangkatDigital.join(', ')}</li>` : ''}
-    ${dsData.pemanfaatanTeknologi.mediaDigital?.length > 0 ? `<li><strong>Media Digital:</strong> ${dsData.pemanfaatanTeknologi.mediaDigital.join(', ')}</li>` : ''}
-  </ul>
-  ` : ''}
+    ${(dsData.pemanfaatanTeknologi.platformAplikasi?.length > 0 || dsData.pemanfaatanTeknologi.perangkatDigital?.length > 0 || dsData.pemanfaatanTeknologi.mediaDigital?.length > 0) ? `
+    <h4>7. Pemanfaatan Digital</h4>
+    <ul>
+      ${dsData.pemanfaatanTeknologi.platformAplikasi?.length > 0 ? `<li><strong>Platform & Aplikasi:</strong> ${dsData.pemanfaatanTeknologi.platformAplikasi.join(', ')}</li>` : ''}
+      ${dsData.pemanfaatanTeknologi.perangkatDigital?.length > 0 ? `<li><strong>Perangkat Digital:</strong> ${dsData.pemanfaatanTeknologi.perangkatDigital.join(', ')}</li>` : ''}
+      ${dsData.pemanfaatanTeknologi.mediaDigital?.length > 0 ? `<li><strong>Media Digital:</strong> ${dsData.pemanfaatanTeknologi.mediaDigital.join(', ')}</li>` : ''}
+    </ul>
+    ` : ''}
+  </div>
 
   <h3>D. LANGKAH-LANGKAH PEMBELAJARAN (SINTAKS DEEP LEARNING)</h3>
   ${resolvedMeetings.map((pert: any, pIdx: number) => {
@@ -1769,20 +1775,92 @@ export function exportModulAjarToWord(modul: ModulAjarDocument) {
   `;}).join('')}
 
   <h3>E. ASESMEN PEMBELAJARAN</h3>
-  <table class="table-identitas" style="width: 100%; border: none; border-collapse: collapse; table-layout: fixed;">
-    <tr>
-      <td style="width: 175pt; font-weight: bold; vertical-align: top; padding: 3px 0;">1. Asesmen Diagnostik (Awal)</td>
-      <td style="vertical-align: top; padding: 3px 0;">: <strong>${asData.diagnostik.bentukTeknik}</strong><br/>&nbsp;&nbsp;<em>${asData.diagnostik.caraSumber}</em></td>
-    </tr>
-    <tr>
-      <td style="width: 175pt; font-weight: bold; vertical-align: top; padding: 3px 0;">2. Asesmen Formatif (Proses)</td>
-      <td style="vertical-align: top; padding: 3px 0;">: <strong>${asData.formatif.bentukTeknik}</strong><br/>&nbsp;&nbsp;<em>${asData.formatif.caraSumber}</em></td>
-    </tr>
-    <tr>
-      <td style="width: 175pt; font-weight: bold; vertical-align: top; padding: 3px 0;">3. Asesmen Sumatif (Akhir)</td>
-      <td style="vertical-align: top; padding: 3px 0;">: <strong>${asData.sumatif.bentukTeknik}</strong><br/>&nbsp;&nbsp;<em>${asData.sumatif.caraSumber}</em></td>
-    </tr>
-  </table>
+  <div style="margin-bottom: 12pt;">
+    <p style="margin: 0 0 6pt 0; font-weight: bold;">1. Rencana Asesmen Komprehensif Per Pertemuan:</p>
+    ${resolvedMeetings.map((pert: any, pIdx: number) => {
+      const isFirst = pIdx === 0;
+      const isLast = pIdx === resolvedMeetings.length - 1;
+      const totalM = resolvedMeetings.length;
+
+      if (totalM === 1) {
+        return `
+        <div style="margin: 0 0 8pt 0; padding-left: 8pt;">
+          <p style="margin: 0 0 3pt 0; font-weight: bold;">${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):</p>
+          <p style="margin: 0 0 2pt 12pt;"><strong>a. Asesmen Diagnostik (Awal):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Tanya Jawab Lisan Pemantik &amp; Observasi Kesiapan Awal</li>
+            <li><strong>Instrumen Asesmen:</strong> Pertanyaan Pemantik Konseptual &amp; Catatan Awal Guru</li>
+            <li><strong>Bukti Belajar:</strong> Respon lisan aktif dan pemahaman prasyarat murid</li>
+          </ul>
+          <p style="margin: 0 0 2pt 12pt;"><strong>b. Asesmen Formatif (Proses):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Observasi Kinerja Kelompok pada LKPD &amp; Umpan Balik Langsung</li>
+            <li><strong>Instrumen Asesmen:</strong> Lembar Kerja Peserta Didik (LKPD Terpadu) &amp; Rubrik KKTP</li>
+            <li><strong>Bukti Belajar:</strong> Hasil pengerjaan LKPD dan keaktifan diskusi kelompok</li>
+          </ul>
+          <p style="margin: 0 0 2pt 12pt;"><strong>c. Asesmen Sumatif (Lingkup TP):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Tes Mandiri Tertulis (HOTS) &amp; Refleksi Akhir TP</li>
+            <li><strong>Instrumen Asesmen:</strong> Lembar Soal Penalaran Konseptual (Pilihan Ganda &amp; Uraian)</li>
+            <li><strong>Bukti Belajar:</strong> Lembar jawaban evaluasi mandiri murid</li>
+            <li><strong>Tindak Lanjut:</strong> Pemetaan ketuntasan KKTP untuk pengayaan/remedial</li>
+          </ul>
+        </div>`;
+      }
+
+      if (isFirst) {
+        return `
+        <div style="margin: 0 0 8pt 0; padding-left: 8pt;">
+          <p style="margin: 0 0 3pt 0; font-weight: bold;">${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):</p>
+          <p style="margin: 0 0 2pt 12pt;"><strong>a. Asesmen Diagnostik (Awal):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Tanya Jawab Pemantik Apersepsi Lisan &amp; Pengamatan Minat</li>
+            <li><strong>Instrumen Asesmen:</strong> 3 Butir Pertanyaan Apersepsi Kontekstual &amp; Catatan Kesiapan Murid</li>
+            <li><strong>Bukti Belajar:</strong> Respon lisan langsung murid dalam menanggapi stimulus materi</li>
+          </ul>
+          <p style="margin: 0 0 2pt 12pt;"><strong>b. Asesmen Formatif (Proses):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Observasi Keterlibatan Diskusi &amp; Penilaian Kinerja Eksplorasi Awal</li>
+            <li><strong>Instrumen Asesmen:</strong> LKPD Aktivitas Pertemuan 1 (Orientasi Masalah &amp; Eksplorasi Konsep) &amp; Lembar Observasi Sikap</li>
+            <li><strong>Bukti Belajar:</strong> Hasil pengisian lembar kerja kelompok Pertemuan 1 dan catatan guru</li>
+            <li><strong>Tindak Lanjut:</strong> Memetakan kelompok butuh perancah bimbingan langsung vs kelompok mandiri</li>
+          </ul>
+        </div>`;
+      }
+
+      if (isLast) {
+        return `
+        <div style="margin: 0 0 8pt 0; padding-left: 8pt;">
+          <p style="margin: 0 0 3pt 0; font-weight: bold;">${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):</p>
+          <p style="margin: 0 0 2pt 12pt;"><strong>a. Asesmen Formatif (Presentasi &amp; Refleksi):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Unjuk Kerja Presentasi Kelompok &amp; Lembar Refleksi Pembelajaran Bermakna</li>
+            <li><strong>Instrumen Asesmen:</strong> Rubrik Penilaian Presentasi Karya &amp; Lembar Refleksi Diri Siswa</li>
+            <li><strong>Bukti Belajar:</strong> Performa presentasi santun, karya laporan kelompok, dan lembar refleksi bermakna</li>
+          </ul>
+          <p style="margin: 0 0 2pt 12pt;"><strong>b. Asesmen Sumatif (Lingkup Tujuan Pembelajaran):</strong></p>
+          <ul style="margin: 0 0 4pt 24pt;">
+            <li><strong>Teknik &amp; Bentuk:</strong> Tes Tertulis Evaluasi Mandiri (Penalaran Tingkat Tinggi / HOTS)</li>
+            <li><strong>Instrumen Asesmen:</strong> Paket Tes Evaluasi Akhir TP (Pilihan Ganda &amp; Uraian Pemecahan Masalah)</li>
+            <li><strong>Bukti Belajar:</strong> Lembar jawaban tes evaluasi mandiri murid</li>
+            <li><strong>Tindak Lanjut:</strong> Menetapkan ketercapaian KKTP rapor, pengayaan bagi yang tuntas, dan remedial bagi yang belum tuntas</li>
+          </ul>
+        </div>`;
+      }
+
+      return `
+      <div style="margin: 0 0 8pt 0; padding-left: 8pt;">
+        <p style="margin: 0 0 3pt 0; font-weight: bold;">${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):</p>
+        <p style="margin: 0 0 2pt 12pt;"><strong>a. Asesmen Formatif (Proses Pembelajaran Berkelanjutan):</strong></p>
+        <ul style="margin: 0 0 4pt 24pt;">
+          <li><strong>Teknik &amp; Bentuk:</strong> Penilaian Kinerja Kolaboratif &amp; Observasi Penyelidikan Mandiri</li>
+          <li><strong>Instrumen Asesmen:</strong> LKPD Aktivitas Pertemuan ${pIdx + 1} &amp; Lembar Ceklis Diskusi</li>
+          <li><strong>Bukti Belajar:</strong> Catatan data temuan penyelidikan pada LKPD Pertemuan ${pIdx + 1} dan keaktifan interaksi kelompok</li>
+          <li><strong>Tindak Lanjut:</strong> Umpan balik deskriptif (descriptive feedback) seketika dari guru saat pendampingan</li>
+        </ul>
+      </div>`;
+    }).join('')}
+  </div>
 
   <!-- PENGESAHAN DOKUMEN (FORMAT RESMI KEDINASAN KEMENDIKBUDRISTEK) -->
   <table class="footer-ttd">
@@ -1840,60 +1918,174 @@ export function exportModulAjarToWord(modul: ModulAjarDocument) {
   </div>
 
   <!-- LAMPIRAN II: LKPD -->
-  <div style="page-break-before: always;">
-    <h3 style="text-align: center;">LAMPIRAN II: LEMBAR KERJA PESERTA DIDIK (LKPD)</h3>
-    <div style="border: 2px solid #000; padding: 14px; margin-top: 10px;">
-      <h4 style="text-align: center; margin: 0 0 6px 0;"><strong>${lkData.judulLKPD}</strong></h4>
-      <p style="text-align: center; margin: 0 0 10px 0; font-size: 11pt;">
-        Kelompok: ............................................ • Kelas: ${kelas} • Anggota: 1. ..................... 2. ..................... 3. ..................... 4. .....................
-      </p>
+  <div style="page-break-before: always; font-family: 'Times New Roman', Times, serif; font-size: 12pt; color: #000000; line-height: 1.5;">
+    <h3 style="text-align: center; font-size: 14pt; font-weight: bold; margin: 0 0 10px 0; text-transform: uppercase;">LAMPIRAN II: LEMBAR KERJA PESERTA DIDIK (LKPD BERKELOMPOK)</h3>
+    <div style="border: 1.5px solid #000000; padding: 16px; margin-top: 10px; background-color: #ffffff;">
+      <h4 style="text-align: center; margin: 0 0 10px 0; font-size: 14pt; font-weight: bold; font-family: 'Times New Roman', Times, serif;">${lkData.judulLKPD}</h4>
+      
+      <div style="border: 1px solid #333333; padding: 10px 14px; margin-bottom: 14px; background-color: #ffffff; font-size: 11pt; font-family: 'Times New Roman', Times, serif;">
+        <table style="width: 100%; border: none; border-collapse: collapse; margin: 0;">
+          <tr>
+            <td style="width: 50%; border: none; padding: 3px 0;"><strong>Nama Kelompok:</strong> ............................................</td>
+            <td style="width: 50%; border: none; padding: 3px 0;"><strong>Hari / Tanggal:</strong> ............................................</td>
+          </tr>
+          <tr>
+            <td style="width: 50%; border: none; padding: 3px 0;"><strong>Mata Pelajaran:</strong> ${identitas.mataPelajaran}</td>
+            <td style="width: 50%; border: none; padding: 3px 0;"><strong>Kelas / Fase:</strong> Kelas ${kelas} (${fase})</td>
+          </tr>
+        </table>
+        <div style="border-top: 1px solid #666666; margin-top: 8px; padding-top: 6px;">
+          <strong>Anggota Kelompok (Maksimal 6 Siswa):</strong><br/>
+          <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 4px;">
+            <tr>
+              <td style="width: 50%; border: none; padding: 2px 0;">1. ................................................................ (Ketua)</td>
+              <td style="width: 50%; border: none; padding: 2px 0;">4. ................................................................</td>
+            </tr>
+            <tr>
+              <td style="width: 50%; border: none; padding: 2px 0;">2. ................................................................</td>
+              <td style="width: 50%; border: none; padding: 2px 0;">5. ................................................................</td>
+            </tr>
+            <tr>
+              <td style="width: 50%; border: none; padding: 2px 0;">3. ................................................................</td>
+              <td style="width: 50%; border: none; padding: 2px 0;">6. ................................................................</td>
+            </tr>
+          </table>
+        </div>
+      </div>
 
-      <p><strong>Petunjuk Belajar:</strong></p>
-      <ol>
-        ${lkData.petunjuk.map((p) => `<li>${p}</li>`).join('')}
+      <p style="margin: 8px 0 4px 0;"><strong>Petunjuk Belajar Berkelompok:</strong></p>
+      <ol style="margin: 0 0 12px 0; padding-left: 20px;">
+        ${lkData.petunjuk.map((p) => `<li style="margin-bottom: 3px; text-align: justify;">${p}</li>`).join('')}
       </ol>
 
-      <p><strong>A. Langkah Kerja & Pengamatan:</strong></p>
-      <table>
+      <p style="margin: 12px 0 6px 0;"><strong>A. Langkah Kerja & Pengamatan Kelompok:</strong></p>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
         <thead>
-          <tr>
-            <th style="width: 8%;">No</th>
-            <th style="width: 52%;">Instruksi Langkah Kerja</th>
-            <th style="width: 40%;">Hasil Jawaban / Pengamatan</th>
+          <tr style="background-color: #f1f5f9;">
+            <th style="width: 8%; border: 1px solid #000000; padding: 6px; text-align: center;">No</th>
+            <th style="width: 47%; border: 1px solid #000000; padding: 6px; text-align: center;">Instruksi Langkah Kerja</th>
+            <th style="width: 45%; border: 1px solid #000000; padding: 6px; text-align: center;">Hasil Jawaban / Pengamatan Kelompok</th>
           </tr>
         </thead>
         <tbody>
           ${lkData.langkahKerjaAwal.map((lk) => `
             <tr>
-              <td style="text-align: center;">${lk.nomor}</td>
-              <td>${lk.langkahKerja}</td>
-              <td style="color: #555; font-style: italic;">${lk.hasilJawabanPlaceholder}</td>
+              <td style="border: 1px solid #000000; text-align: center; vertical-align: top; padding: 6px; font-weight: bold;">${lk.nomor}</td>
+              <td style="border: 1px solid #000000; vertical-align: top; padding: 6px; text-align: justify;">${lk.langkahKerja}</td>
+              <td style="border: 1px solid #000000; vertical-align: top; padding: 6px; color: #444444; font-style: italic; min-height: 70px;">
+                ${lk.hasilJawabanPlaceholder || '................................'}<br/><br/>
+                <span style="color: #999999;">...................................................................................................<br/>...................................................................................................</span>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
 
-      <p><strong>B. ${lkData.kegiatanKelompokJudul}:</strong></p>
-      <p><em>${lkData.kegiatanKelompokInstruksi}</em></p>
-      <ol>
+      <p style="margin: 12px 0 4px 0;"><strong>B. ${lkData.kegiatanKelompokJudul}:</strong></p>
+      <p style="margin: 0 0 8px 0; font-style: italic; text-align: justify;">${lkData.kegiatanKelompokInstruksi}</p>
+      <ol style="margin: 0 0 12px 0; padding-left: 20px;">
         ${lkData.pertanyaanAnalisis.map((pa) => `
-          <li>
+          <li style="margin-bottom: 10px;">
             <strong>${pa.pertanyaan}</strong><br/>
-            <span style="color: #555; font-style: italic;">Jawaban: ${pa.hasilPlaceholder}</span>
+            <div style="border: 1px solid #cccccc; padding: 8px; margin-top: 4px; background-color: #ffffff; color: #555555; font-style: italic; min-height: 60px;">
+              Jawaban Kelompok: ${pa.hasilPlaceholder}<br/><br/>
+              <span style="color: #999999;">...................................................................................................................................</span>
+            </div>
           </li>
         `).join('')}
       </ol>
 
-      <p><strong>C. Refleksi Diri & Kelompok:</strong></p>
-      <ol>
+      <p style="margin: 12px 0 4px 0;"><strong>C. Refleksi Diri & Kelompok:</strong></p>
+      <ol style="margin: 0 0 8px 0; padding-left: 20px;">
         ${lkData.refleksiDiriKelompok.map((r) => `
-          <li>
+          <li style="margin-bottom: 8px;">
             ${r.pertanyaan}<br/>
-            <span style="color: #555; font-style: italic;">Tanggapan: ${r.hasilPlaceholder}</span>
+            <div style="border: 1px solid #cccccc; padding: 6px 8px; margin-top: 3px; background-color: #ffffff; color: #555555; font-style: italic;">
+              Tanggapan Kelompok: ${r.hasilPlaceholder}
+            </div>
           </li>
         `).join('')}
       </ol>
     </div>
+
+    ${lkData.aktivitasPerPertemuan && lkData.aktivitasPerPertemuan.length > 0 ? `
+    <div style="margin-top: 24px; page-break-before: always;">
+      <h4 style="text-align: center; margin-bottom: 14px; font-size: 14pt; font-weight: bold; font-family: 'Times New Roman', Times, serif; text-transform: uppercase;">RINCIAN LEMBAR KERJA PESERTA DIDIK (LKPD BERKELOMPOK) PER PERTEMUAN</h4>
+      ${lkData.aktivitasPerPertemuan.map((sub: any, sIdx: number) => {
+        const pertNo = sub.pertemuanKe || (sIdx + 1);
+        const theme = getLKPDMeetingStyle(pertNo);
+        return `
+        <div style="${theme.exportBorderStyle} margin-bottom: 22px; page-break-inside: avoid;">
+          <div style="border-bottom: 2px solid #000000; padding-bottom: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <h5 style="margin: 0; font-size: 13pt; font-weight: bold; font-family: 'Times New Roman', Times, serif; color: #000000;">LEMBAR KERJA PERTEMUAN ${pertNo}: ${sub.judulAktivitas}</h5>
+          </div>
+          
+          <div style="border: 1px solid #333333; padding: 8px 12px; margin-bottom: 12px; background-color: #ffffff; font-size: 11pt; font-family: 'Times New Roman', Times, serif;">
+            <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 6px;">
+              <tr>
+                <td style="width: 50%; border: none; padding: 2px 0;"><strong>Nama Kelompok:</strong> ........................................</td>
+                <td style="width: 50%; border: none; padding: 2px 0;"><strong>Hari / Tanggal:</strong> ........................................</td>
+              </tr>
+              <tr>
+                <td style="width: 50%; border: none; padding: 2px 0;"><strong>Mata Pelajaran:</strong> ${identitas.mataPelajaran}</td>
+                <td style="width: 50%; border: none; padding: 2px 0;"><strong>Kelas / Pertemuan:</strong> Kelas ${kelas} (Pertemuan Ke-${pertNo})</td>
+              </tr>
+            </table>
+            <div style="border-top: 1px solid #666666; padding-top: 6px;">
+              <strong>Anggota Kelompok (Maksimal 6 Siswa):</strong>
+              <table style="width: 100%; border: none; border-collapse: collapse; margin-top: 4px;">
+                <tr>
+                  <td style="width: 50%; border: none; padding: 2px 0;">1. ................................................ (Ketua)</td>
+                  <td style="width: 50%; border: none; padding: 2px 0;">4. ................................................</td>
+                </tr>
+                <tr>
+                  <td style="width: 50%; border: none; padding: 2px 0;">2. ................................................</td>
+                  <td style="width: 50%; border: none; padding: 2px 0;">5. ................................................</td>
+                </tr>
+                <tr>
+                  <td style="width: 50%; border: none; padding: 2px 0;">3. ................................................</td>
+                  <td style="width: 50%; border: none; padding: 2px 0;">6. ................................................</td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <p style="margin: 0 0 6px 0; font-size: 12pt;"><strong>Fokus Target Kelompok:</strong> ${sub.fokusTarget}</p>
+          
+          <p style="margin: 6px 0 3px 0; font-size: 12pt;"><strong>Petunjuk Aktivitas Kelompok (Ramah Anak):</strong></p>
+          <ul style="margin: 0 0 8px 0; padding-left: 20px; font-size: 12pt;">
+            ${(sub.petunjukAktivitas || []).map((pt: string) => `<li style="margin-bottom: 2px;">${pt}</li>`).join('')}
+          </ul>
+
+          <table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-family: 'Times New Roman', Times, serif; font-size: 12pt;">
+            <thead>
+              <tr style="background-color: #f1f5f9;">
+                <th style="width: 8%; border: 1px solid #000000; font-size: 12pt; padding: 6px; text-align: center;">No</th>
+                <th style="width: 47%; border: 1px solid #000000; font-size: 12pt; padding: 6px; text-align: center;">Langkah Penyelidikan Kelompok</th>
+                <th style="width: 45%; border: 1px solid #000000; font-size: 12pt; padding: 6px; text-align: center;">Hasil Pengamatan / Jawaban Kelompok</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(sub.langkahKerja || []).map((step: any) => `
+                <tr>
+                  <td style="border: 1px solid #000000; text-align: center; font-size: 12pt; padding: 6px; font-weight: bold; vertical-align: top;">${step.nomor}</td>
+                  <td style="border: 1px solid #000000; font-size: 12pt; padding: 6px; vertical-align: top; text-align: justify;">${step.langkahKerja}</td>
+                  <td style="border: 1px solid #000000; font-size: 12pt; padding: 6px; color: #444444; font-style: italic; vertical-align: top; min-height: 60px;">
+                    ${step.hasilJawabanPlaceholder || '................................'}<br/><br/>
+                    <span style="color: #999999;">...................................................................................................</span>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          ${sub.pertanyaanPemantik ? `<p style="margin: 10px 0 2px 0; font-size: 12pt; border: 1px solid #cccccc; padding: 8px; background-color: #fafafa;"><strong>Pertanyaan Diskusi Kelompok:</strong> <em>${sub.pertanyaanPemantik}</em><br/><br/><span style="color: #999999;">...................................................................................................................................</span></p>` : ''}
+          ${sub.refleksiSesi ? `<p style="margin: 6px 0 0 0; font-size: 12pt; border: 1px solid #cccccc; padding: 8px; background-color: #fafafa;"><strong>Refleksi Kelompok:</strong> <em>${sub.refleksiSesi}</em></p>` : ''}
+        </div>
+        `;
+      }).join('')}
+    </div>
+    ` : ''}
   </div>
 
   <!-- LAMPIRAN III: SOAL EVALUASI -->
@@ -2499,16 +2691,25 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
   let dsRows: any[] = [];
 
   // 1. Capaian Pembelajaran
-  dsRows.push([{ content: '1. Capaian Pembelajaran (Berdasarkan Elemen dari TP Terpilih):', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12 } }]);
-  let cpText = '';
+  dsRows.push([{ content: '1. Capaian Pembelajaran (Berdasarkan Elemen dari TP Terpilih):', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12, halign: 'left' as const } }]);
   if (dsData.capaianPembelajaranPerElemen && dsData.capaianPembelajaranPerElemen.length > 0) {
-    dsData.capaianPembelajaranPerElemen.forEach((item: any, idx: number) => {
-      cpText += `Elemen: ${item.elemen}\n${item.capaianPembelajaran}${idx < dsData.capaianPembelajaranPerElemen.length - 1 ? '\n\n' : ''}`;
+    dsData.capaianPembelajaranPerElemen.forEach((item: any) => {
+      const cleanElemenName = (item.elemen || '').replace(/^Elemen\s+/i, '');
+      dsRows.push([{
+        content: `Elemen: ${cleanElemenName}`,
+        styles: { font: 'times', fontStyle: 'bold' as const, fontSize: 11.5, fillColor: [250, 250, 250] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], halign: 'left' as const, cellPadding: { top: 2.2, bottom: 2.2, left: 3.5, right: 3.5 } }
+      }]);
+      dsRows.push([{
+        content: sanitizeDimensiLulusan(item.capaianPembelajaran || '-'),
+        styles: { font: 'times', fontSize: 11.5, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], halign: 'justify' as const, cellPadding: { top: 2.5, bottom: 3, left: 4, right: 4 } }
+      }]);
     });
   } else {
-    cpText = dsData.capaianPembelajaran || '-';
+    dsRows.push([{
+      content: sanitizeDimensiLulusan(dsData.capaianPembelajaran || '-'),
+      styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], halign: 'justify' as const }
+    }]);
   }
-  dsRows.push([{ content: sanitizeDimensiLulusan(cpText.trim()), styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], halign: 'justify' as const } }]);
 
   // 2. Tujuan Pembelajaran
   dsRows.push([{ content: '2. Tujuan Pembelajaran:', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12 } }]);
@@ -2545,26 +2746,55 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
   }
   dsRows.push([{ content: sanitizeDimensiLulusan(mtText.trim()), styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number] } }]);
 
+  // Render Bagian 1 Desain Pembelajaran (Poin 1 s.d. 5)
+  autoTable(doc, {
+    startY: currentY,
+    margin: { left: margin, right: marginRight },
+    body: dsRows as any,
+    theme: 'grid',
+    styles: {
+      font: 'times',
+      fontSize: 12,
+      cellPadding: { top: 2.8, bottom: 2.8, left: 3, right: 3 },
+      textColor: [0, 0, 0],
+      lineColor: [0, 0, 0],
+      lineWidth: 0.25,
+    },
+    pageBreak: 'auto',
+    rowPageBreak: 'avoid',
+  });
+
+  // ==========================================
+  // 6. LINGKUNGAN BELAJAR (WAJIB DIMULAI DARI HALAMAN BARU)
+  // ==========================================
+  doc.addPage();
+  currentY = marginTop;
+
+  renderRPMSectionHeader(doc, 'C. DESAIN PEMBELAJARAN (LANJUTAN)', currentY, margin, marginRight);
+  currentY += 9.5;
+
+  let dsRowsPart2: any[] = [];
+
   // 6. Lingkungan Belajar
-  dsRows.push([{ content: '6. Lingkungan Belajar:', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12 } }]);
+  dsRowsPart2.push([{ content: '6. Lingkungan Belajar:', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12 } }]);
   let envText = `1. Lingkungan Fisik: ${(dsData.lingkunganBelajar.lingkunganFisik || []).join(', ') || '-'}`;
   if (dsData.lingkunganBelajar.lingkunganFisikDeskripsi) {
     envText += ` (${dsData.lingkunganBelajar.lingkunganFisikDeskripsi})`;
   }
   envText += `\n2. Budaya Belajar: ${(dsData.lingkunganBelajar.budayaBelajar || []).join(', ') || '-'}`;
-  dsRows.push([{ content: sanitizeDimensiLulusan(envText), styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number] } }]);
+  dsRowsPart2.push([{ content: sanitizeDimensiLulusan(envText), styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number] } }]);
 
   // 7. Pemanfaatan Teknologi Digital
-  dsRows.push([{ content: '7. Pemanfaatan Teknologi Digital:', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12 } }]);
+  dsRowsPart2.push([{ content: '7. Pemanfaatan Teknologi Digital:', styles: { font: 'times', fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], fontSize: 12 } }]);
   let techText = `1. Platform & Aplikasi Digital: ${dsData.pemanfaatanTeknologi?.platformAplikasi?.join(', ') || '-'}\n`;
   techText += `2. Perangkat Digital: ${dsData.pemanfaatanTeknologi?.perangkatDigital?.join(', ') || '-'}\n`;
   techText += `3. Media Pembelajaran Digital: ${dsData.pemanfaatanTeknologi?.mediaDigital?.join(', ') || '-'}`;
-  dsRows.push([{ content: sanitizeDimensiLulusan(techText), styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number] } }]);
+  dsRowsPart2.push([{ content: sanitizeDimensiLulusan(techText), styles: { font: 'times', fontSize: 12, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number] } }]);
 
   autoTable(doc, {
     startY: currentY,
     margin: { left: margin, right: marginRight },
-    body: dsRows as any,
+    body: dsRowsPart2 as any,
     theme: 'grid',
     styles: {
       font: 'times',
@@ -2720,6 +2950,7 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
       { content: timeAlloc.formatAkhir, styles: { halign: 'center' as const, fontStyle: 'bold' as const, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], valign: 'middle' as const, fontSize: 12 } }
     ]);
 
+    // Tabel Rencana Pembelajaran per Pertemuan (Hanya Langkah Pembelajaran: 1. Awal, 2. Inti, 3. Penutup)
     autoTable(doc, {
       startY: currentY,
       margin: { left: margin, right: marginRight },
@@ -2781,7 +3012,7 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
   });
 
   // ==========================================
-  // E. ASESMEN PEMBELAJARAN (WAJIB HALAMAN BARU & 1 HALAMAN DENGAN TANDATANGAN)
+  // E. ASESMEN PEMBELAJARAN (WAJIB HALAMAN BARU & DILENGKAPI PER PERTEMUAN)
   // ==========================================
   doc.addPage();
   currentY = marginTop;
@@ -2789,32 +3020,58 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
   renderRPMSectionHeader(doc, 'E. ASESMEN PEMBELAJARAN', currentY, margin, marginRight);
   currentY += 9.5;
 
-  const asRows = [
-    [
-      '1. Asesmen Diagnostik (Awal)',
+  // 1. Rencana Asesmen Lengkap Per Pertemuan
+  const perMeetingAssessmentRows: any[] = [];
+  resolvedMeetings.forEach((pert: any, pIdx: number) => {
+    const pertNo = pIdx + 1;
+    const isFirst = pIdx === 0;
+    const isLast = pIdx === resolvedMeetings.length - 1;
+    const totalM = resolvedMeetings.length;
+
+    let diagTeknik = 'Tanya Jawab Pemantik Apersepsi Lisan & Pengamatan Minat Belajar';
+    let diagInstrumen = 'Pertanyaan Pemantik Kontekstual & Catatan Kesiapan Awal Murid';
+    let diagBukti = 'Respon lisan aktif dan pemetaan kesiapan awal murid';
+    let diagTindak = 'Mengelompokkan murid berdasarkan kesiapan belajar (perlu bimbingan vs mandiri)';
+
+    let formTeknik = `Penilaian Kinerja Kelompok pada LKPD Aktivitas Pertemuan ${pertNo} & Observasi Diskusi`;
+    let formInstrumen = `Lembar Kerja Peserta Didik (LKPD Pertemuan ${pertNo}) & Lembar Observasi Keterlibatan`;
+    let formBukti = `Hasil pengerjaan LKPD Pertemuan ${pertNo} dan catatan observasi partisipasi aktif`;
+    let formTindak = 'Umpan balik deskriptif langsung saat diskusi dan perancah (scaffolding)';
+
+    let sumTeknik = 'Tes Tertulis Penalaran (HOTS) & Rubrik Kinerja Presentasi Akhir';
+    let sumInstrumen = 'Lembar Evaluasi Mandiri Pilihan Ganda & Esai serta Rubrik Presentasi Produk';
+    let sumBukti = 'Lembar jawaban evaluasi mandiri murid dan lembar penilaian presentasi';
+    let sumTindak = 'Penentuan tindak lanjut ketuntasan TP (Pengayaan atau Remedial)';
+
+    let meetContent = '';
+    if (totalM === 1) {
+      meetContent = `a. Asesmen Diagnostik (Awal):\n  • Teknik & Bentuk: ${diagTeknik}\n  • Instrumen: ${diagInstrumen}\n  • Bukti Belajar: ${diagBukti}\n\nb. Asesmen Formatif (Proses):\n  • Teknik & Bentuk: ${formTeknik}\n  • Instrumen: ${formInstrumen}\n  • Bukti Belajar: ${formBukti}\n\nc. Asesmen Sumatif (Lingkup TP):\n  • Teknik & Bentuk: ${sumTeknik}\n  • Instrumen: ${sumInstrumen}\n  • Bukti Belajar: ${sumBukti}\n  • Tindak Lanjut: ${sumTindak}`;
+    } else if (isFirst) {
+      meetContent = `a. Asesmen Diagnostik (Awal Pembelajaran):\n  • Teknik & Bentuk: ${diagTeknik}\n  • Instrumen: ${diagInstrumen}\n  • Bukti Belajar: ${diagBukti}\n  • Tindak Lanjut: ${diagTindak}\n\nb. Asesmen Formatif (Proses Pembelajaran):\n  • Teknik & Bentuk: ${formTeknik}\n  • Instrumen: ${formInstrumen}\n  • Bukti Belajar: ${formBukti}\n  • Tindak Lanjut: ${formTindak}`;
+    } else if (isLast) {
+      meetContent = `a. Asesmen Formatif (Presentasi & Gelar Karya):\n  • Teknik & Bentuk: Rubrik Penilaian Presentasi & Unjuk Kerja Kelompok\n  • Instrumen: Lembar Observasi Presentasi & Rubrik Asesmen Teman Sebaya\n  • Bukti Belajar: Produk akhir murid dan rekaman performa presentasi\n  • Tindak Lanjut: Umpan balik akhir dan apresiasi capaian\n\nb. Asesmen Sumatif (Evaluasi Akhir Lingkup TP):\n  • Teknik & Bentuk: ${sumTeknik}\n  • Instrumen: ${sumInstrumen}\n  • Bukti Belajar: ${sumBukti}\n  • Tindak Lanjut: ${sumTindak}`;
+    } else {
+      meetContent = `a. Asesmen Diagnostik Berkala (Cek Pemahaman Awal Pertemuan):\n  • Teknik & Bentuk: Tanya Jawab Konsep Prasyarat Pertemuan Sebelumnya\n  • Instrumen: Pertanyaan Ulas Balik Cepat (Quick Check)\n  • Bukti Belajar: Jawaban singkat murid sebelum memasuki fase lanjutan\n\nb. Asesmen Formatif (Eksplorasi & Kolaborasi):\n  • Teknik & Bentuk: ${formTeknik}\n  • Instrumen: ${formInstrumen}\n  • Bukti Belajar: ${formBukti}\n  • Tindak Lanjut: ${formTindak}`;
+    }
+
+    perMeetingAssessmentRows.push([
+      `1.${pertNo} ASESMEN PERTEMUAN ${pertNo}\n(${pert.alokasiWaktu || '2 JP'})`,
       ':',
-      `Bentuk / Teknik : ${asData.diagnostik.bentukTeknik}\nCara / Sumber   : ${asData.diagnostik.caraSumber}`
-    ],
-    [
-      '2. Asesmen Formatif (Proses)',
-      ':',
-      `Bentuk / Teknik : ${asData.formatif.bentukTeknik}\nCara / Sumber   : ${asData.formatif.caraSumber}`
-    ],
-    [
-      '3. Asesmen Sumatif (Akhir)',
-      ':',
-      `Bentuk / Teknik : ${asData.sumatif.bentukTeknik}\nCara / Sumber   : ${asData.sumatif.caraSumber}`
-    ],
-  ];
+      meetContent
+    ]);
+  });
 
   autoTable(doc, {
     startY: currentY,
     margin: { left: margin, right: marginRight },
-    body: asRows,
+    head: [[
+      { content: '1. Rencana Asesmen Lengkap Per Pertemuan (Diagnostik, Formatif, dan Sumatif)', colSpan: 3, styles: { font: 'times', fontStyle: 'bold', fontSize: 12, fillColor: [240, 240, 240], textColor: [0, 0, 0], halign: 'left' } }
+    ]],
+    body: perMeetingAssessmentRows,
     theme: 'grid',
     styles: {
       font: 'times',
-      fontSize: 12,
+      fontSize: 11,
       cellPadding: { top: 2.8, bottom: 2.8, left: 3, right: 3 },
       textColor: [0, 0, 0],
       lineColor: [0, 0, 0],
@@ -2822,11 +3079,12 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
       valign: 'top',
     },
     columnStyles: {
-      0: { cellWidth: 62, fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], valign: 'top' as const },
+      0: { cellWidth: 54, fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], valign: 'top' as const },
       1: { cellWidth: 6, halign: 'center' as const, fontStyle: 'bold' as const, fillColor: [245, 245, 245] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], cellPadding: { top: 2.8, bottom: 2.8, left: 0.2, right: 0.2 }, valign: 'top' as const },
-      2: { cellWidth: contentWidth - 68, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], valign: 'top' as const },
+      2: { cellWidth: contentWidth - 60, fillColor: [255, 255, 255] as [number, number, number], textColor: [0, 0, 0] as [number, number, number], valign: 'top' as const },
     },
-    pageBreak: 'avoid',
+    pageBreak: 'auto',
+    rowPageBreak: 'avoid',
   });
   currentY = (doc as any).lastAutoTable.finalY + 12;
 
@@ -2915,7 +3173,7 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
     const lkpdHeading = [
       ['Mata Pelajaran / Topik', ':', `${identitas.mataPelajaran} - ${sanitizeDimensiLulusan(lkData.judulLKPD || (lkData as any).judul || topikVal)}`],
       ['Kelas / Fase', ':', `${identitas.kelas} / ${identitas.fase}`],
-      ['Kelompok / Anggota', ':', 'Kelompok: ............ | Anggota: 1. ................ 2. ................ 3. ................ 4. ................'],
+      ['Kelompok / Anggota', ':', 'Nama Kelompok: ..................... | Anggota (Maks 6): 1. ............ 2. ............ 3. ............ 4. ............ 5. ............ 6. ............'],
       ['Petunjuk Belajar', ':', (lkData.petunjuk || []).map((p: string, i: number) => `${i + 1}. ${p}`).join('\n')],
     ];
 
@@ -3007,6 +3265,56 @@ export function exportRPMToPDF(modul: ModulAjarDocument, layoutOptions?: Partial
       rowPageBreak: 'avoid',
     });
     currentY = (doc as any).lastAutoTable.finalY + 5;
+
+    // Bagian Rincian Aktivitas LKPD Per Pertemuan (Jika Ada)
+    if (lkData.aktivitasPerPertemuan && lkData.aktivitasPerPertemuan.length > 0) {
+      lkData.aktivitasPerPertemuan.forEach((sub: any) => {
+        if (currentY > pageHeight - marginBottom - 45) {
+          doc.addPage();
+          currentY = marginTop;
+        }
+
+        autoTable(doc, {
+          startY: currentY,
+          margin: { left: margin, right: marginRight },
+          head: [[{ content: sanitizeDimensiLulusan(sub.judulAktivitas), styles: { font: 'times', fontStyle: 'bold', fontSize: 11, fillColor: [240, 248, 255], textColor: [12, 74, 110], cellPadding: 2.5 } }]],
+          body: [
+            [{ content: `Fokus Target: ${sanitizeDimensiLulusan(sub.fokusTarget)}\n\nPetunjuk Aktivitas:\n${(sub.petunjukAktivitas || []).map((pt: string, idx: number) => `${idx + 1}. ${pt}`).join('\n')}`, styles: { font: 'times', fontSize: 10.5, cellPadding: 2.5 } }]
+          ],
+          theme: 'grid',
+          styles: { lineColor: [0, 0, 0], lineWidth: 0.25 },
+          pageBreak: 'auto',
+          rowPageBreak: 'avoid',
+        });
+        currentY = (doc as any).lastAutoTable.finalY + 3;
+
+        if (sub.langkahKerja && sub.langkahKerja.length > 0) {
+          const subRows = sub.langkahKerja.map((step: any) => [
+            step.nomor || '-',
+            sanitizeDimensiLulusan(step.langkahKerja || '-'),
+            step.hasilJawabanPlaceholder || '........................................................',
+          ]);
+
+          autoTable(doc, {
+            startY: currentY,
+            margin: { left: margin, right: marginRight },
+            head: [['No', 'Langkah Penyelidikan', 'Hasil Pengamatan / Jawaban']],
+            body: subRows,
+            theme: 'grid',
+            headStyles: { font: 'times', fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0], fontSize: 10.5, lineColor: [0, 0, 0], lineWidth: 0.25 },
+            styles: { font: 'times', fontSize: 10.5, cellPadding: 2.2, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.25 },
+            columnStyles: {
+              0: { cellWidth: 10, halign: 'center' as const },
+              1: { cellWidth: 95 },
+              2: { cellWidth: contentWidth - 105 },
+            },
+            pageBreak: 'auto',
+            rowPageBreak: 'avoid',
+          });
+          currentY = (doc as any).lastAutoTable.finalY + 4;
+        }
+      });
+    }
   }
 
   // ==========================================
@@ -3248,16 +3556,48 @@ export function exportModulAjarToPDF(modul: ModulAjarDocument, layoutOptions?: P
   });
 
   // Asesmen
+  const meetingAsesmenBody: any[] = [];
+  kegiatanPembelajaran.forEach((pert: any, pIdx: number) => {
+    const isFirst = pIdx === 0;
+    const isLast = pIdx === kegiatanPembelajaran.length - 1;
+    const totalM = kegiatanPembelajaran.length;
+
+    if (totalM === 1) {
+      meetingAsesmenBody.push([
+        { content: `${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):`, styles: { fontStyle: 'bold' as const, fillColor: [245, 245, 245] } }
+      ]);
+      meetingAsesmenBody.push([
+        `a. Asesmen Diagnostik (Awal):\n• Teknik & Bentuk: Tanya Jawab Lisan Pemantik & Observasi Kesiapan Awal\n• Instrumen: Pertanyaan Pemantik Konseptual & Catatan Awal Guru\n• Bukti Belajar: Respon lisan aktif murid\n\nb. Asesmen Formatif (Proses):\n• Teknik & Bentuk: Observasi Kinerja Kelompok pada LKPD & Umpan Balik Langsung\n• Instrumen: Lembar Kerja Peserta Didik (LKPD Terpadu) & Rubrik KKTP\n• Bukti Belajar: Hasil pengerjaan LKPD dan keaktifan diskusi\n\nc. Asesmen Sumatif (Lingkup TP):\n• Teknik & Bentuk: Tes Mandiri Tertulis (HOTS) & Refleksi Akhir TP\n• Instrumen: Lembar Soal Penalaran Konseptual\n• Bukti Belajar: Lembar jawaban evaluasi mandiri murid\n• Tindak Lanjut: Pemetaan ketuntasan KKTP untuk pengayaan/remedial`
+      ]);
+    } else if (isFirst) {
+      meetingAsesmenBody.push([
+        { content: `${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):`, styles: { fontStyle: 'bold' as const, fillColor: [245, 245, 245] } }
+      ]);
+      meetingAsesmenBody.push([
+        `a. Asesmen Diagnostik (Awal Pembelajaran):\n• Teknik & Bentuk: Tanya Jawab Pemantik Apersepsi Lisan & Observasi Minat\n• Instrumen: 3 Butir Pertanyaan Apersepsi Kontekstual & Catatan Kesiapan Murid\n• Bukti Belajar: Respon lisan langsung murid dalam menanggapi stimulus\n\nb. Asesmen Formatif (Proses Pembelajaran):\n• Teknik & Bentuk: Observasi Keterlibatan Diskusi & Penilaian Kinerja Eksplorasi Awal\n• Instrumen: LKPD Aktivitas Pertemuan 1 & Lembar Observasi Sikap\n• Bukti Belajar: Hasil pengisian lembar kerja kelompok Pertemuan 1\n• Tindak Lanjut: Memetakan kelompok butuh perancah bimbingan langsung vs kelompok mandiri`
+      ]);
+    } else if (isLast) {
+      meetingAsesmenBody.push([
+        { content: `${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):`, styles: { fontStyle: 'bold' as const, fillColor: [245, 245, 245] } }
+      ]);
+      meetingAsesmenBody.push([
+        `a. Asesmen Formatif (Presentasi & Refleksi):\n• Teknik & Bentuk: Unjuk Kerja Presentasi Kelompok & Lembar Refleksi Bermakna\n• Instrumen: Rubrik Penilaian Presentasi Karya & Lembar Refleksi Diri\n• Bukti Belajar: Performa presentasi, laporan kelompok, dan refleksi murid\n\nb. Asesmen Sumatif (Lingkup Tujuan Pembelajaran):\n• Teknik & Bentuk: Tes Tertulis Evaluasi Mandiri (Penalaran HOTS)\n• Instrumen: Paket Tes Evaluasi Akhir TP (Pilihan Ganda & Uraian)\n• Bukti Belajar: Lembar jawaban tes evaluasi mandiri murid\n• Tindak Lanjut: Menetapkan ketercapaian KKTP rapor, pengayaan, dan remedial`
+      ]);
+    } else {
+      meetingAsesmenBody.push([
+        { content: `${pIdx + 1}. ASESMEN PERTEMUAN ${pIdx + 1} (${pert.alokasiWaktu || '2 JP'}):`, styles: { fontStyle: 'bold' as const, fillColor: [245, 245, 245] } }
+      ]);
+      meetingAsesmenBody.push([
+        `a. Asesmen Formatif (Proses Pembelajaran Berkelanjutan):\n• Teknik & Bentuk: Penilaian Kinerja Kolaboratif & Observasi Penyelidikan Mandiri\n• Instrumen: LKPD Aktivitas Pertemuan ${pIdx + 1} & Lembar Ceklis Diskusi\n• Bukti Belajar: Catatan data temuan penyelidikan pada LKPD Pertemuan ${pIdx + 1}\n• Tindak Lanjut: Umpan balik deskriptif (descriptive feedback) langsung dari guru`
+      ]);
+    }
+  });
+
   autoTable(doc, {
     startY: currentY,
     margin: { left: margin, right: margin },
-    head: [['E. ASESMEN PEMBELAJARAN']],
-    body: [
-      [{ content: '1. Asesmen Diagnostik (Awal):', styles: { fontStyle: 'bold' as const } }],
-      [`Teknik: ${asesmen.diagnostik.teknik}\n${(asesmen.diagnostik.daftarPertanyaan||[]).map((q: string) => `• ${q}`).join('\n')}`],
-      [{ content: '2. Asesmen Formatif (Proses):', styles: { fontStyle: 'bold' as const } }],
-      [`Teknik: ${asesmen.formatif.teknik}\n${asesmen.formatif.deskripsi}`]
-    ],
+    head: [['E. ASESMEN PEMBELAJARAN (RENCANA LENGKAP PER PERTEMUAN)']],
+    body: meetingAsesmenBody,
     theme: 'grid',
     headStyles: headStyles as any,
     styles: sectionStyles as any,
@@ -3331,8 +3671,12 @@ export function exportModulAjarToPDF(modul: ModulAjarDocument, layoutOptions?: P
   }
   renderSignatures(doc, identitas, currentY, pageWidth, margin);
 
-  // LKPD
-  lkpd.forEach((lk: any, idx: number) => {
+  // LKPD (Modular Per Pertemuan)
+  const resolvedLKPDList = Array.isArray(lkpd) && lkpd.length >= kegiatanPembelajaran.length && lkpd.length > 0
+    ? lkpd
+    : buildStandardLKPDList(kegiatanPembelajaran.length, modul.topikMateri || identitas.mataPelajaran, modelPembelajaran);
+
+  resolvedLKPDList.forEach((lk: any, idx: number) => {
     doc.addPage();
     currentY = 16;
     let lkRows = [
@@ -3557,10 +3901,10 @@ export function exportKKTPToWord(kktp: KKTPDocument) {
       <tr>
         ${id.logoUrl ? `<td style="width: 15%; text-align: center; vertical-align: middle; padding-right: 12px;"><img src="${id.logoUrl}" style="max-height: 75px; max-width: 75px; object-fit: contain;" alt="Logo" /></td>` : ''}
         <td style="text-align: center; vertical-align: middle;">
-          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">PEMERINTAH KABUPATEN TIMOR TENGAH UTARA</h3>
-          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">DINAS PENDIDIKAN DAN KEBUDAYAAN</h2>
-          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Satuan Pendidikan')}</h1>
-          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">Alamat: ${lockWordData(id.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}</p>
+          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">${id.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}</h3>
+          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">${id.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}</h2>
+          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(id.kopBaris3 || id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Satuan Pendidikan')}</h1>
+          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">${id.kopBaris4 || `Alamat: ${lockWordData(id.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}`}</p>
         </td>
       </tr>
     </table>
@@ -4080,10 +4424,10 @@ export function exportProtaToWord(prota: ProtaDocument) {
       <tr>
         ${id.logoUrl ? `<td style="width: 15%; text-align: center; vertical-align: middle; padding-right: 12px;"><img src="${id.logoUrl}" style="max-height: 75px; max-width: 75px; object-fit: contain;" alt="Logo" /></td>` : ''}
         <td style="text-align: center; vertical-align: middle;">
-          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">PEMERINTAH KABUPATEN TIMOR TENGAH UTARA</h3>
-          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">DINAS PENDIDIKAN DAN KEBUDAYAAN</h2>
-          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Satuan Pendidikan')}</h1>
-          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">Alamat: ${lockWordData(id.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}</p>
+          <h3 style="margin: 0; font-size: 11pt; text-transform: uppercase; letter-spacing: 0.5px;">${id.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}</h3>
+          <h2 style="margin: 2px 0; font-size: 11pt; text-transform: uppercase; font-weight: bold;">${id.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}</h2>
+          <h1 style="margin: 3px 0; font-size: 13pt; text-transform: uppercase; font-weight: bold;">${lockWordData(id.kopBaris3 || id.namaSatuanPendidikan || 'SD NEGERI FATUBAI', 'Satuan Pendidikan')}</h1>
+          <p style="margin: 2px 0 0 0; font-size: 9.5pt;">${id.kopBaris4 || `Alamat: ${lockWordData(id.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}`}</p>
         </td>
       </tr>
     </table>

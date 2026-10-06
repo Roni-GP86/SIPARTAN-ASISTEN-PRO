@@ -437,16 +437,16 @@ export const KKTPDocumentView: React.FC<KKTPDocumentViewProps> = ({
               )}
               <div className="space-y-0.5">
                 <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
-                  PEMERINTAH KABUPATEN TIMOR TENGAH UTARA
+                  {kktp.identitas.kopBaris1 || 'PEMERINTAH KABUPATEN TIMOR TENGAH UTARA'}
                 </h4>
                 <h4 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800">
-                  DINAS PENDIDIKAN DAN KEBUDAYAAN
+                  {kktp.identitas.kopBaris2 || 'DINAS PENDIDIKAN DAN KEBUDAYAAN'}
                 </h4>
                 <h2 className="text-lg sm:text-2xl font-black text-slate-950 uppercase tracking-tight">
-                  {kktp.identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI'}
+                  {kktp.identitas.kopBaris3 || kktp.identitas.namaSatuanPendidikan || 'SD NEGERI FATUBAI'}
                 </h2>
                 <p className="text-[11px] sm:text-xs text-slate-600 font-medium">
-                  Alamat: {kktp.identitas.alamatInstansi || 'Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713'}
+                  {kktp.identitas.kopBaris4 || (kktp.identitas.alamatInstansi ? (kktp.identitas.alamatInstansi.toLowerCase().startsWith('alamat:') ? kktp.identitas.alamatInstansi : `Alamat: ${kktp.identitas.alamatInstansi}`) : 'Alamat: Fatubai, Desa Oehalo, Kec. Insana Tengah - 856713')}
                 </p>
               </div>
             </div>

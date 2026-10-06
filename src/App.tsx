@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   SchoolIdentity,
   TPItem,
@@ -75,7 +75,15 @@ import { SubjectFolder } from './data/officialCPDatabase';
 import { getPermen13Allocation } from './data/permendikdasmen13Data';
 import { AppLogo } from './components/AppLogo';
 import { resolveCPPerElemenFromTPs } from './utils/curriculumCPResolver';
-import { getItemClass } from './utils/classFilterUtils';
+import { 
+  getItemClass, 
+  filterATPDocumentByClass, 
+  filterKKTPDocumentByClass 
+} from './utils/classFilterUtils';
+import { 
+  filterProtaDocumentByClass, 
+  filterPromesDocumentByClass 
+} from './utils/protaPromesGenerator';
 import { formatImageUrl } from './utils/imageUtils';
 import { buildKKTPDocumentFromTP } from './utils/kktpGenerator';
 import { buildProtaDocumentFromTP, buildPromesDocumentFromTP } from './utils/protaPromesGenerator';
@@ -97,6 +105,7 @@ import {
   subscribeToAccessRecordsFromFirestore,
   subscribeToWordExportDisabledFromFirestore,
   fetchWordExportDisabledFromFirestore,
+  updateAccessRecordAsync,
 } from './services/accessCodeService';
 import {
   saveUserWorkspaceToFirestore,
@@ -339,63 +348,6 @@ export default function App() {
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>('idle');
   const [isSyncingWithCloud, setIsSyncingWithCloud] = useState(false);
 
-  useEffect(() => {
-    const handleBlocked = () => {
-      setIsWordBlockedNoticeOpen(true);
-    };
-    const handleStatusChanged = (e: Event) => {
-      const custom = e as CustomEvent<{ disabled: boolean }>;
-      setIsWordDisabledGlobal(Boolean(custom.detail?.disabled));
-    };
-    const handleCloudStatus = (e: Event) => {
-      const custom = e as CustomEvent<{ status: CloudSyncStatus }>;
-      if (custom.detail?.status) {
-        setCloudSyncStatus(custom.detail.status);
-      }
-    };
-    window.addEventListener('sipartan_word_export_blocked', handleBlocked);
-    window.addEventListener('sipartan_word_export_status_changed', handleStatusChanged);
-    window.addEventListener('sipartan_cloud_sync_status', handleCloudStatus);
-
-    const prevPendingRef = { current: -1 };
-    const updatePendingCount = (recordsList?: AccessRecord[]) => {
-      const list = recordsList || getAllAccessRecords();
-      const count = list.filter(
-        (r) => !r.isActive && !r.isPremiumMaster && !isMasterAccessCode(r.kodeAkses)
-      ).length;
-      if (prevPendingRef.current !== -1 && count > prevPendingRef.current) {
-        try {
-          sounds.playNotificationChime();
-        } catch {}
-      }
-      prevPendingRef.current = count;
-      setPendingAccessCount(count);
-    };
-
-    updatePendingCount();
-
-    const handleAccessCodesUpdated = () => {
-      updatePendingCount();
-    };
-    window.addEventListener('sipartan_access_codes_updated', handleAccessCodesUpdated);
-
-    // 1. Real-time subscription ke Cloud Firestore untuk sinkronisasi kode akses lintas perangkat
-    const unsubscribeFirestore = subscribeToAccessRecordsFromFirestore((syncedRecords) => {
-      updatePendingCount(syncedRecords);
-      const currentCode = getActiveSessionCode();
-      if (currentCode && !isDeactivatedLegacyCode(currentCode)) {
-        const clean = currentCode.toUpperCase().trim();
-        const found = syncedRecords.find(
-          (r) => r.kodeAkses.toUpperCase().trim() === clean
-        );
-        if (found) {
-          setActiveAccessRecord(found);
-          if (found.isActive || found.status === 'active') {
-            setIsAccessGateOpen(false);
-          }
-        }
-      }
-    });
 
     // 2. Sinkronkan dan dengarkan (Real-Time Listener) status kebijakan unduhan Word dari Cloud Firestore
     const unsubscribeWordPolicy = subscribeToWordExportDisabledFromFirestore((disabled) => {
@@ -411,15 +363,6 @@ export default function App() {
       })
       .catch(() => {});
 
-    return () => {
-      window.removeEventListener('sipartan_word_export_blocked', handleBlocked);
-      window.removeEventListener('sipartan_word_export_status_changed', handleStatusChanged);
-      window.removeEventListener('sipartan_cloud_sync_status', handleCloudStatus);
-      window.removeEventListener('sipartan_access_codes_updated', handleAccessCodesUpdated);
-      unsubscribeFirestore();
-      unsubscribeWordPolicy();
-    };
-  }, []);
 
   // Selected Elements per Subject Folder with permanent persistence
   const [selectedElements, setSelectedElements] = useState<SelectedElementItem[]>(() => {
@@ -902,28 +845,29 @@ export default function App() {
     }
 
     setIdentitas(newIdentitas);
-    if (atpDocument) {
-      setAtpDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
-    }
-    if (kktpDocument) {
-      setKktpDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
-    }
-    if (modulAjarDocument) {
-      setModulAjarDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
-    }
-    if (protaDocument) {
-      setProtaDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
-    }
-    if (promesDocument) {
-      setPromesDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
-    }
-    if (soalDocument) {
-      setSoalDocument((prev) => (prev ? { ...prev, identitas: { ...prev.identitas, ...newIdentitas } } : null));
-    }
   };
 
-  const handleUpdateIdentitas = (newIdentitas: SchoolIdentity) => {
+  const handleUpdateIdentitas = async (newIdentitas: SchoolIdentity) => {
     handleIdentitasChange(newIdentitas);
+    if (activeAccessRecord && !isMasterAccessCode(activeAccessRecord.kodeAkses) && !isDeactivatedLegacyCode(activeAccessRecord.kodeAkses)) {
+      try {
+        const res = await updateAccessRecordAsync(activeAccessRecord.kodeAkses, {
+          namaGuru: newIdentitas.namaGuru,
+          nipGuru: newIdentitas.nipGuru || '-',
+          namaSekolah: newIdentitas.namaSatuanPendidikan,
+          namaSatuanPendidikan: newIdentitas.namaSatuanPendidikan,
+          namaKepalaSekolah: newIdentitas.namaKepalaSekolah || '-',
+          nipKepalaSekolah: newIdentitas.nipKepalaSekolah || '-',
+          fase: newIdentitas.fase,
+          kelas: newIdentitas.kelas,
+        });
+        if (res.success && res.record) {
+          setActiveAccessRecord(res.record);
+        }
+      } catch (err) {
+        console.warn('Gagal sinkronisasi data profil gawai ke cloud:', err);
+      }
+    }
     showToast('Profil sekolah dan data guru berhasil diperbarui!');
   };
 
@@ -937,6 +881,36 @@ export default function App() {
     try {
       const cloudData = await loadUserWorkspaceFromFirestore(kodeAkses);
       if (cloudData) {
+        const mainId = cloudData.identitas;
+        if (mainId && mainId.namaGuru) {
+          // MIGRASI IDENTITAS SEBELUM LOAD: Cegah data lama (seperti kelas usang) muncul kembali saat halaman direfresh
+          if (cloudData.currentDrafts) {
+            const d = cloudData.currentDrafts;
+            if (d.atpDocument) d.atpDocument.identitas = { ...d.atpDocument.identitas, ...mainId };
+            if (d.kktpDocument) d.kktpDocument.identitas = { ...d.kktpDocument.identitas, ...mainId };
+            if (d.protaDocument) d.protaDocument.identitas = { ...d.protaDocument.identitas, ...mainId };
+            if (d.promesDocument) d.promesDocument.identitas = { ...d.promesDocument.identitas, ...mainId };
+            if (d.modulAjarDocument) d.modulAjarDocument.identitas = { ...d.modulAjarDocument.identitas, ...mainId };
+            if (d.soalDocument) d.soalDocument.identitas = { ...d.soalDocument.identitas, ...mainId };
+          }
+          if (cloudData.workspaces) {
+            Object.keys(cloudData.workspaces).forEach((key) => {
+              const ws = cloudData.workspaces[key];
+              if (ws) {
+                ws.identitas = { ...ws.identitas, ...mainId };
+                ws.kelas = mainId.kelas || ws.kelas;
+                ws.fase = mainId.fase || ws.fase;
+                if (ws.atpDocument) ws.atpDocument.identitas = { ...ws.atpDocument.identitas, ...mainId };
+                if (ws.kktpDocument) ws.kktpDocument.identitas = { ...ws.kktpDocument.identitas, ...mainId };
+                if (ws.protaDocument) ws.protaDocument.identitas = { ...ws.protaDocument.identitas, ...mainId };
+                if (ws.promesDocument) ws.promesDocument.identitas = { ...ws.promesDocument.identitas, ...mainId };
+                if (ws.modulAjarDocument) ws.modulAjarDocument.identitas = { ...ws.modulAjarDocument.identitas, ...mainId };
+                if (ws.soalDocument) ws.soalDocument.identitas = { ...ws.soalDocument.identitas, ...mainId };
+              }
+            });
+          }
+        }
+
         applyCloudWorkspaceToLocalStorage(cloudData);
         if (cloudData.identitas) {
           setIdentitas(cloudData.identitas);
@@ -1091,7 +1065,9 @@ export default function App() {
         (identitas.namaGuru || '').toLowerCase() !== (lockedId.namaGuru || '').toLowerCase() ||
         identitas.nipGuru !== lockedId.nipGuru ||
         (identitas.namaKepalaSekolah || '').toLowerCase() !== (lockedId.namaKepalaSekolah || '').toLowerCase() ||
-        identitas.nipKepalaSekolah !== lockedId.nipKepalaSekolah
+        identitas.nipKepalaSekolah !== lockedId.nipKepalaSekolah ||
+        identitas.fase !== lockedId.fase ||
+        identitas.kelas !== lockedId.kelas
       ) {
         handleIdentitasChange(lockedId);
       }

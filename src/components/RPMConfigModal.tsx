@@ -1222,10 +1222,35 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                   {possibleClasses.map((cls) => {
+                    const isGuruKelas = identitas.peranGuru === 'Guru Kelas';
+                    // Allow Guru Kelas to select any class within their registered Fase (e.g. choice of Kelas 5 or 6 for Fase C)
+                    // so that topics, materials and learning objectives are precise and relevant to the target class
+                    const isLocked = false;
                     const isSelected = selectedKelas === cls;
                     const count = filterTPListByClass(tpList, cls, identitas.fase).length;
+
+                    if (isLocked) {
+                      return (
+                        <button
+                          key={cls}
+                          type="button"
+                          disabled
+                          className="flex flex-col items-center justify-center p-3 rounded-xl border-2 bg-slate-100/50 text-slate-400 border-slate-200 cursor-not-allowed opacity-50"
+                          title={`Kelas ${cls} Terkunci (Akun Anda terdaftar khusus untuk Kelas ${identitas.kelas})`}
+                        >
+                          <span className="text-sm font-bold flex items-center gap-1">
+                            <span>Kelas {cls}</span>
+                            <span>🔒</span>
+                          </span>
+                          <span className="text-[10px] mt-1 px-2 py-0.5 rounded-full font-bold bg-slate-100 text-slate-400">
+                            Khusus Kelas {identitas.kelas}
+                          </span>
+                        </button>
+                      );
+                    }
+
                     return (
                       <button
                         key={cls}

@@ -216,6 +216,10 @@ class SoundManager {
     this.playDoubt();
   }
 
+  public playError() {
+    this.playDoubt();
+  }
+
   // 7. Student Welcome Sound (joyful arpeggio on card click)
   public playWelcome() {
     const ctx = this.getContext();

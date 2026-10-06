@@ -1,8 +1,8 @@
 // Pedagogical Curriculum Analysis Engine for Kurikulum Merdeka SD/MI (Fase A, B, C)
 // Provides reliable, high-fidelity curriculum generation and fallback processing
-import { buildPedagogicalMeetingPlan, detectModelType, isSyntaxMatchingModel } from '../src/utils/modelSyntaxEngine';
+import { buildPedagogicalMeetingPlan, detectModelType, isSyntaxMatchingModel, buildModularLKPDActivities, buildStandardLKPDList } from '../src/utils/modelSyntaxEngine';
 import { cleanActivityText } from '../src/utils/rpmUtils';
-export { buildPedagogicalMeetingPlan, detectModelType, isSyntaxMatchingModel, cleanActivityText };
+export { buildPedagogicalMeetingPlan, detectModelType, isSyntaxMatchingModel, cleanActivityText, buildModularLKPDActivities, buildStandardLKPDList };
 
 export interface IdentityParam {
   namaSatuanPendidikan?: string;
@@ -2770,6 +2770,19 @@ export function generatePedagogicalATPFallback(
   const mapel = identitas.mataPelajaran || 'IPAS';
   const kelasOptions = fase === 'Fase A' ? ['1', '2'] : fase === 'Fase B' ? ['3', '4'] : ['5', '6'];
 
+  const isAgama =
+    mapel.toLowerCase().includes('agama') ||
+    mapel.toLowerCase().includes('katolik') ||
+    mapel.toLowerCase().includes('kristen') ||
+    mapel.toLowerCase().includes('islam') ||
+    mapel.toLowerCase().includes('hindu') ||
+    mapel.toLowerCase().includes('buddha') ||
+    mapel.toLowerCase().includes('khonghucu') ||
+    mapel.toLowerCase().includes('pak') ||
+    mapel.toLowerCase().includes('pai');
+  const isAgamaKatolik = mapel.toLowerCase().includes('katolik');
+  const isAgamaKristen = mapel.toLowerCase().includes('kristen') || mapel.toLowerCase().includes('pak');
+
   const atpList = tpList.map((tp, idx) => {
     let dpl = tp.dimensiP3 && tp.dimensiP3.length >= 3 
       ? tp.dimensiP3 
@@ -2846,7 +2859,7 @@ export function generatePedagogicalATPFallback(
       ];
     }
 
-    if (s.includes('agama') || s.includes('katolik')) {
+    if (s.includes('katolik')) {
       return [
         { istilah: 'Citra Allah (Imago Dei)', definisi: 'Ajaran bahwa manusia diciptakan segambar dan serupa dengan Allah yang bermartabat luhur, berakal budi, dan memiliki kehendak bebas.' },
         { istilah: 'Sakramen', definisi: 'Tanda dan sarana keselamatan yang kelihatan dari rahmat Allah yang tidak kelihatan, ditetapkan oleh Kristus dan dipercayakan kepada Gereja.' },
@@ -2861,6 +2874,27 @@ export function generatePedagogicalATPFallback(
         { istilah: 'Laudato Si\'', definisi: 'Ajaran ensiklik Paus Fransiskus tentang panggilan merawat bumi sebagai rumah bersama (care for our common home) dan keadilan ekologis.' },
         { istilah: 'Ajaran Sosial Gereja (ASG)', definisi: 'Kumpulan ajaran moral Gereja dalam menanggapi masalah keadilan sosial, hak asasi manusia, perdamaian, dan pembelaan bagi kaum lemah/miskin.' },
         { istilah: 'Moderasi Beragama & Dialog', definisi: 'Sikap beragama yang seimbang, mengedepankan toleransi aktif, saling menghormati perbedaan iman, dan membangun persaudaraan sejati antarsesama.' },
+      ];
+    }
+
+    if (s.includes('kristen') || s.includes('protestan') || s.includes('pak')) {
+      return [
+        { istilah: 'Kasih Karunia (Anugerah)', definisi: 'Pemberian keselamatan dan kasih Allah yang cuma-cuma kepada umat manusia melalui karya penebusan Kristus Yesus.' },
+        { istilah: 'Allah Tritunggal', definisi: 'Kepercayaan dasar iman Kristen kepada satu Allah dalam tiga pribadi: Allah Bapa Pencipta, Allah Anak Penebus, dan Allah Roh Kudus Penghibur.' },
+        { istilah: 'Tri Tugas Panggilan Gereja', definisi: 'Panggilan hidup beriman untuk bersekutu (koinonia), bersaksi tentang kasih Allah (marturia), dan melayani sesama dengan tulus (diakonia).' },
+        { istilah: 'Buah Roh', definisi: 'Sembilan kebajikan hidup baru yang dihasilkan oleh Roh Kudus: kasih, sukacita, damai sejahtera, kesabaran, kemurahan, kebaikan, kesetiaan, kelemahlembutan, dan penguasaan diri.' },
+        { istilah: 'Hukum Kasih', definisi: 'Perintah agung Yesus Kristus untuk mengasihi Tuhan Allah dengan segenap hati, jiwa, dan akal budi, serta mengasihi sesama manusia seperti diri sendiri.' },
+        { istilah: 'Pemeliharaan Allah (Providensia)', definisi: 'Karya aktif dan berkesinambungan Allah dalam memelihara, membimbing, dan menjaga seluruh ciptaan-Nya di alam semesta.' },
+        { istilah: 'Tanggung Jawab Ekologis Kristiani', definisi: 'Mandat penciptaan bagi manusia sebagai rekan sekerja Allah untuk merawat, melestarikan, dan memelihara alam ciptaan dengan penuh kasih.' },
+        { istilah: 'Moderasi Beragama', definisi: 'Sikap hidup rukun dan toleran antarumat beragama dengan saling menghargai perbedaan sebagai anugerah kemajemukan dari Tuhan.' },
+      ];
+    }
+
+    if (s.includes('agama')) {
+      return [
+        { istilah: 'Nilai-nilai Keagamaan', definisi: 'Prinsip moral, etika, dan spiritual yang diajarkan oleh agama sebagai pedoman kehidupan pribadi dan sosial.' },
+        { istilah: 'Toleransi & Moderasi Beragama', definisi: 'Sikap saling menghormati perbedaan keyakinan, membina kerukunan hidup, dan memelihara persatuan bangsa.' },
+        { istilah: 'Budi Pekerti Luhur', definisi: 'Perilaku terpuji, sopan santun, kejujuran, dan keadilan dalam berinteraksi dengan sesama ciptaan Tuhan.' },
       ];
     }
 
@@ -3036,8 +3070,6 @@ export function generatePedagogicalATPFallback(
     ...fullGlosarium,
   ];
 
-  const isAgamaKatolik = mapel.toLowerCase().includes('agama') || mapel.toLowerCase().includes('katolik');
-
   const daftarPustaka = [
     {
       penulis: 'Kementerian Pendidikan Dasar dan Menengah RI',
@@ -3092,6 +3124,27 @@ export function generatePedagogicalATPFallback(
         penerbit: 'Pusat Perbukuan Kemendikdasmen & PT Kanisius',
         kota: 'Yogyakarta',
         keterangan: 'Buku Teks Utama Pendidikan Agama Katolik',
+      }
+    );
+  }
+
+  if (isAgamaKristen) {
+    daftarPustaka.push(
+      {
+        penulis: 'Lembaga Alkitab Indonesia (LAI)',
+        tahun: '2024',
+        judul: 'Alkitab Terjemahan Baru Edisi 2 (TB2)',
+        penerbit: 'Lembaga Alkitab Indonesia',
+        kota: 'Jakarta',
+        keterangan: 'Teks Kitab Suci Resmi',
+      },
+      {
+        penulis: 'Kementerian Pendidikan Dasar dan Menengah RI',
+        tahun: '2024',
+        judul: 'Buku Siswa & Guru Pendidikan Agama Kristen dan Budi Pekerti Kurikulum Merdeka',
+        penerbit: 'Pusat Perbukuan Kemendikdasmen RI',
+        kota: 'Jakarta',
+        keterangan: 'Buku Teks Utama Pendidikan Agama Kristen',
       }
     );
   }
@@ -3151,7 +3204,37 @@ export function generatePedagogicalModulFallback(
       ? tpHead.dimensiP3
       : ['Bernalar Kritis', 'Mandiri', 'Gotong Royong']);
 
-  const alokasiVal = options?.alokasiWaktu || '2 x 35 Menit (1 kali pertemuan)';
+  const rawTotalJP = options?.totalJP || (Array.isArray(selectedTPs) ? selectedTPs.reduce((acc: number, curr: any) => acc + (Number(curr.alokasiJP) || 0), 0) : 0);
+  const totalJP = Math.max(2, rawTotalJP > 0 ? rawTotalJP : (options?.jumlahPertemuan ? options.jumlahPertemuan * 2 : 12));
+
+  // Batas wajib alokasi SD: Minimal 2 JP dan Maksimal 3 JP per pertemuan
+  const minAllowedMeetings = Math.ceil(totalJP / 3);
+  const maxAllowedMeetings = Math.max(1, Math.floor(totalJP / 2));
+
+  let totalMeetingsCount = options?.jumlahPertemuan || 0;
+  if (!totalMeetingsCount || totalMeetingsCount < minAllowedMeetings || totalMeetingsCount > maxAllowedMeetings) {
+    totalMeetingsCount = maxAllowedMeetings;
+  }
+
+  // Distribusi matematis JP per pertemuan: minimal 2 JP, maksimal 3 JP
+  // Jika ada sisa (misal 11 JP / 5 pertemuan = base 2 JP, sisa 1 JP),
+  // sisa dialokasikan pada pertemuan akhir (2-2-2-2-3)
+  const baseJP = Math.floor(totalJP / totalMeetingsCount);
+  const remainderJP = totalJP - (baseJP * totalMeetingsCount);
+  const jpDistribution: number[] = [];
+  for (let i = 0; i < totalMeetingsCount; i++) {
+    const isExtra = i >= (totalMeetingsCount - remainderJP);
+    jpDistribution.push(baseJP + (isExtra ? 1 : 0));
+  }
+
+  const allSame = jpDistribution.every((val) => val === jpDistribution[0]);
+  const formattedAlokasi = totalMeetingsCount === 1
+    ? `${totalJP} JP (${totalJP} x 35 Menit)`
+    : allSame
+      ? `${totalJP} JP (${totalMeetingsCount} Pertemuan @ ${jpDistribution[0]} JP x 35 Menit)`
+      : `${totalJP} JP (${totalMeetingsCount} Pertemuan @ ${jpDistribution.join('-')} JP x 35 Menit)`;
+
+  const alokasiVal = options?.alokasiWaktu || formattedAlokasi;
 
   // User-selected methods
   const chosenMethods = options?.metodePembelajaran && options.metodePembelajaran.length > 0
@@ -3360,19 +3443,50 @@ export function generatePedagogicalModulFallback(
     },
   ];
 
-  // 4. Asesmen Pembelajaran RPM
+  // 4. Asesmen Pembelajaran RPM (Distribusi Dinamis Sesuai Prinsip Kurikulum Merdeka)
   const asesmenRPM = {
     diagnostik: {
-      bentukTeknik: 'Tanya Jawab Lisan & Observasi Kesiapan Awal',
-      caraSumber: `[Bersumber dari Kegiatan Pendahuluan/Apersepsi] Guru mengajukan pertanyaan pemantik lisan mengenai pengalaman sehari-hari siswa terkait ${topic} untuk memetakan kesiapan belajar.`,
+      waktuPelaksanaan: 'Pertemuan ke-1 (Kegiatan Awal / Apersepsi Pemantik)',
+      bentukTeknik: 'Tanya Jawab Pemantik Lisan & Observasi Kesiapan Belajar Awal',
+      caraSumber: `[Kegiatan Awal Pertemuan 1] Guru mengajukan pertanyaan pemantik lisan mengenai pengalaman sehari-hari siswa terkait ${topic} untuk memetakan kesiapan belajar (readiness) dan mengelompokkan siswa secara heterogen.`,
+      daftarInstrumen: [
+        `Pertanyaan Pemantik: "Sebutkan 2 contoh hal terkait ${topic} yang pernah kalian temui di sekitar rumah atau sekolah!"`,
+        `Lembar Cek Kesiapan: Memetakan pemahaman prasyarat awal murid sebelum kegiatan inti kelompok.`,
+      ],
     },
     formatif: {
-      bentukTeknik: 'Penilaian Kinerja Kelompok pada LKPD & Lembar Observasi Diskusi',
-      caraSumber: `[Bersumber dari Kegiatan Inti / Sintaks Penyelidikan] Guru mengamati keaktifan, kolaborasi gotong royong, dan penalaran kritis selama proses diskusi dan pengisian LKPD.`,
+      waktuPelaksanaan: `Pertemuan ke-1 sampai Pertemuan ke-${totalMeetingsCount} (Terpadu di setiap Kegiatan Inti & Akhir)`,
+      bentukTeknik: 'Penilaian Kinerja Kolaborasi pada LKPD & Lembar Observasi Diskusi Terbimbing',
+      caraSumber: `[Kegiatan Inti Seluruh Pertemuan] Guru mengamati keaktifan, penalaran kritis, dan gotong royong saat siswa mengerjakan LKPD Aktivitas Pertemuan 1 s.d. ${totalMeetingsCount}. Guru memberikan umpan balik langsung (descriptive feedback) untuk perbaikan belajar tanpa vonis angka.`,
+      rincianPerPertemuan: Array.from({ length: totalMeetingsCount }).map((_, idx) => {
+        const m = idx + 1;
+        const focusName = m === 1
+          ? 'Eksplorasi Konsep Awal & Pengamatan Fenomena'
+          : m === totalMeetingsCount
+          ? 'Keterampilan Komunikasi, Presentasi Karya & Refleksi Diri'
+          : m === 2
+          ? 'Penyelidikan Mandiri & Pengumpulan Data Konkret'
+          : m === 3
+          ? 'Pengolahan Data & Analisis Solusi Kelompok'
+          : 'Perancangan Solusi & Uji Coba Karya';
+        return {
+          pertemuanKe: m,
+          jenisAsesmen: m === 1 ? 'Diagnostik & Formatif' : m === totalMeetingsCount ? 'Formatif & Sumatif' : 'Formatif',
+          fokusAktivitas: focusName,
+          teknikBentuk: m === totalMeetingsCount ? 'Rubrik Presentasi & Refleksi' : 'Observasi Kinerja & LKPD',
+          buktiBelajar: `Catatan isian LKPD Aktivitas Pertemuan ${m} dan keaktifan kelompok`,
+        };
+      }),
     },
     sumatif: {
-      bentukTeknik: 'Presentasi Hasil Penyelidikan & Lembar Evaluasi Mandiri (Tes Tertulis)',
-      caraSumber: `[Bersumber dari Hasil Karya LKPD & Soal Evaluasi di akhir pertemuan] Mengukur ketercapaian penguasaan konsep dan kemampuan aplikasi materi secara individual.`,
+      waktuPelaksanaan: `Khusus Pertemuan Terakhir (Pertemuan ke-${totalMeetingsCount}) setelah seluruh lingkup materi selesai`,
+      bentukTeknik: 'Tes Tertulis Mandiri Penalaran Mendalam (HOTS) & Rubrik Unjuk Kerja Produk Akhir',
+      caraSumber: `[Kegiatan Akhir Pertemuan ${totalMeetingsCount}] Mengukur ketercapaian Tujuan Pembelajaran secara individual melalui 5 butir soal evaluasi penalaran mendalam dan penetapan ketercapaian KKTP untuk data capaian nilai rapor.`,
+      daftarInstrumen: [
+        '5 Butir Soal Evaluasi Penalaran HOTS Kontekstual',
+        'Rubrik Kriteria Ketercapaian Tujuan Pembelajaran (KKTP)',
+        'Kunci Jawaban dan Pedoman Penskoran Nilai (Skala 0-100)',
+      ],
     },
   };
 
@@ -3469,6 +3583,7 @@ export function generatePedagogicalModulFallback(
         hasilPlaceholder: 'Hal paling seru adalah...',
       },
     ],
+    aktivitasPerPertemuan: buildModularLKPDActivities(totalMeetingsCount, topic, model),
   };
 
   // 7. Soal Evaluasi RPM (5 Soal Lengkap + Kunci Jawaban)
@@ -3504,36 +3619,6 @@ export function generatePedagogicalModulFallback(
       bobot: 20,
     },
   ];
-
-  const rawTotalJP = options?.totalJP || (Array.isArray(selectedTPs) ? selectedTPs.reduce((acc: number, curr: any) => acc + (Number(curr.alokasiJP) || 0), 0) : 0);
-  const totalJP = Math.max(2, rawTotalJP > 0 ? rawTotalJP : (options?.jumlahPertemuan ? options.jumlahPertemuan * 2 : 12));
-
-  // Batas wajib alokasi SD: Minimal 2 JP dan Maksimal 3 JP per pertemuan
-  const minAllowedMeetings = Math.ceil(totalJP / 3);
-  const maxAllowedMeetings = Math.max(1, Math.floor(totalJP / 2));
-
-  let totalMeetingsCount = options?.jumlahPertemuan || 0;
-  if (!totalMeetingsCount || totalMeetingsCount < minAllowedMeetings || totalMeetingsCount > maxAllowedMeetings) {
-    totalMeetingsCount = maxAllowedMeetings;
-  }
-
-  // Distribusi matematis JP per pertemuan: minimal 2 JP, maksimal 3 JP
-  // Jika ada sisa (misal 11 JP / 5 pertemuan = base 2 JP, sisa 1 JP),
-  // sisa dialokasikan pada pertemuan akhir (2-2-2-2-3)
-  const baseJP = Math.floor(totalJP / totalMeetingsCount);
-  const remainderJP = totalJP - (baseJP * totalMeetingsCount);
-  const jpDistribution: number[] = [];
-  for (let i = 0; i < totalMeetingsCount; i++) {
-    const isExtra = i >= (totalMeetingsCount - remainderJP);
-    jpDistribution.push(baseJP + (isExtra ? 1 : 0));
-  }
-
-  const allSame = jpDistribution.every((val) => val === jpDistribution[0]);
-  const formattedAlokasi = totalMeetingsCount === 1
-    ? `${totalJP} JP (${totalJP} x 35 Menit)`
-    : allSame
-      ? `${totalJP} JP (${totalMeetingsCount} Pertemuan @ ${jpDistribution[0]} JP x 35 Menit)`
-      : `${totalJP} JP (${totalMeetingsCount} Pertemuan @ ${jpDistribution.join('-')} JP x 35 Menit)`;
 
   return {
     judulModul: 'RENCANA PEMBELAJARAN MENDALAM',
@@ -3602,6 +3687,7 @@ export function generatePedagogicalModulFallback(
           pendahuluan: plan.pendahuluan,
           kegiatanInti: plan.kegiatanInti,
           penutup: plan.penutup,
+          asesmenPertemuan: plan.asesmenPertemuan,
         });
       }
       return meetings;
@@ -3695,31 +3781,7 @@ export function generatePedagogicalModulFallback(
         'Apa yang ingin kamu ketahui lebih lanjut pada pelajaran berikutnya?',
       ],
     },
-    lkpd: [
-      {
-        judulLKPD: `LKPD Petualang Sains & Pengetahuan: Eksplorasi Seru ${topic}`,
-        tujuanKegiatan: `Melalui pengamatan bersama kelompok, peserta didik mampu menemukan, mengelompokkan, dan menjelaskan bagian-bagian penting dari ${topic}.`,
-        alatBahan: [
-          'Alat tulis dan pensil warna',
-          'Spesimen/gambar objek pengamatan nyata',
-          'Kaca pembesar (lup) / penggaris',
-          'Kertas LKPD berpetak pengamatan',
-        ],
-        langkahKerja: [
-          'Bentuklah kelompok yang terdiri dari 4 sampai 5 orang temanmu!',
-          'Tuliskan nama kelompok dan nama seluruh anggota pada kotak yang disediakan di atas.',
-          'Amatilah objek/gambar yang diberikan oleh Bapak/Ibu Guru dengan teliti menggunakan kaca pembesar.',
-          'Diskusikan pertanyaan-pertanyaan di bawah ini dan tuliskan jawaban hasil kesepakatan kelompok.',
-          'Warnai diagram atau gambarlah hasil pengamatanmu semenarik mungkin!',
-        ],
-        pertanyaanDiskusi: [
-          `1. Apa sajakah ciri-ciri atau bagian penting yang kalian temukan pada ${topic}?`,
-          '2. Menurut kelompok kalian, apa fungsi utama dari masing-masing bagian tersebut?',
-          '3. Bagaimana cara terbaik bagi kita untuk menjaga atau memanfaatkan hal tersebut di kehidupan sehari-hari?',
-        ],
-        kesimpulanPrompt: 'Tuliskan kesimpulan kelompokmu: "Berdasarkan pengamatan kami, kami menyimpulkan bahwa..."',
-      },
-    ],
+    lkpd: buildStandardLKPDList(totalMeetingsCount, topic, model),
     bahanBacaanGuruDanSiswa: {
       ringkasanMateri: `Materi ${topic} merupakan salah satu pondasi penting dalam pembelajaran ${mapel} di jenjang SD. Pembelajaran dirancang berpusat pada anak (student-centered) dengan menghubungkan konsep abstrak ke benda-benda nyata yang dapat disentuh, diamati, dan dirasakan secara langsung oleh siswa dalam kehidupan sehari-hari.`,
       materiPengayaanSingkat: `Informasi Menarik untuk Siswa: Tahukah kalian bahwa di berbagai belahan dunia, pemanfaatan ${topic} telah berkembang menjadi teknologi ramah lingkungan yang sangat canggih dan bermanfaat bagi masa depan bumi kita!`,
