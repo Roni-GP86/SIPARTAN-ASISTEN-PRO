@@ -1040,7 +1040,7 @@ export async function updateAccessRecordAsync(
 
   // 2. Simpan identitas baru langsung ke dokumen workspace user di Cloud Firestore
   try {
-    const newIdentity = convertAccessRecordToIdentity(updated);
+    const newIdentity = convertAccessRecordToIdentity(updated, { kelas: updated.kelas });
     await updateUserWorkspaceIdentityInFirestore(updated.kodeAkses, newIdentity);
   } catch (e) {
     console.warn('Gagal update identitas workspace user di Cloud:', e);
@@ -1256,19 +1256,15 @@ export function convertAccessRecordToIdentity(
       return ['5', '6'];
     };
     const allowedClasses = getClassesForFaseLocal(finalFase);
-    const currentClass = String(currentIdentity?.kelas || '').trim();
+    const cleanCurrent = String(currentIdentity?.kelas || '').replace(/[^0-9]/g, '');
+    const cleanRecord = String(record.kelas || '').replace(/[^0-9]/g, '');
     
-    if (allowedClasses.includes(currentClass)) {
-      finalKelas = currentClass;
+    if (allowedClasses.includes(cleanCurrent)) {
+      finalKelas = cleanCurrent;
+    } else if (allowedClasses.includes(cleanRecord)) {
+      finalKelas = cleanRecord;
     } else {
-      // Fallback ke kelas pendaftaran jika berupa angka tunggal dan cocok dengan fase
-      const recordClassTrimmed = String(record.kelas || '').trim();
-      if (allowedClasses.includes(recordClassTrimmed)) {
-        finalKelas = recordClassTrimmed;
-      } else {
-        // Fallback terakhir: ambil kelas pertama dari fase tersebut
-        finalKelas = allowedClasses[0];
-      }
+      finalKelas = allowedClasses[0];
     }
   }
 

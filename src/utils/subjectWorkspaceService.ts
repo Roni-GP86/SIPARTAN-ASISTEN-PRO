@@ -1546,6 +1546,12 @@ export function getOrInitSubjectWorkspace(
 
   if (existing && existing.tpList && existing.tpList.length > 0) {
     if (isTPListValidForSubject(existing.tpList, mataPelajaran)) {
+      if (identitasBase) {
+        existing.identitas = { ...existing.identitas, ...identitasBase };
+        if (identitasBase.kelas) {
+          existing.kelas = String(identitasBase.kelas).replace(/[^0-9]/g, '');
+        }
+      }
       return existing;
     }
     console.warn(
@@ -1557,7 +1563,7 @@ export function getOrInitSubjectWorkspace(
   const folder = findOfficialSubjectFolder(mataPelajaran, fase);
 
   // Target class selection
-  let targetKelas = kelas;
+  let targetKelas = String(kelas || '').replace(/[^0-9]/g, '');
   const effectiveFase = (folder ? folder.fase : fase) as 'Fase A' | 'Fase B' | 'Fase C';
   if (effectiveFase === 'Fase A' && !['1', '2'].includes(targetKelas)) targetKelas = '1';
   if (effectiveFase === 'Fase B' && !['3', '4'].includes(targetKelas)) targetKelas = '3';

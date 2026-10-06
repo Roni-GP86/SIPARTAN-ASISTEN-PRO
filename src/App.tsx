@@ -334,6 +334,11 @@ export default function App() {
     return INITIAL_MATEMATIKA_IDENTITAS;
   });
 
+  const identitasRef = useRef<SchoolIdentity>(identitas);
+  useEffect(() => {
+    identitasRef.current = identitas;
+  }, [identitas]);
+
   // Access Code and Google Form Security State
   const [activeAccessRecord, setActiveAccessRecord] = useState<AccessRecord | null>(() => {
     const code = getActiveSessionCode();
@@ -654,18 +659,18 @@ export default function App() {
   // Dedicated workspace loader into active React state
   const loadWorkspaceIntoState = useCallback((ws: SubjectWorkspace) => {
     if (!ws) return;
-    setIdentitas((prev) => ({
-      ...ws.identitas,
-      namaSatuanPendidikan: prev.namaSatuanPendidikan || ws.identitas?.namaSatuanPendidikan || 'SD NEGERI 1 MERDEKA BELAJAR',
-      namaGuru: prev.namaGuru || ws.identitas?.namaGuru || 'Guru Kelas',
-      nipGuru: prev.nipGuru || ws.identitas?.nipGuru || '-',
-      namaKepalaSekolah: prev.namaKepalaSekolah || ws.identitas?.namaKepalaSekolah || 'Kepala Sekolah, M.Pd.',
-      nipKepalaSekolah: prev.nipKepalaSekolah || ws.identitas?.nipKepalaSekolah || '-',
-      peranGuru: prev.peranGuru || ws.identitas?.peranGuru || 'guru_kelas',
-      mataPelajaran: ws.mataPelajaran,
-      fase: ws.fase,
-      kelas: ws.kelas || ws.identitas?.kelas || '5',
-    }));
+    setIdentitas((prev) => {
+      const cleanPrevKelas = String(prev.kelas || '').replace(/[^0-9]/g, '');
+      const cleanWsKelas = String(ws.kelas || ws.identitas?.kelas || '').replace(/[^0-9]/g, '');
+      const finalKelas = (prev.fase === ws.fase && cleanPrevKelas) ? cleanPrevKelas : (cleanWsKelas || '5');
+      return {
+        ...ws.identitas,
+        ...prev,
+        mataPelajaran: ws.mataPelajaran,
+        fase: ws.fase,
+        kelas: finalKelas,
+      };
+    });
     setSelectedElements(ws.selectedElements || []);
     setPreferensiTambahan(ws.preferensiTambahan || '');
     setElemenRows(ws.elemenRows || []);
@@ -740,8 +745,9 @@ export default function App() {
       soalDocument,
     });
 
-    // Load or initialize target subject workspace
-    const ws = getOrInitSubjectWorkspace(folder.mataPelajaran, folder.fase, folder.kelas, identitas);
+    // Load or initialize target subject workspace with current active class if phase matches
+    const targetClassToUse = (identitas.fase === folder.fase && identitas.kelas) ? identitas.kelas : folder.kelas;
+    const ws = getOrInitSubjectWorkspace(folder.mataPelajaran, folder.fase, targetClassToUse, identitas);
     loadWorkspaceIntoState(ws);
     setIsSubjectPickerOpen(false);
     showToast(
@@ -773,7 +779,7 @@ export default function App() {
       soalDocument,
     });
 
-    let newKelas = identitas.kelas;
+    let newKelas = String(identitas.kelas || '').replace(/[^0-9]/g, '');
     if (folder.fase === 'Fase A' && !['1', '2'].includes(newKelas)) newKelas = '1';
     if (folder.fase === 'Fase B' && !['3', '4'].includes(newKelas)) newKelas = '3';
     if (folder.fase === 'Fase C' && !['5', '6'].includes(newKelas)) newKelas = '5';
@@ -896,7 +902,7 @@ export default function App() {
         modulAjarDocument: modulAjarDocument ? { ...modulAjarDocument, identitas: { ...modulAjarDocument.identitas, ...newIdentitas } } : null,
         soalDocument: soalDocument ? { ...soalDocument, identitas: { ...soalDocument.identitas, ...newIdentitas } } : null,
       });
-      saveToStorage(STORAGE_KEYS.IDENTITY, newIdentitas);
+      saveToStorage(STORAGE_KEYS.IDENTITAS, newIdentitas);
     } catch (e) {
       console.warn('Gagal menyimpan workspace lokal setelah update identitas:', e);
     }
@@ -1136,17 +1142,21 @@ export default function App() {
       }
 
       // 2. Periksa apakah Admin melakukan perubahan identitas
-      const updatedIdentity = convertAccessRecordToIdentity(cloudRecord, identitas);
+      const currentId = identitasRef.current;
+      const updatedIdentity = convertAccessRecordToIdentity(cloudRecord, currentId);
       const isChanged =
-        (identitas.namaSatuanPendidikan || '').toLowerCase().trim() !== (updatedIdentity.namaSatuanPendidikan || '').toLowerCase().trim() ||
-        (identitas.namaGuru || '').toLowerCase().trim() !== (updatedIdentity.namaGuru || '').toLowerCase().trim() ||
-        identitas.nipGuru !== updatedIdentity.nipGuru ||
-        (identitas.namaKepalaSekolah || '').toLowerCase().trim() !== (updatedIdentity.namaKepalaSekolah || '').toLowerCase().trim() ||
-        identitas.nipKepalaSekolah !== updatedIdentity.nipKepalaSekolah ||
-        identitas.fase !== updatedIdentity.fase ||
-        identitas.kelas !== updatedIdentity.kelas;
+        (currentId.namaSatuanPendidikan || '').toLowerCase().trim() !== (updatedIdentity.namaSatuanPendidikan || '').toLowerCase().trim() ||
+        (currentId.namaGuru || '').toLowerCase().trim() !== (updatedIdentity.namaGuru || '').toLowerCase().trim() ||
+        currentId.nipGuru !== updatedIdentity.nipGuru ||
+        (currentId.namaKepalaSekolah || '').toLowerCase().trim() !== (updatedIdentity.namaKepalaSekolah || '').toLowerCase().trim() ||
+        currentId.nipKepalaSekolah !== updatedIdentity.nipKepalaSekolah ||
+        currentId.fase !== updatedIdentity.fase;
 
       if (isChanged) {
+        // Pertahankan kelas aktif yang dipilih jika fasenya sama
+        if (currentId.fase === updatedIdentity.fase && currentId.kelas) {
+          updatedIdentity.kelas = currentId.kelas;
+        }
         setActiveAccessRecord(cloudRecord);
         handleUpdateIdentitas(updatedIdentity);
         showToast(`⚡ Pembaruan identitas dari Admin telah diterapkan ke seluruh dokumen Anda secara real-time.`);
@@ -2567,18 +2577,20 @@ export default function App() {
             <>
               {currentTab === 'input' && (
                 <CPInputForm
-              identitas={identitas}
-              onChangeIdentitas={handleIdentitasChange}
-              selectedElements={selectedElements}
-              onChangeSelectedElements={setSelectedElements}
-              preferensiTambahan={preferensiTambahan}
-              onChangePreferensiTambahan={setPreferensiTambahan}
-              onGenerateTP={handleGenerateTP}
-              isLoading={isLoadingTP}
-              activeAccessRecord={activeAccessRecord}
-              onSelectSubjectFolder={handleSelectSubject}
-            />
-          )}
+                  identitas={identitas}
+                  onChangeIdentitas={handleIdentitasChange}
+                  selectedElements={selectedElements}
+                  onChangeSelectedElements={setSelectedElements}
+                  preferensiTambahan={preferensiTambahan}
+                  onChangePreferensiTambahan={setPreferensiTambahan}
+                  onGenerateTP={handleGenerateTP}
+                  isLoading={isLoadingTP}
+                  activeAccessRecord={activeAccessRecord}
+                  onSelectSubjectFolder={handleSelectSubject}
+                  onOpenEditIdentity={() => setIsIdentityModalOpen(true)}
+                  onSaveIdentitas={handleUpdateIdentitas}
+                />
+              )}
 
           {currentTab === 'tp' && (
             <TPAnalysisView

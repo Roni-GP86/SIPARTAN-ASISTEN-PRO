@@ -86,9 +86,10 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
     identitas.semester ? String(identitas.semester).replace(/[^0-9]/g, '') || '1' : '1'
   );
   const availableClasses = getAvailableClassesForFase(identitas.fase);
+  const cleanInitialClass = String(identitas.kelas || '').replace(/[^0-9]/g, '');
   const [selectedKelas, setSelectedKelas] = useState<string>(
-    identitas.kelas && availableClasses.includes(String(identitas.kelas).trim())
-      ? String(identitas.kelas).trim()
+    cleanInitialClass && availableClasses.includes(cleanInitialClass)
+      ? cleanInitialClass
       : availableClasses[0] || '5'
   );
 
@@ -116,9 +117,10 @@ export const SchoolIdentityModal: React.FC<SchoolIdentityModalProps> = ({
       setTahunPelajaran(identitas.tahunPelajaran || '2026/2027');
       setSemester(identitas.semester ? String(identitas.semester).replace(/[^0-9]/g, '') || '1' : '1');
       const classes = getAvailableClassesForFase(identitas.fase);
+      const cleanCurrentKls = String(identitas.kelas || '').replace(/[^0-9]/g, '');
       setSelectedKelas(
-        identitas.kelas && classes.includes(String(identitas.kelas).trim())
-          ? String(identitas.kelas).trim()
+        cleanCurrentKls && classes.includes(cleanCurrentKls)
+          ? cleanCurrentKls
           : classes[0] || '5'
       );
     }

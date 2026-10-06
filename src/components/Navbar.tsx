@@ -341,6 +341,31 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </div>
 
+        {/* Menu Identitas & Kelas: Profil & Konfirmasi Identitas */}
+        {onOpenEditIdentity && (
+          <button
+            id="nav-konfirmasi-identitas"
+            type="button"
+            onClick={onOpenEditIdentity}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all border-2 cursor-pointer bg-gradient-to-r from-[#0d2249] to-[#122e62] hover:from-[#112a5a] hover:to-[#173a7c] text-white border-blue-400/60 hover:border-amber-400 shadow-md group ring-1 ring-blue-500/30 mb-2"
+            title="Konfirmasi Profil Sekolah, Guru, Alamat, Titimangsa, dan Pilihan Kelas Aktif"
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
+              <span className="text-base shrink-0 group-hover:scale-110 transition-transform">📋</span>
+              <div className="truncate text-left">
+                <span className="block truncate font-black text-xs text-amber-300">Profil &amp; Konfirmasi Identitas</span>
+                <span className="block text-[9.5px] text-blue-200 font-bold truncate">
+                  Kelas {identitas.kelas} • TP {identitas.tahunPelajaran || '2026/2027'}
+                </span>
+              </div>
+            </div>
+            <span className="text-[9px] px-2 py-0.5 rounded-md font-black uppercase shrink-0 bg-emerald-500/30 text-emerald-300 border border-emerald-400/50 flex items-center gap-1 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Konfirmasi
+            </span>
+          </button>
+        )}
+
         {/* Tab 1: Input CP (Orange & Gold) */}
         <button
           id="nav-input-cp"

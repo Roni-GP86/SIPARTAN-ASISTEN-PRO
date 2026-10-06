@@ -32,6 +32,7 @@ import {
 } from 'lucide-react';
 import { getPermen13Allocation } from '../data/permendikdasmen13Data';
 import { Permen13AllocationModal } from './Permen13AllocationModal';
+import { getAvailableClassesForFase } from './SchoolIdentityModal';
 import {
   getAllowedFaseForRecord,
   isDemoAccessCode,
@@ -183,6 +184,8 @@ interface CPInputFormProps {
   isLoading: boolean;
   activeAccessRecord?: AccessRecord | null;
   onSelectSubjectFolder?: (folder: SubjectFolder) => void;
+  onOpenEditIdentity?: () => void;
+  onSaveIdentitas?: (updated: SchoolIdentity) => void;
 }
 
 export const CPInputForm: React.FC<CPInputFormProps> = ({
@@ -196,6 +199,8 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
   isLoading,
   activeAccessRecord,
   onSelectSubjectFolder,
+  onOpenEditIdentity,
+  onSaveIdentitas,
 }) => {
   const allowedFase = getAllowedFaseForRecord(activeAccessRecord);
   const isDemoMode = activeAccessRecord
@@ -212,11 +217,28 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
   );
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showIdentityDetails, setShowIdentityDetails] = useState<boolean>(true);
+  const [isIdentityConfirmed, setIsIdentityConfirmed] = useState<boolean>(true);
   const [uploadStatusMessage, setUploadStatusMessage] = useState<string | null>(null);
   const [expandedElementId, setExpandedElementId] = useState<string | null>(null);
   const [showPermenModal, setShowPermenModal] = useState<boolean>(false);
   const [phaseLockAlert, setPhaseLockAlert] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const availableClasses = getAvailableClassesForFase(identitas.fase);
+
+  const handleQuickSelectKelas = (cls: string) => {
+    const cleanCls = cls.replace(/[^0-9]/g, '');
+    const alloc = getPermen13Allocation(identitas.mataPelajaran || 'Matematika', identitas.fase || 'Fase C', cleanCls);
+    const updated: SchoolIdentity = {
+      ...identitas,
+      kelas: cleanCls,
+      alokasiWaktuTotal: `${alloc.jpTahunIntra} JP / Tahun (${alloc.jpMingguIntra} JP/Minggu Intrakurikuler @ 35 Menit) - Permendikdasmen No. 13 Tahun 2025`,
+    };
+    onChangeIdentitas(updated);
+    if (onSaveIdentitas) {
+      onSaveIdentitas(updated);
+    }
+  };
 
   // Enforce filter matching allowed phase if restricted
   useEffect(() => {
@@ -476,6 +498,192 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
             </>
           )}
         </button>
+      </div>
+
+      {/* TAHAP 0: KONFIRMASI IDENTITAS RESMI & PENETAPAN KELAS AKTIF (WAJIB DI AWAL ALUR SEBELUM ANALISIS CP KE TP) */}
+      <div className="bg-gradient-to-br from-[#0A162D] via-[#0E1F3D] to-[#081224] rounded-2xl p-4 sm:p-5 border-2 border-blue-400/80 shadow-xl text-white space-y-4 relative overflow-hidden">
+        {/* Glow Accent Top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-emerald-400 to-amber-400" />
+
+        {/* Header Kartu Konfirmasi */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-blue-500/30 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center font-black shadow-md shrink-0">
+              <ShieldCheck className="w-5 h-5 text-amber-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/30 text-blue-200 border border-blue-400/40">
+                  Tahap Awal • Konfirmasi Identitas
+                </span>
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 flex items-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  Kelas {identitas.kelas} Aktif
+                </span>
+              </div>
+              <h2 className="text-sm sm:text-base font-black text-white tracking-tight mt-0.5 flex items-center gap-2">
+                <span>Konfirmasi Profil Satuan Pendidikan, Guru &amp; Pemilihan Kelas Aktif</span>
+              </h2>
+            </div>
+          </div>
+
+          {/* Tombol Aksi Buka Modal Penyesuaian Profil Lengkap */}
+          <div className="flex items-center gap-2 shrink-0">
+            {onOpenEditIdentity && (
+              <button
+                type="button"
+                onClick={onOpenEditIdentity}
+                className="px-3.5 py-2 rounded-xl text-xs font-black text-amber-300 hover:text-white bg-blue-900/60 hover:bg-blue-800/80 border-2 border-amber-400/60 hover:border-amber-400 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+                title="Sesuaikan Alamat Instansi, Tempat Cetak Dokumen (Titimangsa), Logo Sekolah, dan Semester"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Ubah Alamat, Titimangsa &amp; Profil</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Grid Informasi Identitas Terkunci & Fleksibel */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 text-xs">
+          {/* Satuan Pendidikan */}
+          <div className="p-3 bg-[#07101E]/90 rounded-xl border border-blue-500/30">
+            <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-400 mb-1">
+              <span className="flex items-center gap-1 text-blue-300">
+                <Building className="w-3 h-3 text-blue-400" />
+                Satuan Pendidikan
+              </span>
+              <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/40 flex items-center gap-0.5">
+                <Lock className="w-2.5 h-2.5 text-amber-400" /> Terkunci
+              </span>
+            </div>
+            <div className="font-black text-xs sm:text-sm text-white truncate">
+              {identitas.namaSatuanPendidikan || identitas.namaSekolah || 'SD Negeri'}
+            </div>
+          </div>
+
+          {/* Guru Pengampu / Penyusun */}
+          <div className="p-3 bg-[#07101E]/90 rounded-xl border border-blue-500/30">
+            <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-400 mb-1">
+              <span className="flex items-center gap-1 text-emerald-300">
+                <User className="w-3 h-3 text-emerald-400" />
+                Guru Penyusun ({identitas.peranGuru || 'Guru Kelas'})
+              </span>
+              <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/40 flex items-center gap-0.5">
+                <Lock className="w-2.5 h-2.5 text-amber-400" /> Terkunci
+              </span>
+            </div>
+            <div className="font-black text-xs sm:text-sm text-white truncate">
+              {identitas.namaGuru || 'Nama Guru'}
+            </div>
+            <div className="text-[10px] text-slate-300 font-mono mt-0.5">
+              NIP: {identitas.nipGuru || '-'}
+            </div>
+          </div>
+
+          {/* Kepala Sekolah */}
+          <div className="p-3 bg-[#07101E]/90 rounded-xl border border-blue-500/30">
+            <div className="flex items-center justify-between text-[10.5px] font-bold text-slate-400 mb-1">
+              <span className="flex items-center gap-1 text-rose-300">
+                <GraduationCap className="w-3 h-3 text-rose-400" />
+                Kepala Sekolah
+              </span>
+              <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded border border-amber-500/40 flex items-center gap-0.5">
+                <Lock className="w-2.5 h-2.5 text-amber-400" /> Terkunci
+              </span>
+            </div>
+            <div className="font-black text-xs sm:text-sm text-white truncate">
+              {identitas.namaKepalaSekolah || 'Kepala Sekolah'}
+            </div>
+            <div className="text-[10px] text-slate-300 font-mono mt-0.5">
+              NIP: {identitas.nipKepalaSekolah || '-'}
+            </div>
+          </div>
+
+          {/* Alamat Instansi */}
+          <div className="p-3 bg-[#07101E]/90 rounded-xl border border-blue-500/30">
+            <div className="text-[10.5px] font-bold text-slate-400 mb-1 flex items-center justify-between">
+              <span className="text-sky-300">Alamat Instansi</span>
+              <span className="text-[9px] text-emerald-400 font-semibold">Inputan Guru</span>
+            </div>
+            <div className="font-medium text-xs text-slate-200 line-clamp-1">
+              {identitas.alamatInstansi || 'Belum diisi (Klik tombol Ubah Alamat)'}
+            </div>
+          </div>
+
+          {/* Tempat Penetapan (Titimangsa Cetak Dokumen) */}
+          <div className="p-3 bg-[#07101E]/90 rounded-xl border border-blue-500/30">
+            <div className="text-[10.5px] font-bold text-slate-400 mb-1 flex items-center justify-between">
+              <span className="text-amber-300">Tempat Cetak Dokumen (Titimangsa)</span>
+              <span className="text-[9px] text-emerald-400 font-semibold">Inputan Guru</span>
+            </div>
+            <div className="font-bold text-xs text-white">
+              {identitas.tempatPenetapan || 'Belum diisi'}
+            </div>
+          </div>
+
+          {/* Tahun Pelajaran & Semester */}
+          <div className="p-3 bg-[#07101E]/90 rounded-xl border border-blue-500/30">
+            <div className="text-[10.5px] font-bold text-slate-400 mb-1 flex items-center justify-between">
+              <span className="text-indigo-300">Tahun Pelajaran &amp; Semester</span>
+              <span className="text-[9px] text-emerald-400 font-semibold">Dapat Dipilih</span>
+            </div>
+            <div className="font-bold text-xs text-amber-300">
+              TP {identitas.tahunPelajaran || '2026/2027'} • Semester {identitas.semester ? (String(identitas.semester).includes('2') ? '2 (Genap)' : '1 (Ganjil)') : '1 (Ganjil)'}
+            </div>
+          </div>
+        </div>
+
+        {/* PEMILIHAN KELAS AKTIF (DALAM 1 FASE YANG DIPILIH) - INTERAKTIF & PERMANEN */}
+        <div className="p-3.5 bg-gradient-to-r from-[#102447] via-[#132c58] to-[#102447] rounded-xl border-2 border-amber-400/70 shadow-inner space-y-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-xs font-black text-amber-300 uppercase tracking-wide">
+                  Pemilihan Kelas Aktif (Fase Terdaftar: {identitas.fase || 'Fase C'}):
+                </span>
+                <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 uppercase">
+                  Wajib Dipilih
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Sesuai Kurikulum Merdeka, fase menaungi beberapa tingkatan kelas. Silakan tentukan tingkatan kelas yang Anda ampu saat ini agar TP, ATP, dan modul selaras:
+              </p>
+            </div>
+
+            {/* Quick Class Selection Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              {availableClasses.map((cls) => {
+                const isSelected = String(identitas.kelas || '').replace(/[^0-9]/g, '') === cls;
+                return (
+                  <button
+                    key={cls}
+                    type="button"
+                    onClick={() => handleQuickSelectKelas(cls)}
+                    className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 flex items-center gap-1.5 cursor-pointer shadow-sm ${
+                      isSelected
+                        ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 border-white ring-2 ring-amber-300 scale-105'
+                        : 'bg-[#0B1528] text-slate-200 border-slate-600 hover:border-amber-400 hover:text-white'
+                    }`}
+                  >
+                    <span>Kelas {cls}</span>
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-slate-950" />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-1.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10.5px] text-blue-200/90 border-t border-blue-500/20">
+            <span>
+              ⚡ <strong>Pilihan Tersimpan Permanen:</strong> Seluruh dokumen aktif (Bedah CP ke TP, ATP, KKTP, PROTA, PROMES, RPP/Modul, Kisi-kisi, Naskah Soal, dan Penskoran) otomatis menggunakan <strong>Kelas {identitas.kelas}</strong>!
+            </span>
+            <span className="text-emerald-400 font-bold flex items-center gap-1 shrink-0">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+              Identitas &amp; Kelas {identitas.kelas} Terkonfirmasi
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* ALOKASI WAKTU RESMI PERMENDIKDASMEN NO. 13 TAHUN 2025 BANNER & CONTROLLER */}
@@ -992,178 +1200,7 @@ export const CPInputForm: React.FC<CPInputFormProps> = ({
         </div>
       </div>
 
-      {/* IDENTITAS SATUAN PENDIDIKAN - TERKUNCI RESMI (SESUAI FORMULIR KODE AKSES) */}
-      <div className="bg-white rounded-xl p-4 border-2 border-slate-300 shadow-sm space-y-3">
-        <button
-          type="button"
-          onClick={() => setShowIdentityDetails(!showIdentityDetails)}
-          className="w-full flex items-center justify-between text-left font-black text-xs text-[#0B1528] cursor-pointer"
-        >
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="w-6 h-6 rounded-md bg-[#0B1528] text-amber-400 flex items-center justify-center text-xs shadow-2xs">
-              <Lock className="w-3.5 h-3.5" />
-            </div>
-            <span className="font-extrabold text-slate-900">Identitas Satuan Pendidikan &amp; Data Penyusun</span>
-            <span className="text-[10px] font-black text-amber-900 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-300 flex items-center gap-1">
-              <Lock className="w-2.5 h-2.5 text-amber-700" />
-              TERKUNCI RESMI
-            </span>
-            <span className="text-[11px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-300">
-              {identitas.namaSatuanPendidikan || 'SD'} • {identitas.namaGuru || 'Guru'} ({identitas.peranGuru || 'Guru Kelas'})
-            </span>
-          </div>
-          {showIdentityDetails ? (
-            <ChevronUp className="w-4 h-4 text-slate-500 shrink-0" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-slate-500 shrink-0" />
-          )}
-        </button>
 
-        {showIdentityDetails && (
-          <div className="pt-3 border-t border-slate-200 space-y-3">
-            {/* Banner: Terkunci Permanen Sesuai Permintaan Kode Akses */}
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-300/80 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-950">
-              <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-black text-amber-950 flex items-center gap-1.5">
-                  <span>Data Identitas Resmi Dikunci Otomatis</span>
-                  <span className="px-1.5 py-0.2 rounded bg-amber-200 text-amber-900 text-[9.5px] font-mono font-black border border-amber-400">
-                    ANTI-EDIT
-                  </span>
-                </div>
-                <p className="text-[11px] text-amber-900 leading-relaxed mt-0.5">
-                  Data satuan pendidikan, guru pengampu, dan kepala sekolah terkunci permanen sesuai data formulir pendaftaran kode akses resmi SIPARTAN. Pengeditan tidak diizinkan guna menjamin keaslian, integritas, dan validitas dokumen kurikulum resmi Anda.
-                </p>
-              </div>
-            </div>
-
-            {/* Readonly Locked Data Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-              {/* Nama Sekolah */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span className="flex items-center gap-1">
-                    <Building className="w-3 h-3 text-blue-600" />
-                    Satuan Pendidikan
-                  </span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-black text-sm text-slate-900">
-                  {identitas.namaSatuanPendidikan || 'SD Negeri Fatubai'}
-                </div>
-              </div>
-
-              {/* Jabatan Guru */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span className="flex items-center gap-1">
-                    <User className="w-3 h-3 text-indigo-600" />
-                    Jabatan Tanda Tangan
-                  </span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-black text-sm text-slate-900">
-                  {identitas.peranGuru || 'Guru Kelas'}
-                </div>
-              </div>
-
-              {/* Nama Guru */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span className="flex items-center gap-1">
-                    <User className="w-3 h-3 text-emerald-600" />
-                    Penyusun
-                  </span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-black text-sm text-slate-900">
-                  {identitas.namaGuru || 'Nama Guru Belum Diatur'}
-                </div>
-              </div>
-
-              {/* NIP Guru */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span>NIP Guru</span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-mono font-bold text-xs text-slate-800">
-                  {identitas.nipGuru || '-'}
-                </div>
-              </div>
-
-              {/* Kepala Sekolah */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span className="flex items-center gap-1">
-                    <GraduationCap className="w-3 h-3 text-rose-600" />
-                    Kepala Sekolah
-                  </span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-black text-sm text-slate-900">
-                  {identitas.namaKepalaSekolah || 'Kepala Sekolah Belum Diatur'}
-                </div>
-              </div>
-
-              {/* NIP Kepala Sekolah */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span>NIP Kepala Sekolah</span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-mono font-bold text-xs text-slate-800">
-                  {identitas.nipKepalaSekolah || '-'}
-                </div>
-              </div>
-
-              {/* Tahun Pelajaran & Semester */}
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200">
-                <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 mb-1">
-                  <span>Tahun Pelajaran &amp; Semester</span>
-                  <span className="text-[9.5px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Terkunci
-                  </span>
-                </div>
-                <div className="font-bold text-xs text-slate-900">
-                  {identitas.tahunPelajaran || '2026/2027'} • Semester {identitas.semester || '1 (Ganjil)'}
-                </div>
-              </div>
-
-              {/* Alokasi Waktu Permendikdasmen No 13/2025 */}
-              <div className="sm:col-span-2 lg:col-span-2 p-3 bg-emerald-50/80 rounded-xl border border-emerald-300">
-                <div className="flex items-center justify-between text-[11px] font-bold text-emerald-950 mb-1">
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-emerald-700" />
-                    Alokasi Waktu Intrakurikuler (Permendikdasmen No. 13 Tahun 2025)
-                  </span>
-                  <span className="text-[9.5px] font-bold text-emerald-900 bg-emerald-200 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                    <Lock className="w-2.5 h-2.5" /> Standar Regulasi
-                  </span>
-                </div>
-                <div className="font-bold text-xs text-emerald-950">
-                  {identitas.alokasiWaktuTotal || '180 JP / Tahun (5 JP/Minggu @ 35 Menit)'}
-                </div>
-                <div className="text-[10px] text-emerald-800 mt-1">
-                  *Alokasi jam pelajaran terkunci otomatis sesuai regulasi resmi dan tercetak pada Cover, Analisis TP, ATP, dan Modul Ajar.
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* CATATAN TAMBAHAN / PREFERENSI GURU - Framed */}
       <div className="bg-white rounded-xl p-4 border-2 border-slate-300 shadow-sm space-y-2">
