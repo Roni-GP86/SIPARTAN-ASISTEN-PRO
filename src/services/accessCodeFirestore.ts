@@ -79,7 +79,7 @@ function sanitizeFirestorePayload<T extends Record<string, any>>(data: T): Recor
 export async function testFirestoreConnectionAsync(): Promise<{ success: boolean; message: string }> {
   resetCloudCooldown();
   const activeCfg = getActiveFirebaseConfig();
-  const activeProject = activeCfg.projectId || 'bahan-ajar-guru';
+  const activeProject = activeCfg.projectId || 'sipartan-v37';
 
   try {
     const timeoutPromise = new Promise<{ success: boolean; message: string }>((_, reject) =>

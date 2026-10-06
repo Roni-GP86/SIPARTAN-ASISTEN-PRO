@@ -47,7 +47,7 @@ export function getActiveFirebaseConfig(): FirebaseClientConfig {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.projectId && parsed?.apiKey) {
-          // Jika proyek di storage berbeda dengan konfigurasi aktif bawaan (bahan-ajar-guru), bersihkan residu lama
+          // Jika proyek di storage berbeda dengan konfigurasi aktif bawaan (sipartan-v37), bersihkan residu lama
           if (parsed.projectId === (firebaseConfig as any).projectId) {
             return parsed;
           } else {

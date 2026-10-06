@@ -1,12 +1,12 @@
 {
-  "projectId": "bahan-ajar-guru",
-  "appId": "1:204017734664:web:331760a88a7cdeec012dbd",
-  "apiKey": "AIzaSyBHppQlylmRPxNbJUMW3e4Z3X2s2yIrazw",
-  "authDomain": "bahan-ajar-guru.firebaseapp.com",
+  "projectId": "sipartan-v37",
+  "appId": "1:583264483655:web:bb447422021fb6095f3462",
+  "apiKey": "AIzaSyB39vxDIHFgYdimiHBSRzj33_DcNsH8jN0",
+  "authDomain": "sipartan-v37.firebaseapp.com",
   "firestoreDatabaseId": "(default)",
-  "storageBucket": "bahan-ajar-guru.firebasestorage.app",
-  "messagingSenderId": "204017734664",
-  "measurementId": "G-5NCDL26BYT",
+  "storageBucket": "sipartan-v37.firebasestorage.app",
+  "messagingSenderId": "583264483655",
+  "measurementId": "G-33MY0NLSL2",
   "oAuthClientId": "",
   "recaptchaSiteKey": ""
 }

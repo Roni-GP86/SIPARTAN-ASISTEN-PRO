@@ -2543,13 +2543,13 @@ Kepala Sekolah: Gusmardi, S.Pd."
                   Ganti / Tempel Konfigurasi Firebase Sendiri (Opsional):
                 </label>
                 <p className="text-[11px] text-slate-500">
-                  Jika Anda memiliki proyek Firebase pribadi lain (seperti <code>sipartan-da5b2</code>), Anda dapat menempelkan objek konfigurasi Firebase (JSON atau kode JS) di bawah ini:
+                  Jika Anda memiliki proyek Firebase pribadi lain (seperti <code>sipartan-v37</code>), Anda dapat menempelkan objek konfigurasi Firebase (JSON atau kode JS) di bawah ini:
                 </p>
                 <textarea
                   rows={6}
                   value={customConfigInput}
                   onChange={(e) => setCustomConfigInput(e.target.value)}
-                  placeholder={`{\n  "apiKey": "AIzaSy...",\n  "authDomain": "sipartan-da5b2.firebaseapp.com",\n  "projectId": "sipartan-da5b2",\n  "storageBucket": "sipartan-da5b2.firebasestorage.app"\n}`}
+                  placeholder={`{\n  "apiKey": "AIzaSy...",\n  "authDomain": "sipartan-v37.firebaseapp.com",\n  "projectId": "sipartan-v37",\n  "storageBucket": "sipartan-v37.firebasestorage.app"\n}`}
                   className="w-full p-2.5 border border-slate-300 rounded-xl bg-slate-900 text-emerald-400 font-mono text-xs focus:border-blue-600 focus:outline-none"
                 />
               </div>
