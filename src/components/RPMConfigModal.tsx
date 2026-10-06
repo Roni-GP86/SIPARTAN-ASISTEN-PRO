@@ -9,7 +9,7 @@ import {
   X, Sparkles, Check, Plus, Trash2, Users, Laptop, BookOpen, 
   Layers, Compass, School, Award, AlertCircle, AlertTriangle, Eye, EyeOff, Filter,
   User, Building, Calendar, CheckSquare, Square, ChevronDown, ChevronUp,
-  FileText, ArrowRight, ArrowLeft, CheckCircle2, Edit2
+  FileText, ArrowRight, ArrowLeft, CheckCircle2, Edit2, Lock
 } from 'lucide-react';
 
 interface RPMConfigModalProps {
@@ -137,7 +137,8 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
   const nipKepalaSekolah = identitas.nipKepalaSekolah || '-';
 
   // Determine available classes for the given Fase (e.g. Fase C -> ['5', '6'])
-  const possibleClasses = useMemo(() => getClassesForFase(identitas.fase), [identitas.fase]);
+  const safeTPList = useMemo(() => (Array.isArray(tpList) ? tpList : []), [tpList]);
+  const possibleClasses = useMemo(() => getClassesForFase(identitas?.fase), [identitas?.fase]);
 
   // Initial class determination
   const initialKelas = () => {
@@ -145,13 +146,13 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
       return initialOptions.selectedKelas;
     }
     if (defaultSelectedTPCodes && defaultSelectedTPCodes.length > 0) {
-      const matched = tpList.find((t) => defaultSelectedTPCodes.includes(t.kodeTP));
+      const matched = safeTPList.find((t) => defaultSelectedTPCodes.includes(t.kodeTP));
       if (matched) {
-        const cls = getItemClass(matched, identitas.fase);
+        const cls = getItemClass(matched, identitas?.fase || 'Fase C');
         if (possibleClasses.includes(cls)) return cls;
       }
     }
-    const idClass = String(identitas.kelas || '').trim();
+    const idClass = String(identitas?.kelas || '').trim();
     if (possibleClasses.includes(idClass)) {
       return idClass;
     }
@@ -160,10 +161,12 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
 
   const [selectedKelas, setSelectedKelas] = useState<string>(initialKelas);
 
-  // Available TPs filtered strictly by the selected class
+  // Available TPs filtered strictly by the selected class, with safe fallback
   const availableTPsForClass = useMemo(() => {
-    return filterTPListByClass(tpList, selectedKelas, identitas.fase);
-  }, [tpList, selectedKelas, identitas.fase]);
+    const filtered = filterTPListByClass(safeTPList, selectedKelas, identitas?.fase || 'Fase C');
+    if (filtered.length > 0) return filtered;
+    return safeTPList;
+  }, [safeTPList, selectedKelas, identitas?.fase]);
 
   // Group available TPs by Elemen
   const tpsByElemen = useMemo(() => {
@@ -585,7 +588,7 @@ export const RPMConfigModal: React.FC<RPMConfigModalProps> = ({
     if (initialOptions?.dimensiProfilLulusan && initialOptions.dimensiProfilLulusan.length > 0) {
       return initialOptions.dimensiProfilLulusan;
     }
-    const firstTP = tpList.find((t) => selectedTPs.includes(t.kodeTP));
+    const firstTP = safeTPList.find((t) => selectedTPs.includes(t.kodeTP));
     if (firstTP && Array.isArray(firstTP.dimensiP3) && firstTP.dimensiP3.length >= 3) {
       return firstTP.dimensiP3;
     }

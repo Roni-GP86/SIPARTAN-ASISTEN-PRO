@@ -46,6 +46,7 @@ import { AccessGateModal } from './components/AccessGateModal';
 import { AdminAccessManagerModal } from './components/AdminAccessManagerModal';
 import { WordDownloadBlockedModal } from './components/WordDownloadBlockedModal';
 import { RPMConfigModal } from './components/RPMConfigModal';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { SubjectPickerModal } from './components/SubjectPickerModal';
 import { SubjectAnalysisWarningModal } from './components/SubjectAnalysisWarningModal';
 import { StudentManagerModal } from './components/StudentManagerModal';
@@ -2882,24 +2883,29 @@ export default function App() {
 
       {/* Pre-Generation RPM Selection Modal (Metode, Mitra, Pemanfaatan Digital, dll.) */}
       {isRPMConfigOpen && (
-        <RPMConfigModal
-          isOpen={isRPMConfigOpen}
-          onClose={() => setIsRPMConfigOpen(false)}
-          identitas={identitas}
-          tpList={tpList}
-          elemenRows={elemenRows}
-          atpDocument={atpDocument}
-          defaultSelectedTPCodes={pendingTPCodesForModul}
-          initialOptions={lastRPMOptions}
-          onConfirm={handleConfirmRPMConfig}
-          onUpdateIdentitas={(updated) => setIdentitas(updated)}
-          onGoToCPInput={() => {
-            setIsRPMConfigOpen(false);
-            setCurrentTab('input');
-          }}
-          onOpenSubjectPicker={() => setIsSubjectPickerOpen(true)}
-          isLoading={isLoadingModul}
-        />
+        <ErrorBoundary
+          fallbackTitle="Kendala Membuka Pengaturan Modul"
+          onReset={() => setIsRPMConfigOpen(false)}
+        >
+          <RPMConfigModal
+            isOpen={isRPMConfigOpen}
+            onClose={() => setIsRPMConfigOpen(false)}
+            identitas={identitas}
+            tpList={tpList}
+            elemenRows={elemenRows}
+            atpDocument={atpDocument}
+            defaultSelectedTPCodes={pendingTPCodesForModul}
+            initialOptions={lastRPMOptions}
+            onConfirm={handleConfirmRPMConfig}
+            onUpdateIdentitas={(updated) => setIdentitas(updated)}
+            onGoToCPInput={() => {
+              setIsRPMConfigOpen(false);
+              setCurrentTab('input');
+            }}
+            onOpenSubjectPicker={() => setIsSubjectPickerOpen(true)}
+            isLoading={isLoadingModul}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Subject Picker Modal: Beralih Mata Pelajaran tanpa kehilangan dokumen tersimpan */}

@@ -620,6 +620,15 @@ export interface AccessRecord {
   mataPelajaran?: string;
   namaKepalaSekolah: string;
   nipKepalaSekolah: string;
+  alamatInstansi?: string;
+  tempatPenetapan?: string;
+  tahunPelajaran?: string;
+  semester?: string;
+  kopBaris1?: string;
+  kopBaris2?: string;
+  kopBaris3?: string;
+  kopBaris4?: string;
+  logoUrl?: string;
 
   // Metadata pendaftaran
   emailPendaftar?: string;
