@@ -533,13 +533,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <button
           id="nav-modul-ajar"
           onClick={() => {
-            if (hasModul) {
-              onSelectTab('modul');
-            } else if (onOpenCreateModul) {
-              onOpenCreateModul();
-            } else {
-              onSelectTab('modul');
-            }
+            onSelectTab('modul');
           }}
           disabled={!hasModul && !hasTP}
           className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all border-2 cursor-pointer ${

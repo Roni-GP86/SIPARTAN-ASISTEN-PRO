@@ -87,6 +87,7 @@ import {
 import { formatImageUrl } from './utils/imageUtils';
 import { buildKKTPDocumentFromTP } from './utils/kktpGenerator';
 import { buildProtaDocumentFromTP, buildPromesDocumentFromTP } from './utils/protaPromesGenerator';
+import { buildDefaultModulAjarFromTP } from './utils/modulAjarGenerator';
 import { generateKisiKisiDanNaskahSoal, getDefaultKonfigurasiSoal } from './utils/kisiKisiSoalGenerator';
 import {
   getActiveSessionCode,
@@ -472,7 +473,17 @@ export default function App() {
   });
 
   const [modulAjarDocument, setModulAjarDocument] = useState<ModulAjarDocument | null>(() => {
-    return loadFromStorage<ModulAjarDocument | null>(STORAGE_KEYS.MODUL_DOC, null);
+    const stored = loadFromStorage<ModulAjarDocument | null>(STORAGE_KEYS.MODUL_DOC, null);
+    if (stored) return stored;
+    try {
+      return buildDefaultModulAjarFromTP(
+        INITIAL_MATEMATIKA_IDENTITAS,
+        INITIAL_MATEMATIKA_TP_LIST,
+        INITIAL_MATEMATIKA_ATP_DOCUMENT
+      );
+    } catch (e) {
+      return null;
+    }
   });
 
   const [protaDocument, setProtaDocument] = useState<ProtaDocument | null>(() => {
@@ -2703,28 +2714,61 @@ export default function App() {
             />
           )}
 
-          {currentTab === 'modul' && modulAjarDocument && (
-            <ModulAjarView
-              modul={modulAjarDocument}
-              onBackToATP={() => setCurrentTab('atp')}
-              onSaveToHistory={handleSaveModulHistory}
-              isSaved={savedItems.some((s) => s.id === modulAjarDocument.id)}
-              onOpenEditIdentity={() => setIsIdentityModalOpen(true)}
-              onUpdateIdentitas={handleUpdateIdentitas}
-              onUpdateModul={(updated) => {
-                setModulAjarDocument(updated);
-                if (updated.desainPembelajaranRPM?.pemanfaatanTeknologi) {
-                  setLastRPMOptions((prev) => ({
-                    ...prev,
-                    pemanfaatanPlatform: updated.desainPembelajaranRPM.pemanfaatanTeknologi.platformAplikasi,
-                    pemanfaatanPerangkat: updated.desainPembelajaranRPM.pemanfaatanTeknologi.perangkatDigital,
-                    pemanfaatanMedia: updated.desainPembelajaranRPM.pemanfaatanTeknologi.mediaDigital,
-                  }));
-                }
-              }}
-              onReconfigureRPM={() => handleOpenRPMConfig()}
-              onGoToCPInput={() => setCurrentTab('input')}
-            />
+          {currentTab === 'modul' && (
+            (() => {
+              const activeModul = modulAjarDocument || (
+                (tpList.length > 0 || (atpDocument && atpDocument.atpList?.length > 0))
+                  ? buildDefaultModulAjarFromTP(identitas, tpList, atpDocument, lastRPMOptions)
+                  : null
+              );
+
+              if (!activeModul) {
+                return (
+                  <div className="max-w-4xl mx-auto p-8 bg-white rounded-2xl shadow-md border border-slate-200 text-center space-y-4">
+                    <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl">
+                      📖
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800">
+                      Belum Ada Tujuan Pembelajaran untuk Modul Ajar
+                    </h3>
+                    <p className="text-sm text-slate-600 max-w-md mx-auto">
+                      Silakan lakukan input Capaian Pembelajaran (CP) dan analisis Tujuan Pembelajaran (TP) terlebih dahulu untuk menyusun RPP / Modul Ajar.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentTab('input')}
+                      className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-md transition-colors cursor-pointer"
+                    >
+                      Buka Form Input CP
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <ModulAjarView
+                  modul={activeModul}
+                  onBackToATP={() => setCurrentTab('atp')}
+                  onSaveToHistory={handleSaveModulHistory}
+                  isSaved={savedItems.some((s) => s.id === activeModul.id)}
+                  onOpenEditIdentity={() => setIsIdentityModalOpen(true)}
+                  onUpdateIdentitas={handleUpdateIdentitas}
+                  onUpdateModul={(updated) => {
+                    setModulAjarDocument(updated);
+                    if (updated.desainPembelajaranRPM?.pemanfaatanTeknologi) {
+                      setLastRPMOptions((prev) => ({
+                        ...prev,
+                        pemanfaatanPlatform: updated.desainPembelajaranRPM.pemanfaatanTeknologi.platformAplikasi,
+                        pemanfaatanPerangkat: updated.desainPembelajaranRPM.pemanfaatanTeknologi.perangkatDigital,
+                        pemanfaatanMedia: updated.desainPembelajaranRPM.pemanfaatanTeknologi.mediaDigital,
+                      }));
+                    }
+                  }}
+                  onReconfigureRPM={() => handleOpenRPMConfig()}
+                  onGoToCPInput={() => setCurrentTab('input')}
+                />
+              );
+            })()
           )}
 
           {currentTab === 'prompt-media' && (

@@ -41,22 +41,22 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
   const isRPM = Boolean(modul.identifikasiRPM || modul.desainPembelajaranRPM || modul.langkahPembelajaranRPM);
 
   // Editable fields for RPM
-  const [judulModul, setJudulModul] = useState(modul.judulModul || 'RENCANA PEMBELAJARAN MENDALAM');
-  const [topikMateri, setTopikMateri] = useState(modul.topikMateri || (modul.kegiatanPembelajaran[0]?.fokusTP || ''));
+  const [judulModul, setJudulModul] = useState(modul?.judulModul || 'RENCANA PEMBELAJARAN MENDALAM');
+  const [topikMateri, setTopikMateri] = useState(modul?.topikMateri || (modul?.kegiatanPembelajaran?.[0]?.fokusTP || ''));
   const initialAlokasi = (() => {
-    const raw = modul.alokasiWaktuPertemuan || modul.identitas.alokasiWaktuModul || '2 x 35 Menit (1 kali pertemuan)';
-    const parsed = parseTotalJPAndCount(modul, raw);
+    const raw = modul?.alokasiWaktuPertemuan || modul?.identitas?.alokasiWaktuModul || '2 x 35 Menit (1 kali pertemuan)';
+    const parsed = parseTotalJPAndCount(modul || {} as any, raw);
     return parsed.formattedIdentityAlokasi || raw;
   })();
   const [alokasiWaktu, setAlokasiWaktu] = useState(initialAlokasi);
-  const [tahunPelajaran, setTahunPelajaran] = useState(modul.identitas.tahunPelajaran || '2024/2025');
-  const [semester, setSemester] = useState(modul.identitas.semester || '1');
+  const [tahunPelajaran, setTahunPelajaran] = useState(modul?.identitas?.tahunPelajaran || '2026/2027');
+  const [semester, setSemester] = useState(modul?.identitas?.semester || '1');
   const [selectedFormat, setSelectedFormat] = useState<'rpm' | 'standar'>('rpm');
   const [rpmDisplayMode, setRpmDisplayMode] = useState<'canvas' | 'dokumen'>('canvas');
 
   // State untuk Pemanfaatan Teknologi Digital & Media yang bisa diedit / ditambah manual
   const initialTech = useMemo(() => {
-    const norm = normalizeRPMData(modul);
+    const norm = normalizeRPMData(modul || {} as any);
     return norm.dsData.pemanfaatanTeknologi;
   }, [modul]);
 
@@ -78,13 +78,14 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
   const [promptModalPertemuan, setPromptModalPertemuan] = useState<number | undefined>();
 
   useEffect(() => {
+    if (!modul) return;
     setJudulModul(modul.judulModul || 'RENCANA PEMBELAJARAN MENDALAM');
-    setTopikMateri(modul.topikMateri || (modul.kegiatanPembelajaran[0]?.fokusTP || ''));
-    const raw = modul.alokasiWaktuPertemuan || modul.identitas.alokasiWaktuModul || '2 x 35 Menit (1 kali pertemuan)';
+    setTopikMateri(modul.topikMateri || (modul.kegiatanPembelajaran?.[0]?.fokusTP || ''));
+    const raw = modul.alokasiWaktuPertemuan || modul.identitas?.alokasiWaktuModul || '2 x 35 Menit (1 kali pertemuan)';
     const parsed = parseTotalJPAndCount(modul, raw);
     setAlokasiWaktu(parsed.formattedIdentityAlokasi || raw);
-    setTahunPelajaran(modul.identitas.tahunPelajaran || '2024/2025');
-    setSemester(modul.identitas.semester || '1');
+    setTahunPelajaran(modul.identitas?.tahunPelajaran || '2026/2027');
+    setSemester(modul.identitas?.semester || '1');
     const norm = normalizeRPMData(modul);
     setPemanfaatanTeknologi(norm.dsData.pemanfaatanTeknologi);
   }, [modul]);
@@ -431,7 +432,7 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
               : 'text-slate-700 hover:text-slate-950 hover:bg-slate-200'
           }`}
         >
-          Kegiatan Pembelajaran ({modul.kegiatanPembelajaran.length} Pertemuan)
+          Kegiatan Pembelajaran ({(modul.kegiatanPembelajaran || []).length} Pertemuan)
         </button>
         <button
           onClick={() => setActiveTab('asesmen')}
@@ -548,10 +549,10 @@ export const ModulAjarView: React.FC<ModulAjarViewProps> = ({
                 MODUL AJAR KURIKULUM MERDEKA
               </h1>
               <h2 className="text-[12pt] font-bold text-slate-800 tracking-wide uppercase leading-normal">
-                MATA PELAJARAN: {modul.identitas.mataPelajaran.toUpperCase()}
+                MATA PELAJARAN: {(modul.identitas?.mataPelajaran || '').toUpperCase()}
               </h2>
               <p className="text-[11pt] sm:text-[12pt] text-slate-700 font-normal leading-normal">
-                {modul.identitas.namaSatuanPendidikan || 'Satuan Pendidikan'} • {modul.identitas.fase} - Kelas {modul.identitas.kelas} • Tahun Pelajaran {modul.identitas.tahunPelajaran}
+                {modul.identitas?.namaSatuanPendidikan || 'Satuan Pendidikan'} • {modul.identitas?.fase} - Kelas {modul.identitas?.kelas} • Tahun Pelajaran {modul.identitas?.tahunPelajaran || '2026/2027'}
               </p>
             </div>
 
