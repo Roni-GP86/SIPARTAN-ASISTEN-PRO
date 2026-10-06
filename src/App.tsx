@@ -2387,29 +2387,16 @@ export default function App() {
               </button>
             </div>
 
-            {/* Quick Button for Teacher: Pantauan Hasil CBT & Rekap Nilai PDF */}
+            {/* Quick Indicator for Teacher: AutoSave & Data Integrity */}
             {portalMode === 'guru' && (
-              <>
-                <button
-                  type="button"
-                  id="btn-header-pantauan-cbt"
-                  onClick={() => setIsExamMonitoringModalOpen(true)}
-                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border-2 border-emerald-500/60 hover:border-emerald-400 text-emerald-300 text-xs font-black shadow-xs transition-all cursor-pointer"
-                  title="Pantau Hasil CBT Peserta Didik di Perangkat Mereka & Unduh Laporan Nilai PDF"
-                >
-                  <span>📊</span>
-                  <span className="truncate max-w-[135px]">Pantauan CBT &amp; PDF</span>
-                </button>
-
-                <div className="hidden sm:inline-block">
-                  <AutoSaveIndicator
-                    schoolName={identitas.namaSatuanPendidikan}
-                    onResetToDefault={handleResetToDefault}
-                    onRestoreFromBackup={handleRestoreFromBackup}
-                    onOpenDataIntegrity={() => setIsDataIntegrityModalOpen(true)}
-                  />
-                </div>
-              </>
+              <div className="hidden sm:inline-block">
+                <AutoSaveIndicator
+                  schoolName={identitas.namaSatuanPendidikan}
+                  onResetToDefault={handleResetToDefault}
+                  onRestoreFromBackup={handleRestoreFromBackup}
+                  onOpenDataIntegrity={() => setIsDataIntegrityModalOpen(true)}
+                />
+              </div>
             )}
 
             {/* Active Code or Masuk ke SIPARTAN Gate Button */}
@@ -2475,18 +2462,6 @@ export default function App() {
               </button>
             )}
 
-            {/* Akses Cepat Daftar Murid Kelas (Data Siswa SD Negeri Fatubai) */}
-            <button
-              id="header-student-manager-btn"
-              type="button"
-              onClick={() => setIsStudentManagerOpen(true)}
-              className="px-2.5 py-1.5 text-xs font-bold text-sky-300 bg-[#0E1B38] hover:bg-[#122244] hover:text-sky-200 border-2 border-sky-500/50 hover:border-sky-400 rounded-lg shadow-xs transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
-              title={`Lihat & Kelola Daftar Murid Kelas (${getStudentCount()} Siswa SD Negeri Fatubai)`}
-            >
-              <Users className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span className="hidden xl:inline">Daftar Murid</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-sky-500/25 text-sky-300 border border-sky-500/40">{getStudentCount()} Siswa</span>
-            </button>
 
             <button
               onClick={() => setShowSplash(true)}
