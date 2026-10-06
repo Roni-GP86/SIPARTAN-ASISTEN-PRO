@@ -625,49 +625,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ) : null}
         </button>
 
-        {/* Tab 10: Daftar Murid Kelas (Data Siswa SD Negeri Fatubai) */}
-        <button
-          id="nav-daftar-murid"
-          onClick={() => {
-            if (onOpenStudentManager) {
-              onOpenStudentManager();
-            }
-          }}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all border-2 cursor-pointer text-slate-200 bg-[#0E1B38]/60 hover:bg-[#122347] hover:text-white border-slate-800 hover:border-sky-400/50"
-          title="Lihat & Kelola Daftar Murid Kelas (Data Siswa SD Negeri Fatubai)"
-        >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
-            <span className="text-base shrink-0">👥</span>
-            <span className="truncate font-bold text-xs">10. Daftar Murid Kelas</span>
-          </div>
-          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold shrink-0 shadow-xs bg-sky-500/20 text-sky-300 border border-sky-500/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
-            {getStudentCount()} Siswa
-          </span>
-        </button>
-
-        {/* Tab 11: Pantauan CBT & Laporan PDF Akademis (Multi-Device Guru) */}
-        <button
-          id="nav-pantauan-cbt"
-          onClick={() => {
-            if (onOpenExamMonitoring) {
-              onOpenExamMonitoring();
-            }
-          }}
-          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all border-2 cursor-pointer text-slate-200 bg-gradient-to-r from-emerald-950/60 to-teal-950/40 hover:from-emerald-900/70 hover:to-teal-900/60 hover:text-white border-emerald-700/60 hover:border-emerald-400 shadow-xs"
-          title="Pantau Hasil CBT Peserta Didik di Perangkat Mereka & Unduh Laporan Nilai PDF Rapi Akademis"
-        >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
-            <span className="text-base shrink-0">📊</span>
-            <span className="truncate font-bold text-xs">11. Pantauan CBT & PDF</span>
-          </div>
-          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold shrink-0 shadow-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Real-Time
-          </span>
-        </button>
-
-        {/* Tab 12: Analisis Nilai Rapor & Deskripsi Kemajuan Belajar (Format Kurikulum Merdeka) */}
+        {/* Tab 10: Analisis Nilai Rapor & Deskripsi Kemajuan Belajar (Format Kurikulum Merdeka) */}
         <button
           id="nav-analisis-rapor"
           onClick={() => onSelectTab('rapor')}
@@ -680,7 +638,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
             <span className="text-base shrink-0">📈</span>
-            <span className="truncate font-bold text-xs">12. Analisis Nilai Rapor</span>
+            <span className="truncate font-bold text-xs">10. Analisis Nilai Rapor</span>
           </div>
           <span className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold shrink-0 shadow-xs ${
             currentTab === 'rapor'
@@ -692,7 +650,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </button>
 
-        {/* Tab 13: Kamar Bahan Ajar Murid (Unggah Materi & Offline Ready) */}
+        {/* Tab 11: Kamar Bahan Ajar Murid (Unggah Materi & Offline Ready) */}
         <button
           id="nav-kamar-bahan-ajar"
           onClick={() => {
@@ -707,11 +665,53 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
             <span className="text-base shrink-0">📚</span>
-            <span className="truncate font-bold text-xs">13. Kamar Bahan Ajar (Guru)</span>
+            <span className="truncate font-bold text-xs">11. Kamar Bahan Ajar (Guru)</span>
           </div>
           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold shrink-0 shadow-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
             Unggah/Kelola
+          </span>
+        </button>
+
+        {/* Tab 12: Daftar Murid Kelas (Data Siswa SD Negeri Fatubai) */}
+        <button
+          id="nav-daftar-murid"
+          onClick={() => {
+            if (onOpenStudentManager) {
+              onOpenStudentManager();
+            }
+          }}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all border-2 cursor-pointer text-slate-200 bg-[#0E1B38]/60 hover:bg-[#122347] hover:text-white border-slate-800 hover:border-sky-400/50"
+          title="Lihat & Kelola Daftar Murid Kelas (Data Siswa SD Negeri Fatubai)"
+        >
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
+            <span className="text-base shrink-0">👥</span>
+            <span className="truncate font-bold text-xs">12. Daftar Murid Kelas</span>
+          </div>
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold shrink-0 shadow-xs bg-sky-500/20 text-sky-300 border border-sky-500/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400"></span>
+            {getStudentCount()} Siswa
+          </span>
+        </button>
+
+        {/* Tab 13: Pantauan CBT & Laporan PDF Akademis (Multi-Device Guru) */}
+        <button
+          id="nav-pantauan-cbt"
+          onClick={() => {
+            if (onOpenExamMonitoring) {
+              onOpenExamMonitoring();
+            }
+          }}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all border-2 cursor-pointer text-slate-200 bg-gradient-to-r from-emerald-950/60 to-teal-950/40 hover:from-emerald-900/70 hover:to-teal-900/60 hover:text-white border-emerald-700/60 hover:border-emerald-400 shadow-xs"
+          title="Pantau Hasil CBT Peserta Didik di Perangkat Mereka & Unduh Laporan Nilai PDF Rapi Akademis"
+        >
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
+            <span className="text-base shrink-0">📊</span>
+            <span className="truncate font-bold text-xs">13. Pantauan CBT & PDF</span>
+          </div>
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-extrabold shrink-0 shadow-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Real-Time
           </span>
         </button>
 

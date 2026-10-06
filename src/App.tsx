@@ -2356,37 +2356,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {/* PORTAL SWITCHER: RUANG GURU VS RUANG MURID */}
-            <div className="flex items-center p-0.5 bg-[#070e1c] border-2 border-blue-500/40 rounded-lg shadow-xs">
-              <button
-                type="button"
-                id="btn-switch-portal-guru"
-                onClick={() => handleSwitchPortalMode('guru')}
-                className={`px-2.5 py-1 rounded-md text-xs font-black flex items-center gap-1 transition-all cursor-pointer ${
-                  portalMode === 'guru'
-                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xs'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-                title="Buka Ruang Guru (Dokumen Kurikulum, CP, TP, ATP, KKTP, Modul, Soal)"
-              >
-                <span>🏫</span>
-                <span className="hidden sm:inline">Ruang Guru</span>
-              </button>
-              <button
-                type="button"
-                id="btn-switch-portal-murid"
-                onClick={() => handleSwitchPortalMode('murid')}
-                className={`px-2.5 py-1 rounded-md text-xs font-black flex items-center gap-1 transition-all cursor-pointer ${
-                  portalMode === 'murid'
-                    ? 'bg-gradient-to-r from-sky-500 to-emerald-600 text-white shadow-xs'
-                    : 'text-slate-300 hover:text-white'
-                }`}
-                title="Buka Ruang Murid (Bahan Bacaan Infografis, Ruang Ujian CBT & Nilai)"
-              >
-                <span>🎓</span>
-                <span className="hidden sm:inline">Ruang Murid</span>
-              </button>
-            </div>
 
             {/* Quick Indicator for Teacher: AutoSave & Data Integrity */}
             {portalMode === 'guru' && (
